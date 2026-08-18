@@ -8,7 +8,6 @@ function rng(seed){let a=seed>>>0;return()=>{let t=a+=0x6D2B79F5;t=Math.imul(t^t
 function clamp(x,a,b){return Math.max(a,Math.min(b,x))}
 function newSeed(){runCounter++;let x=(Date.now()^(runCounter*2654435761))>>>0;try{const a=new Uint32Array(1);crypto.getRandomValues(a);x^=a[0]}catch{}return x>>>0}
 function fmt(x){return Number(x).toFixed(Number(x)%1?1:0)}
-function half(x){return Math.round(Number(x)*2)/2}
 function mealClass(v){return v<=.5?'low':v<.9?'reduced':''}
 function bgStyle(v){return v<70?'color:#c53a3a':v>180?'color:#b86b15':''}
 function clock(minute){const m=((Math.round(minute)%1440)+1440)%1440;return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`}
@@ -68,7 +67,7 @@ function renderHistory(){
       <div style="font-size:9px;font-weight:750;color:#6c727c;margin:9px 0 2px">処方</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:#f6f7f9;border-radius:11px">${historyCell('朝',fmt(o.breakfast_u),'U')}${historyCell('昼',fmt(o.lunch_u),'U')}${historyCell('夕',fmt(o.dinner_u),'U')}${historyCell('眠前',fmt(o.basal_u),'U basal')}</div>
       <div style="font-size:9px;font-weight:750;color:#6c727c;margin:9px 0 2px">結果4検</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:#f6f7f9;border-radius:11px">${historyCell('朝前',Math.round(b.pre_breakfast),'mg/dL',bgStyle(b.pre_breakfast))}${historyCell('昼前',Math.round(b.pre_lunch),'mg/dL',bgStyle(b.pre_lunch))}${historyCell('夕前',Math.round(b.pre_dinner),'mg/dL',bgStyle(b.pre_dinner))}${historyCell('眠前',Math.round(b.bedtime),'mg/dL',bgStyle(b.bedtime))}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:#f6f7f9;border-radius:11px">${historyCell('朝前',Math.round(b.pre_breakfast),'mg/dL',bgStyle(b.pre_breakfast))}${historyCell('昼前',Math.round(b.pre_lrelunch),'mg/dL',bgStyle(b.pre_lunch))}${historyCell('夕前',Math.round(b.pre_dinner),'mg/dL',bgStyle(b.pre_dinner))}${historyCell('眠前',Math.round(b.bedtime),'mg/dL',bgStyle(b.bedtime))}</div>
     </div>`;
   }).join('');
 }
@@ -83,7 +82,7 @@ function render(){
   $('#mealGrid').innerHTML=mealCards(s.prevIntake);
   $('#todayMealGrid').innerHTML=mealCards(s.currentIntake);
   $('#prevDoseGrid').innerHTML=Object.entries(s.prevOrder).map(([k,v])=>`<div class="prev-dose"><div class="name">${doseLabels[k]}</div><div class="value">${fmt(v)} U</div></div>`).join('');
-  $('#doseGrid').innerHTML=Object.entries(s.prevOrder).map(([k,v])=>`<div class="dose-input-card"><label>${doseLabels[k]}</label><div class="input-wrap"><input inputmode="decimal" type="number" min="0" max="80" step="0.5" id="dose_${k}" value="${fmt(half(v))}"><span class="unit-u">U</span></div></div>`).join('');
+  $('#doseGrid').innerHTML=Object.entries(s.prevOrder).map(([k,v])=>`<div class="dose-input-card"><label>${doseLabels[k]}</label><div class="input-wrap"><input inputmode="numeric" type="number" min="0" max="80" step="1" id="dose_${k}" value="${Math.round(v)}"><span class="unit-u">U</span></div></div>`).join('');
   $('#resultPanel').className='result-panel hidden';
   $('#submitBtn').disabled=s.over;
   renderHistory();
@@ -94,8 +93,8 @@ function readOrder(){
   for(const k of Object.keys(state.prevOrder)){
     let v=Number($('#dose_'+k).value);
     if(!Number.isFinite(v)||v<0)v=0;
-    o[k]=half(v);
-    $('#dose_'+k).value=fmt(o[k]);
+    o[k]=Math.round(v);
+    $('#dose_'+k).value=String(o[k]);
   }
   return o;
 }
