@@ -1,15 +1,40 @@
 (function(){
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
-function randn(r){let u=0,v=0;while(!u)u=r();while(!v)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
-function gamma2(t50,h){const th=Math.max(t50/1.67835,2),k=[];let s=0;for(let i=0;i<h;i++){const t=i+.5,v=(t/(th*th))*Math.exp(-t/th);k.push(v);s+=v}return k.map(v=>v/s)}
-function logGamma(z){const c=[676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-.13857109526572012,9.984369578019571e-6,1.5056327351493116e-7];if(z<.5)return Math.log(Math.PI)-Math.log(Math.sin(Math.PI*z))-logGamma(1-z);z-=1;let x=.9999999999998099;for(let i=0;i<c.length;i++)x+=c[i]/(z+i+1);let t=z+c.length-.5;return .5*Math.log(2*Math.PI)+(z+.5)*Math.log(t)-t+Math.log(x)}
-function insulinKernel(peak,half,h=960){peak=Math.max(peak,20);const tau=Math.max(half/Math.log(2),peak*.75),scale=Math.max(tau/3.5,8),shape=Math.max(1.25,1+peak/scale);let k=[],s=0;for(let i=0;i<h;i++){const t=i+.5;const logk=(shape-1)*Math.log(t)-t/scale-shape*Math.log(scale)-logGamma(shape);const v=Math.exp(logk);k.push(v);s+=v}return k.map(v=>v/s)}
-function conv(n,events,k){const out=new Float64Array(n);for(const [m,a] of events){for(let j=0;j<k.length&&m+j<n;j++)out[m+j]+=a*k[j]}return out}
-function mealKernel(p){const h=Math.max(720,Math.floor(p.meal_t50_slow_min*5));const f=gamma2(p.meal_t50_fast_min,h),s=gamma2(p.meal_t50_slow_min,h),q=p.meal_fast_fraction;return f.map((v,i)=>q*v+(1-q)*s[i])}
-function steroidProfile(n,mg){const a=new Float64Array(n).fill(1);if(mg<=0)return a;const intensity=.12+.38*(1-Math.exp(-mg/25));for(let t=0;t<n;t++){let bump=Math.exp(-.5*Math.pow((t-900)/250,2));if(t<480)bump*=.08;a[t]=clamp(1-intensity*bump,.42,1.05)}return a}
-function renal(egfr){if(egfr>=60)return 1;if(egfr>=30)return 1+(60-egfr)/30*.18;if(egfr>=15)return 1.18+(30-egfr)/15*.17;return 1.35}
-function illness(n,sev,fever){const arr=new Float64Array(n),drop=Math.min(.38,.18*Math.max(0,sev)+.055*Math.max(0,fever-37));for(let t=0;t<n;t++){const x=clamp((t-360)/900,0,1),day=.75+.25*Math.pow(Math.sin(Math.PI*x),2);arr[t]=clamp(1-drop*day,.55,1)}return arr}
-function simulate(p,ctx,rapidOrder,previousBasal,seed,startG){const r=mulberry32(seed>>>0),n=1441;const mealPlan=[[450,ctx.meal_plan_carb_g.breakfast*ctx.intake_fraction.breakfast],[720,ctx.meal_plan_carb_g.lunch*ctx.intake_fraction.lunch],[1080,ctx.meal_plan_carb_g.dinner*ctx.intake_fraction.dinner]];const doses=[rapidOrder.breakfast_u,rapidOrder.lunch_u,rapidOrder.dinner_u];const rapid=[];for(let i=0;i<3;i++){const mt=mealPlan[i][0];const bt=Math.round(clamp(mt-5+randn(r)*7,mt-30,mt+30));rapid.push([bt,Math.max(0,doses[i])])}const meal=conv(n,mealPlan,mealKernel(p));const ik=insulinKernel(p.insulin_action_peak_min,p.insulin_action_half_life_min);const bol=conv(n,rapid,ik);const basalDev=(previousBasal-p.basal_u_day)/1440;const sp=steroidProfile(n,ctx.prednisolone_mg_am||0),ill=illness(n,ctx.infection_severity||0,ctx.fever_c||36.7),ren=renal(ctx.egfr_ml_min_1_73m2||90);let g=new Float64Array(n);g[0]=startG??p.fasting_setpoint_mg_dl;const restoreHalf=300/clamp(p.egp_suppression_strength,.7,1.35),kr=Math.log(2)/restoreHalf,thr=p.counterreg_threshold_mg_dl,crg=.020*p.counterreg_strength,cg=p.cf_mg_dl_u/p.icr_g_u;let mn=g[0],mx=g[0];for(let t=0;t<n-1;t++){const sens=clamp(sp[t]*ill[t]*ren,.35,1.55);const restore=-kr*(g[t]-p.fasting_setpoint_mg_dl),counter=Math.min(1.8,crg*Math.max(0,thr-g[t])),ins=p.cf_mg_dl_u*(bol[t]+basalDev)*sens;g[t+1]=clamp(g[t]+cg*meal[t]-ins+restore+counter,25,500);mn=Math.min(mn,g[t+1]);mx=Math.max(mx,g[t+1])}const pt={pre_breakfast:420,pre_lunch:690,pre_dinner:1050,bedtime:1290},bg={};for(const k in pt)bg[k]=clamp(g[pt[k]]+randn(r)*4,20,600);return{bg,min:mn,max:mx,end:g[n-1]}}
-window.GlucoseEngine={simulate};
+const POC={pre_breakfast:420,pre_lunch:720,pre_dinner:1080,bedtime:1260};
+const MEAL_TIMES=[480,780,1140];
+const RAPID_TIMES=[465,765,1125];
+
+function gamma2(t50,h){const th=Math.max(Number(t50)/1.67835,2),k=new Float64Array(h);let s=0;for(let i=0;i<h;i++){const t=i+.5,v=(t/(th*th))*Math.exp(-t/th);k[i]=v;s+=v}for(let i=0;i<h;i++)k[i]/=s;return k}
+function mealKernel(p){const h=Math.floor(Math.max(720,p.meal_t50_slow_min*5)),f=gamma2(p.meal_t50_fast_min,h),s=gamma2(p.meal_t50_slow_min,h),q=p.meal_fast_fraction,k=new Float64Array(h);for(let i=0;i<h;i++)k[i]=q*f[i]+(1-q)*s[i];return k}
+function conv(n,events,k){const y=new Float64Array(n);for(const [rawT,a] of events){const t=Math.trunc(rawT),ks=Math.max(0,-t),ys=Math.max(0,t),m=Math.min(k.length-ks,n-ys);for(let j=0;j<m;j++)y[ys+j]+=Number(a)*k[ks+j]}return y}
+function shiftedGammaTaper(onset,peak,duration,h=900,shape=3){const sh=Math.max(shape,1.05),theta=Math.max((peak-onset)/(sh-1),1),k=new Float64Array(h);let sum=0;const taperStart=Math.max(peak,.80*duration);for(let i=0;i<h;i++){const t=i+.5,x=Math.max(t-onset,0);let v=x>0?Math.pow(x,sh-1)*Math.exp(-x/theta):0;let taper=1;if(t>taperStart&&t<duration)taper=.5*(1+Math.cos(Math.PI*(t-taperStart)/(duration-taperStart)));if(t>=duration)taper=0;v*=taper;k[i]=v;sum+=v}if(sum<=0)throw new Error('invalid insulin profile');for(let i=0;i<h;i++)k[i]/=sum;return k}
+function regularKernel(h=900){const core=shiftedGammaTaper(30,180,300,h,3),tail=new Float64Array(h);let ts=0;for(let i=0;i<h;i++){const t=i+.5;if(t>=300&&t<480){tail[i]=(480-t)/180;ts+=tail[i]}}if(ts>0)for(let i=0;i<h;i++)tail[i]/=ts;const k=new Float64Array(h);let s=0;for(let i=0;i<h;i++){k[i]=.96*core[i]+.04*tail[i];s+=k[i]}for(let i=0;i<h;i++)k[i]/=s;return k}
+function rapidKernel(name='aspart',h=900){const n=String(name).toLowerCase().replaceAll(' ','_');if(['regular','humulin','humulin_r','human_regular','insulin_human'].includes(n))return regularKernel(h);if(['lyumjev','lispro-aabc','insulin_lispro-aabc'].includes(n))return shiftedGammaTaper(5,95,276,h,3);if(['aspart','novolog','novorapid','insulin_aspart'].includes(n))return shiftedGammaTaper(15,105,300,h,3);throw new Error('unknown rapid formulation: '+name)}
+function basalKernel(name='glargine',h=1800){const n=String(name).toLowerCase().replaceAll(' ','_');if(!['glargine','lantus','insulin_glargine','glargine_u100'].includes(n))throw new Error('unsupported basal formulation: '+name);const k=new Float64Array(h);let s=0;for(let t=0;t<h;t++){let v=0;if(t>=60&&t<180)v=(t-60)/120;else if(t>=180&&t<1260)v=1;else if(t>=1260&&t<1500)v=1-(t-1260)/240;k[t]=v;s+=v}for(let i=0;i<h;i++)k[i]/=s;return k}
+function restoreK(p){return Math.log(2)/(300/clamp(p.egp_suppression_strength,.70,1.35))}
+function unitResponseAt(p,kernel,minutes=240){const u=new Float64Array(minutes+1);for(let i=0;i<Math.min(kernel.length,u.length);i++)u[i]=kernel[i];const kh=restoreK(p);let d=0;for(let t=0;t<minutes;t++)d+=(-u[t]-kh*d);return Math.max(1e-6,-d)}
+function insulinGain(p){const ref=rapidKernel('aspart');return p.cf_mg_dl_u/unitResponseAt(p,ref,240)}
+function infectionSensitivity(severity){const s=clamp(Number(severity)||0,0,1);return 1-.50*Math.pow(s,1.25)}
+function infectionHepaticDrive(severity){const s=clamp(Number(severity)||0,0,1);return .020*Math.pow(s,1.4)}
+function steroidShape(minute){const a=[[0,.05],[360,.05],[600,.15],[720,.45],[960,1],[1260,.95],[1440,.25]],m=((Number(minute)%1440)+1440)%1440;for(let i=1;i<a.length;i++){if(m<=a[i][0]){const [x0,y0]=a[i-1],[x1,y1]=a[i],w=(m-x0)/(x1-x0);return y0+w*(y1-y0)}}return .25}
+function steroidSensitivity(minute,prednisoneMg,response=.69){const dose=Math.max(0,Number(prednisoneMg)||0),r=clamp(Number(response),.30,1),resistance=r*dose/60*steroidShape(minute);return 1/(1+resistance)}
+
+function simulate(p,ctx,rapidOrder,previousBasal,_seed,startG){
+  const n=1441,mealPlan=ctx.meal_plan_carb_g||{breakfast:50,lunch:70,dinner:60},intake=ctx.intake_fraction||{breakfast:1,lunch:1,dinner:1};
+  const mealEvents=[[MEAL_TIMES[0],mealPlan.breakfast*intake.breakfast],[MEAL_TIMES[1],mealPlan.lunch*intake.lunch],[MEAL_TIMES[2],mealPlan.dinner*intake.dinner]];
+  const bolusEvents=[[RAPID_TIMES[0],rapidOrder.breakfast_u],[RAPID_TIMES[1],rapidOrder.lunch_u],[RAPID_TIMES[2],rapidOrder.dinner_u]];
+  const rk=rapidKernel(ctx.rapid_formulation||'aspart'),bk=basalKernel(ctx.basal_formulation||'glargine'),mk=mealKernel(p);
+  const meal=conv(n,mealEvents,mk),bol=conv(n,bolusEvents,rk),basalDelta=conv(n,[[-120,Number(previousBasal)-Number(p.basal_u_day)]],bk);
+  const ig=insulinGain(p),cg=ig/p.icr_g_u,kh=restoreK(p),infScale=infectionSensitivity(ctx.infection_severity||0),hepatic=infectionHepaticDrive(ctx.infection_severity||0),prednisone=ctx.prednisone_mg??ctx.prednisolone_mg_am??0,response=ctx.patient_steroid_response??.69;
+  const g=new Float64Array(n);g[0]=startG==null?p.fasting_setpoint_mg_dl:Number(startG);let mn=g[0],mx=g[0];
+  for(let t=0;t<n-1;t++){
+    const insulinScale=infScale*steroidSensitivity(t,prednisone,response),restore=-kh*(g[t]-p.fasting_setpoint_mg_dl),counter=Math.min(1.8,.020*p.counterreg_strength*Math.max(0,p.counterreg_threshold_mg_dl-g[t]));
+    g[t+1]=g[t]+cg*meal[t]-ig*insulinScale*bol[t]-ig*insulinScale*basalDelta[t]+restore+counter+hepatic;
+    if(g[t+1]<mn)mn=g[t+1];if(g[t+1]>mx)mx=g[t+1];
+  }
+  const bg={};for(const k in POC)bg[k]=g[POC[k]];
+  return{bg,min:mn,max:mx,end:g[n-1],series:g};
+}
+
+window.GlucoseEngine={simulate,version:'0.94-browser-port',POC_TIMES:POC};
 })();
