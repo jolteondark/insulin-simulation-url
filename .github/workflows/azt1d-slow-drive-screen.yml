@@ -1,0 +1,35 @@
+name: T1DM slow-drive memory screen
+
+on:
+  push:
+    branches: [validation/azt1d-acf-20260819]
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/azt1d-slow-drive-screen.yml']
+permissions: {contents: read}
+jobs:
+  screen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - shell: bash
+        run: |
+          node <<'JS'
+          const fs=require('fs'),vm=require('vm');const E=fs.readFileSync('engine.js','utf8'),G=fs.readFileSync('patient_generator.js','utf8');
+          const T={30:.8627021804030711,60:.6351287169138964,120:.21844683502175127,240:.007311763980037047},L=[30,60,120,240],N=250;
+          function ctx(src){const c={console,Float64Array,Math,Number,String,Object,Array,JSON,Date,Set,Map};c.window=c;c.globalThis=c;vm.createContext(c);vm.runInContext(src,c);return c}
+          const b=ctx(E);vm.runInContext(G,b);const C=[];for(let i=0;i<N;i++){const seed=930001+i,x=b.PatientGenerator.generate(seed);C.push({seed,p:structuredClone(x.patient),c:structuredClone(x.case)})}
+          function drive(sd,hl){
+            const init='const g=new Float64Array(n);g[0]=startG==null?p.fasting_setpoint_mg_dl:Number(startG);let mn=g[0],mx=g[0];';
+            const upd='g[t+1]=g[t]+cg*meal[t]-ig*insulinScale*bol[t]-ig*insulinScale*basalDelta[t]+restore+counter+hepatic;';
+            if(!E.includes(init)||!E.includes(upd))throw Error('engine signature');
+            const extra=`${init}let __a=((Number(_seed)||1)>>>0)||1,__drv=0,__spare=null;const __u=()=>{let t=__a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296},__z=()=>{if(__spare!==null){const z=__spare;__spare=null;return z}let u=0,v=0;while(!u)u=__u();while(!v)v=__u();const r=Math.sqrt(-2*Math.log(u)),th=2*Math.PI*v;__spare=r*Math.sin(th);return r*Math.cos(th)};const __phi=Math.exp(-Math.log(2)/${hl}),__eps=${sd}*Math.sqrt(1-__phi*__phi);`;
+            return E.replace(init,extra).replace(upd,`__drv=__phi*__drv+__eps*__z();${upd.replace('+hepatic;','+hepatic+__drv;')}`);
+          }
+          function cor(a,b){let n=a.length,sx=0,sy=0,sxx=0,syy=0,sxy=0;for(let i=0;i<n;i++){let x=a[i],y=b[i];sx+=x;sy+=y;sxx+=x*x;syy+=y*y;sxy+=x*y}return(n*sxy-sx*sy)/Math.sqrt((n*sxx-sx*sx)*(n*syy-sy*sy))}function med(a){a.sort((x,y)=>x-y);return a.length%2?a[(a.length-1)/2]:(a[a.length/2-1]+a[a.length/2])/2}
+          function run(name,src){const q=ctx(src),A=Object.fromEntries(L.map(l=>[l,[]]));let n=0,sum=0,sum2=0,tir=0,lo=0,hi=0,lo54=0,hi250=0;for(const z of C){const o=z.c.previous_order_u,r=q.GlucoseEngine.simulate(z.p,z.c,{breakfast_u:o.breakfast_u,lunch_u:o.lunch_u,dinner_u:o.dinner_u},o.basal_u,z.seed,z.c.previous_day_end_glucose_mg_dl),s=[];for(let t=0;t<r.series.length;t+=5)s.push(r.series[t]);for(const l of L){let k=l/5;A[l].push(cor(s.slice(0,-k),s.slice(k)))}for(const g of s){n++;sum+=g;sum2+=g*g;if(g>=70&&g<=180)tir++;if(g<70)lo++;if(g<54)lo54++;if(g>180)hi++;if(g>250)hi250++}}let m=sum/n,sd=Math.sqrt((sum2-sum*sum/n)/(n-1)),acf=Object.fromEntries(L.map(l=>[l,med(A[l])]));let rmse=Math.sqrt(L.reduce((v,l)=>v+(acf[l]-T[l])**2,0)/4);return{name,acf,rmse,mean:m,sd,cv:100*sd/m,TIR:100*tir/n,TBR70:100*lo/n,TBR54:100*lo54/n,TAR180:100*hi/n,TAR250:100*hi250/n}}
+          const R=[run('baseline',E),run('drive_sd0.01_hl8h',drive(.01,480)),run('drive_sd0.02_hl8h',drive(.02,480)),run('drive_sd0.04_hl8h',drive(.04,480)),run('drive_sd0.02_hl12h',drive(.02,720)),run('drive_sd0.04_hl12h',drive(.04,720))];fs.writeFileSync('slow-drive.json',JSON.stringify({target:T,results:R},null,2));console.log('SLOW_DRIVE_BEGIN');console.log(JSON.stringify({target:T,results:R},null,2));console.log('SLOW_DRIVE_END');
+          JS
+      - uses: actions/upload-artifact@v4
+        with: {name: slow-drive-screen, path: slow-drive.json}
