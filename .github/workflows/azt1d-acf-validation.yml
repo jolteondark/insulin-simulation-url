@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - validation/azt1d-acf-20260819
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/azt1d-acf-validation.yml'
 
 permissions:
   contents: read
@@ -19,7 +24,7 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import csv, datetime as dt, hashlib, io, json, math, os, statistics, urllib.request, zipfile
+          import csv, datetime as dt, hashlib, io, json, math, statistics, urllib.request, zipfile
           from pathlib import Path
 
           URL = "https://raw.githubusercontent.com/Augmented-Health-Lab/Glucose-ML-Project/main/3_Glucose-ML-collection/AZT1D/AZT1D-from-Glucose-ML.zip"
@@ -65,9 +70,8 @@ jobs:
           pooled = []
           for member in sorted(members):
               text = z.read(member).decode('utf-8-sig')
-              rows = list(csv.DictReader(io.StringIO(text)))
               by_time = {}
-              for row in rows:
+              for row in csv.DictReader(io.StringIO(text)):
                   if 'timestamp' not in row or 'glucose_value_mg_dl' not in row:
                       continue
                   try:
@@ -79,8 +83,7 @@ jobs:
                       by_time[t] = g
                       pooled.append(g)
               times = sorted(by_time)
-              acf = {}
-              pairs = {}
+              acf = {}; pairs = {}
               for lag in LAGS:
                   xs=[]; ys=[]; delta=dt.timedelta(minutes=lag)
                   for t in times:
@@ -91,20 +94,19 @@ jobs:
                   pairs[str(lag)] = len(xs)
               patients.append({"patient":Path(member).stem,"n":len(times),"acf":acf,"pairs":pairs})
 
-          med = {}
-          q25 = {}; q75 = {}
+          def quantile(v,p):
+              if len(v)==1:return v[0]
+              x=(len(v)-1)*p; lo=math.floor(x); hi=math.ceil(x)
+              if lo==hi:return v[lo]
+              return v[lo]*(hi-x)+v[hi]*(x-lo)
+
+          med = {}; q25 = {}; q75 = {}
           for lag in LAGS:
               vals = sorted(p['acf'][str(lag)] for p in patients if p['acf'][str(lag)] is not None)
               med[str(lag)] = statistics.median(vals)
-              def quantile(v,p):
-                  if len(v)==1:return v[0]
-                  x=(len(v)-1)*p; lo=math.floor(x); hi=math.ceil(x)
-                  if lo==hi:return v[lo]
-                  return v[lo]*(hi-x)+v[hi]*(x-lo)
               q25[str(lag)] = quantile(vals,.25); q75[str(lag)] = quantile(vals,.75)
 
-          mean = statistics.fmean(pooled)
-          sd = statistics.stdev(pooled)
+          mean = statistics.fmean(pooled); sd = statistics.stdev(pooled)
           ranges = {
               "TIR_70_180_percent":100*sum(70 <= g <= 180 for g in pooled)/len(pooled),
               "TBR_lt70_percent":100*sum(g < 70 for g in pooled)/len(pooled),
@@ -117,21 +119,17 @@ jobs:
               obs=med[str(lag)]; delta=obs-MODEL[lag]
               comparisons[str(lag)]={"observed":obs,"model":MODEL[lag],"delta_observed_minus_model":delta,"class":classify(delta)}
 
-          same_direction = (comparisons['60']['delta_observed_minus_model'] > 0.20 and comparisons['120']['delta_observed_minus_model'] > 0.20)
+          same_direction = comparisons['60']['delta_observed_minus_model'] > 0.20 and comparisons['120']['delta_observed_minus_model'] > 0.20
           out = {
               "status":"SECOND_INDEPENDENT_COHORT_ANALYZED_FROM_PUBLIC_HARMONIZED_CGM",
               "source":"Glucose-ML harmonized AZT1D participant CSVs; original AZT1D CC BY 4.0",
-              "source_zip_sha256":sha256,
-              "patients":len(patients),"cgm_points":len(pooled),
+              "source_zip_sha256":sha256,"patients":len(patients),"cgm_points":len(pooled),
               "method":"exact timestamp pairs at 30/60/120/240 min; no interpolation performed by this analysis",
               "caveat":"harmonized derivative, not official raw AZT1D archive; formal raw Tier-A status remains separate",
               "mean_mg_dL":mean,"sd_mg_dL":sd,"cv_percent":100*sd/mean,
-              **ranges,
-              "patient_median_acf":med,"patient_acf_q25":q25,"patient_acf_q75":q75,
-              "comparison_vs_frozen_model":comparisons,
-              "T1D_UOM_reference":T1D_UOM,
-              "short_memory_same_direction_replication":same_direction,
-              "per_patient":patients,
+              **ranges,"patient_median_acf":med,"patient_acf_q25":q25,"patient_acf_q75":q75,
+              "comparison_vs_frozen_model":comparisons,"T1D_UOM_reference":T1D_UOM,
+              "short_memory_same_direction_replication":same_direction,"per_patient":patients,
           }
           Path('azt1d-acf-result.json').write_text(json.dumps(out, indent=2), encoding='utf-8')
           print('AZT1D_VALIDATION_RESULT_BEGIN')
