@@ -19,8 +19,23 @@ Approximate sensitivity-analysis result for this experimental configuration (nom
 
 Interpretation: marginal distribution and safety tails become substantially closer to T1D-UOM, and 1 h / 2 h temporal persistence improves materially versus the frozen model (r60 0.345, r120 -0.425), but 2 h autocorrelation remains materially too low. This is therefore a useful direction, not a validated replacement.
 
+## Mechanism ablation (2026-08-19)
+
+Ablation was run against the same nominal generated-patient protocol to identify which structural change is moving the temporal statistics. The important qualitative findings were:
+
+- Slowing mean reversion alone improves r120 only modestly (approximately -0.42 -> -0.35).
+- Broadening meal absorption alone does not solve the problem and can slightly worsen r120.
+- Broadening the aspart profile is the strongest single deterministic contributor: r60 rises to about 0.42 and r120 to about -0.31, while mean glucose rises strongly.
+- Combining slower restore + broader aspart moves r60 to about 0.51 and r120 to about -0.10, but overshoots mean glucose substantially if meal kinetics are not adjusted.
+- The current small additive slow metabolic drive contributes only a small amount at SD 0.04 mg/dL/min. Increasing its amplitude can make r120 positive, but then mean/SD/TAR become too high; therefore simply increasing additive noise is rejected as a solution.
+- A slowly varying multiplicative insulin-sensitivity state can also make r120 positive at sufficient amplitude, but likewise inflates SD and hyperglycemic tails. This is also rejected as a one-parameter fix.
+- A slowly drifting restore set-point has little effect because restore is intentionally weak in this branch.
+
+Conclusion: the residual 2-hour mismatch is not explained by one coefficient. The frozen model allocates too much variance to fast, regular meal/bolus excursions and too little variance to persistent within-patient metabolic state. The next mechanistic target should redistribute variance from fast oscillatory components into a persistent state while preserving the already-good total SD/CV, rather than merely adding more noise.
+
 ## Rules
 
 - Keep `main` as the frozen baseline.
 - Do not tune further solely to T1D-UOM.
-- Next step is to test this branch unchanged against another independent T1DM CGM dataset before deciding whether to continue this mechanism.
+- Do not increase the additive slow-drive amplitude simply to match r120; that damages marginal distribution and tails.
+- Next step is to test this branch unchanged against another independent T1DM CGM dataset before deciding whether to continue this mechanism, and to use that independent dataset to constrain any persistent-state redesign.
