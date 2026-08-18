@@ -67,7 +67,7 @@ function renderHistory(){
       <div style="font-size:9px;font-weight:750;color:#6c727c;margin:9px 0 2px">処方</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:#f6f7f9;border-radius:11px">${historyCell('朝',fmt(o.breakfast_u),'U')}${historyCell('昼',fmt(o.lunch_u),'U')}${historyCell('夕',fmt(o.dinner_u),'U')}${historyCell('眠前',fmt(o.basal_u),'U basal')}</div>
       <div style="font-size:9px;font-weight:750;color:#6c727c;margin:9px 0 2px">結果4検</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:#f6f7f9;border-radius:11px">${historyCell('朝前',Math.round(b.pre_breakfast),'mg/dL',bgStyle(b.pre_breakfast))}${historyCell('昼前',Math.round(b.pre_lrelunch),'mg/dL',bgStyle(b.pre_lunch))}${historyCell('夕前',Math.round(b.pre_dinner),'mg/dL',bgStyle(b.pre_dinner))}${historyCell('眠前',Math.round(b.bedtime),'mg/dL',bgStyle(b.bedtime))}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:#f6f7f9;border-radius:11px">${historyCell('朝前',Math.round(b.pre_breakfast),'mg/dL',bgStyle(b.pre_breakfast))}${historyCell('昼前',Math.round(b.pre_lunch),'mg/dL',bgStyle(b.pre_lunch))}${historyCell('夕前',Math.round(b.pre_dinner),'mg/dL',bgStyle(b.pre_dinner))}${historyCell('眠前',Math.round(b.bedtime),'mg/dL',bgStyle(b.bedtime))}</div>
     </div>`;
   }).join('');
 }
