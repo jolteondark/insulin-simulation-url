@@ -30,7 +30,7 @@ No renal, circadian, activity, gastric-emptying, or stress-specific state is add
 
 ## Continuity
 
-A simulation day should return an explicit state object:
+A simulation day returns an explicit state object:
 
 ```js
 {
@@ -40,6 +40,16 @@ A simulation day should return an explicit state object:
 ```
 
 The next day starts from that state. A new day must not reset metabolic state to zero or glucose to fasting set-point unless explicitly requested for a stress test.
+
+## Experimental implementation
+
+- `state_space_v2.js`: latent-state evolution and physiology modifiers.
+- `engine_v2.js`: frozen v1 fast core plus the state-layer coupling; returns `next_state`.
+- `validation_v2_runner.html/js`: browser head-to-head runner.
+- `validation_v2_node.js`: exact Node runner using the repository's actual JS engines and patient generator.
+- `.github/workflows/v2-validation.yml`: validation job; result is written to `v2_validation_result.json` and uploaded as an artifact.
+
+The UI still uses v1. v2 is validation-only until it passes external distributional checks.
 
 ## Validation requirements
 
@@ -57,4 +67,4 @@ The goal is not to hit one dataset's exact r120. The state layer is useful only 
 
 ## Current status
 
-`state_space_v2.js` implements the latent-state evolution and physiology modifiers only. It is intentionally not wired into production UI yet. The next step is to integrate it into an experimental stateful engine and run head-to-head validation versus frozen v1.
+The state layer is now wired into a separate experimental engine and an exact v1-v2 validation harness. Production `main` and the game UI remain unchanged. The next decision must be based on head-to-head multi-day metrics, not qualitative inspection.
