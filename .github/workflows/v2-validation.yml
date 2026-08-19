@@ -15,7 +15,11 @@ jobs:
           node-version: '22'
       - name: Run v1 vs v2 validation
         run: node validation_v2_node.js
+      - name: Run OU vs finite-memory state validation
+        run: node validation_state_shape_node.js
       - uses: actions/upload-artifact@v4
         with:
           name: v2-validation-result
-          path: v2_validation_result.json
+          path: |
+            v2_validation_result.json
+            state_shape_validation_result.json
