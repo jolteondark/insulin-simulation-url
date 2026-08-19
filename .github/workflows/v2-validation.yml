@@ -13,6 +13,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Run persistent memory-shape validation first
+        run: node validation_persistent_memory_shape_node.js
       - name: Run v1 vs v2 validation
         run: node validation_v2_node.js
       - name: Run OU vs finite-memory state validation
