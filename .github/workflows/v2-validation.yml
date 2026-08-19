@@ -13,9 +13,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run behavior timing ablation
-        run: N=180 node validation_v092_behavior_timing_ablation_node.js
+      - name: Run rescue behavior ablation
+        run: N=180 node validation_v093_behavior_rescue_ablation_node.js
       - uses: actions/upload-artifact@v4
         with:
-          name: v092-behavior-timing-result
-          path: v092_behavior_timing_ablation_result.json
+          name: v093-behavior-rescue-result
+          path: v093_behavior_rescue_ablation_result.json
