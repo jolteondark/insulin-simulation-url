@@ -7,9 +7,9 @@ for(const memory of memories){
   const old="const N=Number(process.env.N||120),bases=PatientGenerator.sampleCandidates(N,8119,false).map(patient),conds=[];for(const centerSlow of [false,true])for(const shift of [15,5,-5,-15,-25])for(const sigma of [.15,.20])conds.push({centerSlow,shift,sigma});";
   const neu="const N=Number(process.env.N||120),bases=PatientGenerator.sampleCandidates(N,8119,false).map(patient),conds=[{centerSlow:true,shift:-5,sigma:0}];";
   if(!s.includes(old))throw new Error('condition anchor missing');
-  s=s.replace(old,neu).replace("fs.writeFileSync('neutral_icr_slow_centering_result.json'","fs.writeFileSync('/tmp/persistent_memory_'+memory+'.json'");
-  const p='/tmp/persistent_memory_'+memory+'.js';fs.writeFileSync(p,s);cp.execFileSync(process.execPath,[p],{stdio:'ignore',cwd:process.cwd(),env:{...process.env,N:process.env.N||'120'}});
-  const j=JSON.parse(fs.readFileSync('/tmp/persistent_memory_'+memory+'.json','utf8'));
+  s=s.replace(old,neu).replace("fs.writeFileSync('neutral_icr_slow_centering_result.json'",`fs.writeFileSync('/tmp/persistent_memory_${memory}.json'`);
+  const p=`/tmp/persistent_memory_${memory}.js`;fs.writeFileSync(p,s);cp.execFileSync(process.execPath,[p],{stdio:'pipe',cwd:process.cwd(),env:{...process.env,N:process.env.N||'120'}});
+  const j=JSON.parse(fs.readFileSync(`/tmp/persistent_memory_${memory}.json`,'utf8'));
   results.push({memory_min:memory,...j.results[0]});
 }
 const UOM={mean:146.463,sd:56.225,tbr70:2.057,tbr54:.276,tir:76.376,tar180:21.567,acf:[.863,.634,.247,-.012],poc:[121.5,149.1,153.2,154.1],anyLow:7.68,anyHigh:53.77,allTir:43.31};
