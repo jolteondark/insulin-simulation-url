@@ -13,14 +13,32 @@ This document defines the next-stage parameter schema for the T1DM simulator. Th
 
 ## Fixed patient traits (T1DM v2 core)
 
-### Anthropometry
+### Anthropometry / adiposity
 - `height_cm`
 - `weight_kg`
 - `bmi_kg_m2` (derived from height/weight)
+- `adiposity_index` (latent physiological adiposity burden; anchored primarily to BMI, not identical to BMI)
 - `age_years`
 - `sex`
 
-Rationale: weight alone cannot distinguish obesity/adiposity from body size. BMI should influence insulin resistance rather than glucose directly.
+Rationale: weight alone cannot distinguish obesity/adiposity from body size. Obesity should be represented explicitly as an anthropometric/adiposity trait and should not directly add glucose. Instead, adiposity contributes to insulin resistance.
+
+### Insulin resistance / sensitivity
+- `insulin_resistance_index` (dimensionless, patient-level baseline)
+- `insulin_sensitivity_multiplier` (derived engine-facing multiplier)
+- `hepatic_insulin_resistance_component`
+- `peripheral_insulin_resistance_component`
+
+Rationale: obesity and insulin resistance are related but not interchangeable. A lean T1DM patient may still have substantial insulin resistance, while an obese patient need not lie at the extreme of resistance. BMI/adiposity should shift the prior distribution of insulin resistance, while the resistance index itself directly modifies insulin action and insulin requirement.
+
+The first implementation should keep the two components strongly correlated and may collapse them to one effective resistance parameter if data cannot identify them separately. Do not introduce two free knobs solely for fit quality.
+
+Expected downstream relationships:
+- higher adiposity -> higher expected `insulin_resistance_index`
+- higher insulin resistance -> higher `tdd_u_kg_day`
+- higher insulin resistance -> lower effective insulin sensitivity / lower CF
+- higher insulin resistance -> lower ICR (more insulin per gram carbohydrate)
+- insulin resistance may alter basal fraction modestly, but this should be calibrated rather than hard-coded strongly
 
 ### Baseline insulin requirement
 - `tdd_u_kg_day`
@@ -29,7 +47,7 @@ Rationale: weight alone cannot distinguish obesity/adiposity from body size. BMI
 - `icr_g_u_by_meal`: breakfast/lunch/dinner
 - `cf_mg_dl_u_by_time`: morning/day/evening/night
 
-Rationale: a single ICR and CF for the entire day is too restrictive; circadian insulin need is clinically meaningful and can affect four-check joint structure.
+Rationale: a single ICR and CF for the entire day is too restrictive; circadian insulin need is clinically meaningful and can affect four-check joint structure. TDD, ICR and CF should be correlated consequences of underlying insulin resistance/sensitivity rather than independent arbitrary draws.
 
 ### Insulin pharmacodynamics
 - `rapid_onset_min`
@@ -101,12 +119,13 @@ These are not intrinsic patient parameters and should be supplied by the scenari
 
 ### Stage A — add now
 1. height + BMI/adiposity
-2. age + sex
-3. meal-specific ICR
-4. time-of-day CF / circadian insulin need
-5. renal insulin-clearance modifier driven by eGFR
-6. persistent basal-requirement state
-7. meal-level absorption variability
+2. explicit insulin resistance / sensitivity phenotype
+3. age + sex
+4. meal-specific ICR
+5. time-of-day CF / circadian insulin need
+6. renal insulin-clearance modifier driven by eGFR
+7. persistent basal-requirement state
+8. meal-level absorption variability
 
 ### Stage B — only if validation demands it
 - explicit activity/exercise physiology
