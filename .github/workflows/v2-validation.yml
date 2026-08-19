@@ -41,6 +41,8 @@ jobs:
         run: node validation_effective_cf_icr_node.js
       - name: Run neutral-ICR centered generator validation
         run: node validation_neutral_icr_generator_node.js
+      - name: Run neutral ICR slow-state centering validation
+        run: node validation_neutral_icr_slow_centering_node.js
       - name: Run decoupled meal appearance 24h grid
         run: node validation_meal_appearance_24h_node.js
       - name: Run N120 meal appearance finalists
@@ -66,5 +68,6 @@ jobs:
             prandial_ratio_literature_result.json
             effective_cf_icr_result.json
             neutral_icr_generator_result.json
+            neutral_icr_slow_centering_result.json
             meal_appearance_24h_result.json
             meal_appearance_finalists_result.json
