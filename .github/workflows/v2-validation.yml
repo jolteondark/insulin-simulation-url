@@ -37,6 +37,8 @@ jobs:
         run: node validation_prandial_ratio_shrink_node.js
       - name: Run literature-informed CF/ICR joint validation
         run: node validation_prandial_ratio_literature_node.js
+      - name: Run effective CF ICR virtual tests
+        run: node validation_effective_cf_icr_node.js
       - name: Run decoupled meal appearance 24h grid
         run: node validation_meal_appearance_24h_node.js
       - name: Run N120 meal appearance finalists
@@ -60,5 +62,6 @@ jobs:
             patient_hypo_heterogeneity_result.json
             prandial_ratio_shrink_result.json
             prandial_ratio_literature_result.json
+            effective_cf_icr_result.json
             meal_appearance_24h_result.json
             meal_appearance_finalists_result.json
