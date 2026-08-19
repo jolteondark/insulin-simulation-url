@@ -13,9 +13,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run wide biphasic basal requirement state grid
-        run: node validation_v083_biphasic_requirement_state_wide_node.js
+      - name: Run two-component basal requirement state grid
+        run: node validation_v084_two_component_requirement_state_node.js
       - uses: actions/upload-artifact@v4
         with:
-          name: v083-biphasic-wide-result
-          path: v083_biphasic_requirement_state_wide_result.json
+          name: v084-two-component-state-result
+          path: v084_two_component_requirement_state_result.json
