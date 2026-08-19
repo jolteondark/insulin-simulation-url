@@ -45,6 +45,8 @@ jobs:
         run: node validation_neutral_icr_slow_centering_node.js
       - name: Run refined neutral ICR slow compensation grid
         run: node validation_neutral_icr_slow_refine_node.js
+      - name: Run persistent memory-shape validation
+        run: node validation_persistent_memory_shape_node.js
       - name: Run decoupled meal appearance 24h grid
         run: node validation_meal_appearance_24h_node.js
       - name: Run N120 meal appearance finalists
@@ -72,5 +74,6 @@ jobs:
             neutral_icr_generator_result.json
             neutral_icr_slow_centering_result.json
             neutral_icr_slow_refine_result.json
+            persistent_memory_shape_result.json
             meal_appearance_24h_result.json
             meal_appearance_finalists_result.json
