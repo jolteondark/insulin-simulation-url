@@ -23,6 +23,8 @@ jobs:
         run: node validation_meal_appearance_patient_specific_node.js
       - name: Run focused meal saturation decision
         run: node validation_meal_saturation_decision_node.js
+      - name: Run hypoglycemia source ablation
+        run: node validation_hypoglycemia_source_ablation_node.js
       - name: Run decoupled meal appearance 24h grid
         run: node validation_meal_appearance_24h_node.js
       - name: Run N120 meal appearance finalists
@@ -39,5 +41,6 @@ jobs:
             kernel_timing_grid_result.json
             meal_appearance_patient_specific_result.json
             meal_saturation_decision_result.json
+            hypoglycemia_source_ablation_result.json
             meal_appearance_24h_result.json
             meal_appearance_finalists_result.json
