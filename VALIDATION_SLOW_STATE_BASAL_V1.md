@@ -58,7 +58,13 @@ Targeted context-randomization showed:
 
 Interpretation: a major fraction of the apparent temporal-structure failure was likely caused by validation-context mismatch rather than the glucose physiology engine itself. The isolated nominal-day stress test remains useful, but it should not be interpreted as a direct estimate of real-world continuous-CGM autocorrelation. Before introducing additional latent physiology, the primary comparison must be rebuilt as a multi-day simulation with realistic exogenous context (meal timing/intake and previous-day carryover) while separately checking marginal and safety-tail fidelity.
 
-This materially changes priority: first fix the validation protocol, then decide whether any residual physiological slow state is actually needed.
+## Fast-to-slow variance budget sweep (2026-08-19)
+
+A targeted sweep then explicitly reduced the amplitude of the deterministic meal/rapid pair while increasing a slow hepatic-like state, with low-glucose attenuation of negative drive to avoid creating artificial severe hypoglycemia. This was an exploratory mechanism test, not a candidate production implementation.
+
+Best compromise found in the coarse sweep reduced fast excursion amplitude by roughly 25% and used a persistent state with tau about 9 h and SD about 0.055 mg/dL/min. Approximate metrics were: mean 145.5 mg/dL, SD 52.2, TIR 77.0%, TBR<70 2.44%, TBR<54 0.33%, TAR>180 20.5%, TAR>250 5.0%, r30 0.859, r60 0.539, r120 -0.096, r240 -0.017.
+
+This is important because marginal distribution and safety tails can remain close to T1D-UOM while r120 improves substantially from the frozen nominal-day value, but r120 still remains negative. Therefore variance redistribution alone is insufficient: at least one additional piece of temporal physiology or context coupling is needed to obtain the observed positive 2 h persistence without damaging the tails.
 
 ## Practical design implication
 
