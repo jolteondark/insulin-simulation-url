@@ -13,9 +13,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run persistent memory-shape validation
-        run: node validation_persistent_memory_shape_node.js
+      - name: Run persistent memory coupling grid
+        run: node validation_persistent_memory_coupling_node.js
       - uses: actions/upload-artifact@v4
         with:
-          name: persistent-memory-shape-result
-          path: persistent_memory_shape_result.json
+          name: persistent-memory-coupling-result
+          path: persistent_memory_coupling_result.json
