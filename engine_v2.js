@@ -3,7 +3,6 @@ const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const POC={pre_breakfast:420,pre_lunch:720,pre_dinner:1080,bedtime:1260};
 const MEAL_TIMES=[480,780,1140];
 const RAPID_TIMES=[465,765,1125];
-
 function gamma2(t50,h){const th=Math.max(Number(t50)/1.67835,2),k=new Float64Array(h);let s=0;for(let i=0;i<h;i++){const t=i+.5,v=(t/(th*th))*Math.exp(-t/th);k[i]=v;s+=v}for(let i=0;i<h;i++)k[i]/=s;return k}
 function mealKernel(p){const h=Math.floor(Math.max(720,p.meal_t50_slow_min*5)),f=gamma2(p.meal_t50_fast_min,h),s=gamma2(p.meal_t50_slow_min,h),q=p.meal_fast_fraction,k=new Float64Array(h);for(let i=0;i<h;i++)k[i]=q*f[i]+(1-q)*s[i];return k}
 function conv(n,events,k){const y=new Float64Array(n);for(const [rawT,a] of events){const t=Math.trunc(rawT),ks=Math.max(0,-t),ys=Math.max(0,t),m=Math.min(k.length-ks,n-ys);for(let j=0;j<m;j++)y[ys+j]+=Number(a)*k[ks+j]}return y}
@@ -18,7 +17,6 @@ function infectionSensitivity(severity){const s=clamp(Number(severity)||0,0,1);r
 function infectionHepaticDrive(severity){const s=clamp(Number(severity)||0,0,1);return .020*Math.pow(s,1.4)}
 function steroidShape(minute){const a=[[0,.05],[360,.05],[600,.15],[720,.45],[960,1],[1260,.95],[1440,.25]],m=((Number(minute)%1440)+1440)%1440;for(let i=1;i<a.length;i++){if(m<=a[i][0]){const [x0,y0]=a[i-1],[x1,y1]=a[i],w=(m-x0)/(x1-x0);return y0+w*(y1-y0)}}return .25}
 function steroidSensitivity(minute,prednisoneMg,response=.69){const dose=Math.max(0,Number(prednisoneMg)||0),r=clamp(Number(response),.30,1),resistance=r*dose/60*steroidShape(minute);return 1/(1+resistance)}
-
 function simulateV2(p,ctx,rapidOrder,previousBasal,seed,initialState=null,stateParams={}){
   if(!window.GlucoseStateSpaceV2)throw new Error('state_space_v2.js must load before engine_v2.js');
   const n=1441,mealPlan=ctx.meal_plan_carb_g||{breakfast:50,lunch:70,dinner:60},intake=ctx.intake_fraction||{breakfast:1,lunch:1,dinner:1};
@@ -27,7 +25,10 @@ function simulateV2(p,ctx,rapidOrder,previousBasal,seed,initialState=null,stateP
   const renal=p.renal_modifier||(window.ClinicalModifiersV2?ClinicalModifiersV2.renalModifier(p.egfr_ml_min_1_73m2??90):{insulin_action_duration_multiplier:1});
   const rk=rapidKernel(ctx.rapid_formulation||'aspart',1200,renal.insulin_action_duration_multiplier||1),bk=basalKernel(ctx.basal_formulation||'glargine'),mk=mealKernel(p);
   const meal=conv(n,mealEvents,mk),bol=conv(n,bolusEvents,rk);
-  const targetBasalActivity=conv(n,[[-120,Number(p.basal_u_day)]],bk),actualBasalActivity=conv(n,[[-120,Number(previousBasal)]],bk);
+  // Basal physiology reference is the pre-obesity physiologic requirement. Obesity increases dose needed
+  // by reducing insulin action; using the obesity-adjusted dose on both sides would double count resistance.
+  const physiologicBasal=Number(p.legacy_basal_u_day??p.basal_u_day);
+  const targetBasalActivity=conv(n,[[-120,physiologicBasal]],bk),actualBasalActivity=conv(n,[[-120,Number(previousBasal)]],bk);
   const ig=insulinGain(p,rapidKernel('aspart',1200,renal.insulin_action_duration_multiplier||1)),cg=ig/p.icr_g_u,kh=restoreK(p),infScale=infectionSensitivity(ctx.infection_severity||0),hepaticInfection=infectionHepaticDrive(ctx.infection_severity||0),prednisone=ctx.prednisone_mg??ctx.prednisolone_mg_am??0,response=ctx.patient_steroid_response??.69;
   const cfg={...GlucoseStateSpaceV2.DEFAULTS,...stateParams},targetSetpoint=Number(p.fasting_setpoint_mg_dl)+Number(cfg.setpoint_shift_mg_dl||0);
   const startG=initialState?.glucose_mg_dl??targetSetpoint,startM=initialState?.metabolic_state??0;
@@ -47,6 +48,5 @@ function simulateV2(p,ctx,rapidOrder,previousBasal,seed,initialState=null,stateP
   const bg={};for(const k in POC)bg[k]=g[POC[k]];
   return{bg,min:mn,max:mx,end:g[n-1],series:g,metabolic_series:M,next_state:{glucose_mg_dl:g[n-1],metabolic_state:M[1440]}};
 }
-
-window.GlucoseEngineV2={simulate:simulateV2,version:'2.2-clinical-parameter-pilot',POC_TIMES:POC};
+window.GlucoseEngineV2={simulate:simulateV2,version:'2.3-clinical-no-obesity-double-count',POC_TIMES:POC};
 })();
