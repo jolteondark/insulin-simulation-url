@@ -13,9 +13,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run focused tapered medium-state diagnostic
-        run: node validation_v085_tapered_medium_state_focused_node.js
+      - name: Run extended biphasic requirement-state grid
+        run: node validation_v086_extended_biphasic_state_node.js
       - uses: actions/upload-artifact@v4
         with:
-          name: v085-tapered-medium-focused-result
-          path: v085_tapered_medium_state_focused_result.json
+          name: v086-extended-biphasic-result
+          path: v086_extended_biphasic_state_result.json
