@@ -66,6 +66,25 @@ Best compromise found in the coarse sweep reduced fast excursion amplitude by ro
 
 This is important because marginal distribution and safety tails can remain close to T1D-UOM while r120 improves substantially from the frozen nominal-day value, but r120 still remains negative. Therefore variance redistribution alone is insufficient: at least one additional piece of temporal physiology or context coupling is needed to obtain the observed positive 2 h persistence without damaging the tails.
 
+## Additional rejected single-mechanism tests (2026-08-19)
+
+Several further minimal mechanisms were tested in the same approximate sensitivity framework:
+
+- **Asymmetric slow memory:** allowing positive/high-glucose memory to persist more than negative/low-glucose memory reduced the hypoglycemia penalty compared with symmetric slow noise, but moving r120 materially upward required enough positive feedback to push mean glucose, SD and TAR too high. It did not reach the observed r120 while preserving the marginal distribution.
+- **Very-slow meal absorption tail:** transferring 5-30% of meal carbohydrate from the existing fast/slow mixture into a third very-slow absorption component (roughly 3-8 h scale) did not improve r120; it tended to lower mean/SD and worsen low-tail behavior because the fixed bolus then preceded too much of the delayed carbohydrate appearance.
+- **Glucose-dependent insulin disposal:** replacing the current additive insulin effect with a bounded glucose-concentration-dependent multiplier (a physiologically motivated test) did not solve the temporal mismatch. It reduced hyperglycemic excursions and SD and generally made r120 more negative over the useful parameter range.
+- **Bounded insulin-sensitivity state:** using a tanh-bounded several-hour insulin-sensitivity multiplier was safer than an unbounded multiplier at small amplitudes, but r120 remained negative; amplitudes large enough to approach zero again produced excessive SD/TBR/TAR.
+- **Bolus-dose mismatch / day-level dosing error:** modest random bolus mismatch increased r60/r120 slightly, but the amount needed to approach positive r120 produced excessive hypoglycemia and total variability. This means free-living dosing imperfection may contribute to real CGM persistence, but cannot be used as a simple model-side fix while retaining the current static targets.
+- **Bolus timing:** delaying bolus timing strongly increases temporal persistence, but also raises mean glucose and hyperglycemic exposure dramatically. Timing/context therefore matters, but fixed timing changes cannot explain the target statistics without simultaneous changes elsewhere.
+
+These negative results narrow the problem: no tested one-parameter slow-state or simple kernel modification reproduces T1D-UOM r120 while preserving the already-good static distribution and safety tails. The remaining mismatch is likely a combination of (1) free-living treatment/context variability and (2) at least one missing physiological state, rather than a single missing coefficient.
+
+## External-validation priority update
+
+Because T1D-UOM has limited MDI representation in the completeness-filtered subset and much of the available public CGM literature is pump/AID-heavy, further tuning to its exact r120 risks overfitting therapy/context rather than physiology. A second independent T1DM CGM source should now be treated as a hard prerequisite for deciding whether positive ~2 h autocorrelation is a model-level target.
+
+Useful independent sources include DiaTrend (54 T1D participants, 27,561 CGM days, pump data available for a subset) and newer harmonized resources such as MetaboNet, which standardizes CGM/insulin/carbohydrate records across multiple T1D datasets. These should be stratified by therapy mode before using their autocorrelation values as model targets.
+
 ## Practical design implication
 
 1. Preserve total 24 h SD/CV near the observed real values.
