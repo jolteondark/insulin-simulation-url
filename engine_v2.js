@@ -12,7 +12,11 @@ function rapidKernel(name='aspart',h=1200,timeScale=1){const n=String(name).toLo
 function basalKernel(name='glargine',h=1800){const n=String(name).toLowerCase().replaceAll(' ','_');if(!['glargine','lantus','insulin_glargine','glargine_u100'].includes(n))throw new Error('unsupported basal formulation: '+name);const k=new Float64Array(h);let s=0;for(let t=0;t<h;t++){let v=0;if(t>=60&&t<180)v=(t-60)/120;else if(t>=180&&t<1260)v=1;else if(t>=1260&&t<1500)v=1-(t-1260)/240;k[t]=v;s+=v}for(let i=0;i<h;i++)k[i]/=s;return k}
 function restoreK(p){return Math.log(2)/(300/clamp(p.egp_suppression_strength,.70,1.35))}
 function unitResponseAt(p,kernel,minutes=240){const u=new Float64Array(minutes+1);for(let i=0;i<Math.min(kernel.length,u.length);i++)u[i]=kernel[i];const kh=restoreK(p);let d=0;for(let t=0;t<minutes;t++)d+=(-u[t]-kh*d);return Math.max(1e-6,-d)}
-function insulinGain(p,refKernel){return p.cf_mg_dl_u/unitResponseAt(p,refKernel||rapidKernel('aspart'),240)}
+// Primitive patient-fixed insulin action axis in the current engine.
+// This is the amount of glucose-lowering drive produced per unit of normalized insulin activity.
+// For backward compatibility it is reconstructed from the legacy clinical CF using the 240-min 1U response.
+// Future generator versions should generate this quantity first and derive CF from a virtual correction test.
+function intrinsicInsulinSensitivity(p,refKernel){return p.cf_mg_dl_u/unitResponseAt(p,refKernel||rapidKernel('aspart'),240)}
 function infectionSensitivity(severity){const s=clamp(Number(severity)||0,0,1);return 1-.50*Math.pow(s,1.25)}
 function infectionHepaticDrive(severity){const s=clamp(Number(severity)||0,0,1);return .020*Math.pow(s,1.4)}
 function steroidShape(minute){const a=[[0,.05],[360,.05],[600,.15],[720,.45],[960,1],[1260,.95],[1440,.25]],m=((Number(minute)%1440)+1440)%1440;for(let i=1;i<a.length;i++){if(m<=a[i][0]){const [x0,y0]=a[i-1],[x1,y1]=a[i],w=(m-x0)/(x1-x0);return y0+w*(y1-y0)}}return .25}
@@ -29,7 +33,7 @@ function simulateV2(p,ctx,rapidOrder,previousBasal,seed,initialState=null,stateP
   // by reducing insulin action; using the obesity-adjusted dose on both sides would double count resistance.
   const physiologicBasal=Number(p.legacy_basal_u_day??p.basal_u_day);
   const targetBasalActivity=conv(n,[[-120,physiologicBasal]],bk),actualBasalActivity=conv(n,[[-120,Number(previousBasal)]],bk);
-  const ig=insulinGain(p,rapidKernel('aspart',1200,renal.insulin_action_duration_multiplier||1)),cg=ig/p.icr_g_u,kh=restoreK(p),infScale=infectionSensitivity(ctx.infection_severity||0),hepaticInfection=infectionHepaticDrive(ctx.infection_severity||0),prednisone=ctx.prednisone_mg??ctx.prednisolone_mg_am??0,response=ctx.patient_steroid_response??.69;
+  const si=intrinsicInsulinSensitivity(p,rapidKernel('aspart',1200,renal.insulin_action_duration_multiplier||1)),cg=si/p.icr_g_u,kh=restoreK(p),infScale=infectionSensitivity(ctx.infection_severity||0),hepaticInfection=infectionHepaticDrive(ctx.infection_severity||0),prednisone=ctx.prednisone_mg??ctx.prednisolone_mg_am??0,response=ctx.patient_steroid_response??.69;
   const cfg={...GlucoseStateSpaceV2.DEFAULTS,...stateParams},targetSetpoint=Number(p.fasting_setpoint_mg_dl)+Number(cfg.setpoint_shift_mg_dl||0);
   const startG=initialState?.glucose_mg_dl??targetSetpoint,startM=initialState?.metabolic_state??0;
   const M=GlucoseStateSpaceV2.evolveMetabolicState(startM,1440,seed??1,cfg);
@@ -40,13 +44,13 @@ function simulateV2(p,ctx,rapidOrder,previousBasal,seed,initialState=null,stateP
     const insulinScale=infScale*steroidSensitivity(t,prednisone,response)*obesityAction;
     const circ=window.ClinicalModifiersV2?ClinicalModifiersV2.circadianNeed(t,p):1;
     const restore=-kh*(g[t]-targetSetpoint),counter=Math.min(1.8,.020*p.counterreg_strength*Math.max(0,p.counterreg_threshold_mg_dl-g[t]));
-    const basalPhysiology=ig*sm.basal_requirement_multiplier*circ*targetBasalActivity[t]-ig*insulinScale*actualBasalActivity[t];
-    const fastFlux=sm.fast_scale*(cg*meal[t]-ig*insulinScale*bol[t]);
+    const basalPhysiology=si*sm.basal_requirement_multiplier*circ*targetBasalActivity[t]-si*insulinScale*actualBasalActivity[t];
+    const fastFlux=sm.fast_scale*(cg*meal[t]-si*insulinScale*bol[t]);
     g[t+1]=g[t]+fastFlux+basalPhysiology+restore+counter+hepaticInfection;
     if(g[t+1]<mn)mn=g[t+1];if(g[t+1]>mx)mx=g[t+1];
   }
   const bg={};for(const k in POC)bg[k]=g[POC[k]];
   return{bg,min:mn,max:mx,end:g[n-1],series:g,metabolic_series:M,next_state:{glucose_mg_dl:g[n-1],metabolic_state:M[1440]}};
 }
-window.GlucoseEngineV2={simulate:simulateV2,version:'2.3-clinical-no-obesity-double-count',POC_TIMES:POC};
+window.GlucoseEngineV2={simulate:simulateV2,version:'2.4-explicit-intrinsic-insulin-sensitivity-axis',POC_TIMES:POC};
 })();
