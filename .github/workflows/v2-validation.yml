@@ -29,6 +29,8 @@ jobs:
         run: node validation_prandial_balance_node.js
       - name: Run fast vs persistent variance budget
         run: node validation_fast_variance_budget_node.js
+      - name: Run zero-area fast shape redistribution
+        run: node validation_zero_area_fast_shape_node.js
       - name: Run decoupled meal appearance 24h grid
         run: node validation_meal_appearance_24h_node.js
       - name: Run N120 meal appearance finalists
@@ -48,5 +50,6 @@ jobs:
             hypoglycemia_source_ablation_result.json
             prandial_balance_result.json
             fast_variance_budget_result.json
+            zero_area_fast_shape_result.json
             meal_appearance_24h_result.json
             meal_appearance_finalists_result.json
