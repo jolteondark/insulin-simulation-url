@@ -13,9 +13,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run v0.80 demand residual ablation
-        run: node validation_v080_demand_residual_ablation_node.js
+      - name: Run v0.80 nested TDD models
+        run: node validation_v080_tdd_nested_models_node.js
       - uses: actions/upload-artifact@v4
         with:
-          name: v080-demand-residual-result
-          path: v080_demand_residual_ablation_result.json
+          name: v080-tdd-nested-result
+          path: v080_tdd_nested_models_result.json
