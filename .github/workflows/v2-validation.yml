@@ -13,9 +13,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run v0.82 transfer function ablation
-        run: node validation_v082_transfer_function_ablation_node.js
+      - name: Run v0.82 ACF component attribution
+        run: node validation_v082_acf_component_ablation_node.js
       - uses: actions/upload-artifact@v4
         with:
-          name: v082-transfer-function-result
-          path: v082_transfer_function_ablation_result.json
+          name: v082-acf-component-result
+          path: v082_acf_component_ablation_result.json
