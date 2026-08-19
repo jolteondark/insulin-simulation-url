@@ -19,6 +19,8 @@ jobs:
         run: node validation_state_shape_node.js
       - name: Run OU vs finite vs transient validation
         run: node validation_state_shape_3way_node.js
+      - name: Run patient-specific meal appearance grid
+        run: node validation_meal_appearance_patient_specific_node.js
       - name: Run decoupled meal appearance 24h grid
         run: node validation_meal_appearance_24h_node.js
       - name: Run N120 meal appearance finalists
@@ -33,5 +35,6 @@ jobs:
             state_shape_validation_result.json
             state_shape_3way_result.json
             kernel_timing_grid_result.json
+            meal_appearance_patient_specific_result.json
             meal_appearance_24h_result.json
             meal_appearance_finalists_result.json
