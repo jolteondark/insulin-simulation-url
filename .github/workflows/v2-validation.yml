@@ -13,9 +13,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run tapered medium-state kernel diagnostic
-        run: node validation_v085_tapered_medium_state_node.js
+      - name: Run focused tapered medium-state diagnostic
+        run: node validation_v085_tapered_medium_state_focused_node.js
       - uses: actions/upload-artifact@v4
         with:
-          name: v085-tapered-medium-result
-          path: v085_tapered_medium_state_result.json
+          name: v085-tapered-medium-focused-result
+          path: v085_tapered_medium_state_focused_result.json
