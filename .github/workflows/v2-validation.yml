@@ -21,6 +21,8 @@ jobs:
         run: node validation_state_shape_3way_node.js
       - name: Run meal rapid timing grid
         run: node validation_kernel_timing_grid_node.js
+      - name: Run decoupled meal appearance 24h grid
+        run: node validation_meal_appearance_24h_node.js
       - uses: actions/upload-artifact@v4
         with:
           name: v2-validation-result
@@ -29,3 +31,4 @@ jobs:
             state_shape_validation_result.json
             state_shape_3way_result.json
             kernel_timing_grid_result.json
+            meal_appearance_24h_result.json
