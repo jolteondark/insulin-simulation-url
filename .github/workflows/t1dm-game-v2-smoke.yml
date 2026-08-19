@@ -1,0 +1,19 @@
+name: t1dm-game-v2-smoke
+on:
+  push:
+    branches: [v2/state-space-minimal]
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run frozen T1DM game model smoke test
+        run: node validation_t1dm_game_model_v2_smoke_node.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: t1dm-game-v2-smoke-result
+          path: t1dm_game_model_v2_smoke_result.json
