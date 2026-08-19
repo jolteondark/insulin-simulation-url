@@ -1,0 +1,19 @@
+name: v2-validation
+on:
+  push:
+    branches: [v2/state-space-minimal]
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run v1 vs v2 validation
+        run: node validation_v2_node.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v2-validation-result
+          path: v2_validation_result.json
