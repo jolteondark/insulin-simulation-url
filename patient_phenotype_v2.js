@@ -30,7 +30,7 @@ function decorate(base){
   p.insulin_sensitivity_multiplier=sensitivityMultiplier;
   p.obesity_resistance_multiplier=obesityResidual;
 
-  // Pilot phenotype outputs. Do not overwrite legacy calibrated fields yet.
+  // Pilot phenotype outputs. Keep legacy fields available for paired comparison.
   p.v2_tdd_u_kg_day=clamp(p.tdd_u_kg_day/(sensitivityMultiplier*obesityResidual),0.20,1.60);
   p.v2_tdd_u_day=p.v2_tdd_u_kg_day*p.body_weight_kg;
   p.v2_basal_u_day=p.v2_tdd_u_day*p.basal_fraction_tdd;
@@ -38,9 +38,24 @@ function decorate(base){
   p.v2_cf_mg_dl_u=clamp(p.cf_mg_dl_u*sensitivityMultiplier*obesityResidual,8,160);
   return p;
 }
+function toEnginePatient(decorated){
+  const p={...decorated};
+  p.legacy_tdd_u_kg_day=p.tdd_u_kg_day;
+  p.legacy_tdd_u_day=p.tdd_u_day;
+  p.legacy_basal_u_day=p.basal_u_day;
+  p.legacy_icr_g_u=p.icr_g_u;
+  p.legacy_cf_mg_dl_u=p.cf_mg_dl_u;
+  p.tdd_u_kg_day=p.v2_tdd_u_kg_day;
+  p.tdd_u_day=p.v2_tdd_u_day;
+  p.basal_u_day=p.v2_basal_u_day;
+  p.icr_g_u=p.v2_icr_g_u;
+  p.cf_mg_dl_u=p.v2_cf_mg_dl_u;
+  return p;
+}
 function sample(n,seed=7901,applyGate=false){
   if(!window.PatientGenerator)throw new Error('patient_generator.js must load before patient_phenotype_v2.js');
   return PatientGenerator.sampleCandidates(n,seed,applyGate).map(decorate);
 }
-window.PatientPhenotypeV2={decorate,sample,version:'0.1-obesity-ir-pilot'};
+function sampleForEngine(n,seed=7901,applyGate=false){return sample(n,seed,applyGate).map(toEnginePatient)}
+window.PatientPhenotypeV2={decorate,toEnginePatient,sample,sampleForEngine,version:'0.2-obesity-ir-engine-pilot'};
 })();
