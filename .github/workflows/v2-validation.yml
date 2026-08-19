@@ -19,6 +19,8 @@ jobs:
         run: node validation_state_shape_node.js
       - name: Run OU vs finite vs transient validation
         run: node validation_state_shape_3way_node.js
+      - name: Run meal rapid timing grid
+        run: node validation_kernel_timing_grid_node.js
       - uses: actions/upload-artifact@v4
         with:
           name: v2-validation-result
@@ -26,3 +28,4 @@ jobs:
             v2_validation_result.json
             state_shape_validation_result.json
             state_shape_3way_result.json
+            kernel_timing_grid_result.json
