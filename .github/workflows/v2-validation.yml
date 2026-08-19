@@ -13,9 +13,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run extended biphasic requirement-state grid
-        run: node validation_v086_extended_biphasic_state_node.js
+      - name: Run cross-dataset biphasic refinement
+        run: node validation_v087_crossdataset_biphasic_refine_node.js
       - uses: actions/upload-artifact@v4
         with:
-          name: v086-extended-biphasic-result
-          path: v086_extended_biphasic_state_result.json
+          name: v087-crossdataset-biphasic-result
+          path: v087_crossdataset_biphasic_refine_result.json
