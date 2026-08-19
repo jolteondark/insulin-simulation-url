@@ -14,8 +14,8 @@ jobs:
         with:
           node-version: '22'
       - name: Run held-out fingerprint validation
-        run: N=300 node validation_v089_heldout_fingerprint_node.js
+        run: N=300 node validation_v090_heldout_fingerprint_node.js
       - uses: actions/upload-artifact@v4
         with:
-          name: v089-heldout-fingerprint-result
-          path: v089_heldout_fingerprint_result.json
+          name: v090-heldout-fingerprint-result
+          path: v090_heldout_fingerprint_result.json
