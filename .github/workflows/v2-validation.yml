@@ -31,6 +31,8 @@ jobs:
         run: node validation_fast_variance_budget_node.js
       - name: Run zero-area fast shape redistribution
         run: node validation_zero_area_fast_shape_node.js
+      - name: Run patient-level hypoglycemia heterogeneity
+        run: node validation_patient_hypo_heterogeneity_node.js
       - name: Run decoupled meal appearance 24h grid
         run: node validation_meal_appearance_24h_node.js
       - name: Run N120 meal appearance finalists
@@ -51,5 +53,6 @@ jobs:
             prandial_balance_result.json
             fast_variance_budget_result.json
             zero_area_fast_shape_result.json
+            patient_hypo_heterogeneity_result.json
             meal_appearance_24h_result.json
             meal_appearance_finalists_result.json
