@@ -25,21 +25,25 @@ function simulateV2(p,ctx,rapidOrder,previousBasal,seed,initialState=null,stateP
   const mealEvents=[[MEAL_TIMES[0],mealPlan.breakfast*intake.breakfast],[MEAL_TIMES[1],mealPlan.lunch*intake.lunch],[MEAL_TIMES[2],mealPlan.dinner*intake.dinner]];
   const bolusEvents=[[RAPID_TIMES[0],rapidOrder.breakfast_u],[RAPID_TIMES[1],rapidOrder.lunch_u],[RAPID_TIMES[2],rapidOrder.dinner_u]];
   const rk=rapidKernel(ctx.rapid_formulation||'aspart'),bk=basalKernel(ctx.basal_formulation||'glargine'),mk=mealKernel(p);
-  const meal=conv(n,mealEvents,mk),bol=conv(n,bolusEvents,rk),basalDelta=conv(n,[[-120,Number(previousBasal)-Number(p.basal_u_day)]],bk);
+  const meal=conv(n,mealEvents,mk),bol=conv(n,bolusEvents,rk);
+  const targetBasalActivity=conv(n,[[-120,Number(p.basal_u_day)]],bk),actualBasalActivity=conv(n,[[-120,Number(previousBasal)]],bk);
   const ig=insulinGain(p),cg=ig/p.icr_g_u,kh=restoreK(p),infScale=infectionSensitivity(ctx.infection_severity||0),hepaticInfection=infectionHepaticDrive(ctx.infection_severity||0),prednisone=ctx.prednisone_mg??ctx.prednisolone_mg_am??0,response=ctx.patient_steroid_response??.69;
-  const startG=initialState?.glucose_mg_dl??p.fasting_setpoint_mg_dl,startM=initialState?.metabolic_state??0;
-  const M=GlucoseStateSpaceV2.evolveMetabolicState(startM,1440,seed??1,stateParams);
+  const cfg={...GlucoseStateSpaceV2.DEFAULTS,...stateParams},targetSetpoint=Number(p.fasting_setpoint_mg_dl)+Number(cfg.setpoint_shift_mg_dl||0);
+  const startG=initialState?.glucose_mg_dl??targetSetpoint,startM=initialState?.metabolic_state??0;
+  const M=GlucoseStateSpaceV2.evolveMetabolicState(startM,1440,seed??1,cfg);
   const g=new Float64Array(n);g[0]=Number(startG);let mn=g[0],mx=g[0];
   for(let t=0;t<n-1;t++){
-    const sm=GlucoseStateSpaceV2.modifiers(M[t],stateParams);
-    const insulinScale=infScale*steroidSensitivity(t,prednisone,response)*sm.insulin_sensitivity_multiplier;
-    const restore=-kh*(g[t]-p.fasting_setpoint_mg_dl),counter=Math.min(1.8,.020*p.counterreg_strength*Math.max(0,p.counterreg_threshold_mg_dl-g[t]));
-    g[t+1]=g[t]+cg*meal[t]-ig*insulinScale*bol[t]-ig*insulinScale*basalDelta[t]+restore+counter+hepaticInfection+sm.hepatic_drive_mg_dl_min;
+    const sm=GlucoseStateSpaceV2.modifiers(M[t],cfg);
+    const insulinScale=infScale*steroidSensitivity(t,prednisone,response);
+    const restore=-kh*(g[t]-targetSetpoint),counter=Math.min(1.8,.020*p.counterreg_strength*Math.max(0,p.counterreg_threshold_mg_dl-g[t]));
+    const basalPhysiology=ig*sm.basal_requirement_multiplier*targetBasalActivity[t]-ig*insulinScale*actualBasalActivity[t];
+    const fastFlux=sm.fast_scale*(cg*meal[t]-ig*insulinScale*bol[t]);
+    g[t+1]=g[t]+fastFlux+basalPhysiology+restore+counter+hepaticInfection;
     if(g[t+1]<mn)mn=g[t+1];if(g[t+1]>mx)mx=g[t+1];
   }
   const bg={};for(const k in POC)bg[k]=g[POC[k]];
   return{bg,min:mn,max:mx,end:g[n-1],series:g,metabolic_series:M,next_state:{glucose_mg_dl:g[n-1],metabolic_state:M[1440]}};
 }
 
-window.GlucoseEngineV2={simulate:simulateV2,version:'2.0-state-space-minimal',POC_TIMES:POC};
+window.GlucoseEngineV2={simulate:simulateV2,version:'2.1-requirement-state',POC_TIMES:POC};
 })();
