@@ -13,9 +13,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run v0.82 ACF component attribution
-        run: node validation_v082_acf_component_ablation_node.js
+      - name: Run biphasic basal requirement state diagnostic
+        run: node validation_v083_biphasic_requirement_state_node.js
       - uses: actions/upload-artifact@v4
         with:
-          name: v082-acf-component-result
-          path: v082_acf_component_ablation_result.json
+          name: v083-biphasic-state-result
+          path: v083_biphasic_requirement_state_result.json
