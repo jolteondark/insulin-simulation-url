@@ -13,9 +13,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run S_I primitive reparameterization diagnostic
-        run: node validation_si_primitive_reparameterization_node.js
+      - name: Run v0.80 S_I primitive generator candidate
+        run: node validation_generator_v080_si_primitive_node.js
       - uses: actions/upload-artifact@v4
         with:
-          name: si-primitive-reparameterization-result
-          path: si_primitive_reparameterization_result.json
+          name: generator-v080-si-primitive-result
+          path: generator_v080_si_primitive_result.json
