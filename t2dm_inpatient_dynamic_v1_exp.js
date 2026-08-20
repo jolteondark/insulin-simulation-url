@@ -7,11 +7,13 @@ function simulateDay(baseModel,p,order,state={},seed=1,prevState=null){
  const n=1441,g=new Float64Array(n),S=baseModel.SCALE,K=baseModel.KERNEL;
  const mealPlan={...baseModel.DEFAULT_MEALS,...(state.meal_plan_carb_g||{})};
  const intake={breakfast:1,lunch:1,dinner:1,...(state.intake_fraction||{})};
- const shift={breakfast:0,lunch:0,dinner:0,...(state.meal_shift_min||{})};
+ const mealShift={breakfast:0,lunch:0,dinner:0,...(state.meal_shift_min||{})};
+ const bolusShift={breakfast:0,lunch:0,dinner:0,...(state.bolus_shift_min||{})};
+ const bolusFrac={breakfast:1,lunch:1,dinner:1,...(state.bolus_fraction||{})};
  const dose={breakfast_u:Math.max(0,Math.round(order.breakfast_u||0)),lunch_u:Math.max(0,Math.round(order.lunch_u||0)),dinner_u:Math.max(0,Math.round(order.dinner_u||0)),basal_u:Math.max(0,Math.round(order.basal_u||0))};
  const ref=baseModel.suggestOrder(p,mealPlan);
- const meals=[[480+shift.breakfast,mealPlan.breakfast*intake.breakfast],[780+shift.lunch,mealPlan.lunch*intake.lunch],[1140+shift.dinner,mealPlan.dinner*intake.dinner]];
- const bolus=[[465,dose.breakfast_u],[765,dose.lunch_u],[1125,dose.dinner_u]];
+ const meals=[[480+mealShift.breakfast,mealPlan.breakfast*intake.breakfast],[780+mealShift.lunch,mealPlan.lunch*intake.lunch],[1140+mealShift.dinner,mealPlan.dinner*intake.dinner]];
+ const bolus=[[465+bolusShift.breakfast,dose.breakfast_u*clamp(bolusFrac.breakfast,0,1.5)],[765+bolusShift.lunch,dose.lunch_u*clamp(bolusFrac.lunch,0,1.5)],[1125+bolusShift.dinner,dose.dinner_u*clamp(bolusFrac.dinner,0,1.5)]];
  const baseEq=Number(p.dynamic_fasting_setpoint_mg_dl??p.fasting_setpoint_mg_dl);
  g[0]=Number(prevState?.glucose_mg_dl??baseEq);
  const baseMr=baseModel.mealResponseMultiplier(p);
@@ -40,5 +42,5 @@ function simulateDay(baseModel,p,order,state={},seed=1,prevState=null){
  }
  return{series:g,min:mn,max:mx,end:g[1440],order_u:dose,next_state:{glucose_mg_dl:g[1440]},inpatient_dynamic_state:state};
 }
-window.T2DMInpatientDynamicV1Exp={version:'0.1-time-varying-mechanistic-state-2026-08-20',simulateDay};
+window.T2DMInpatientDynamicV1Exp={version:'0.2-time-varying-treatment-environment-2026-08-20',simulateDay};
 })();
