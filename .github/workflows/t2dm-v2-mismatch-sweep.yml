@@ -1,0 +1,29 @@
+name: T2DM v2 mismatch sweep
+on:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 'scripts/sweep_t2dm_v2_mismatch.js'
+      - '.github/workflows/t2dm-v2-mismatch-sweep.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v2/state-space-minimal
+      - run: node scripts/sweep_t2dm_v2_mismatch.js
+      - name: Persist result
+        run: |
+          mkdir -p analysis/t2dm_v2_mismatch
+          cp analysis_out/t2dm_v2_mismatch_sweep.json analysis/t2dm_v2_mismatch/
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add analysis/t2dm_v2_mismatch
+          if ! git diff --cached --quiet; then
+            git commit -m 'Store T2DM v2 mismatch sweep results'
+            git push origin HEAD:v2/state-space-minimal
+          fi
