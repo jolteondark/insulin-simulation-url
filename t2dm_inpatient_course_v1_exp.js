@@ -28,6 +28,8 @@ function buildDayState(r,day,cfg,course){
  const stress=clamp(stress0-day*stressDecay,0,1);
  const state={stress_severity:stress};
  if(day===0)state.admission_glucose_offset_mg_dl=Number(cfg.admission_glucose_offset_mg_dl)||0;
+ if(Number.isFinite(Number(cfg.bolus_tau_min)))state.bolus_tau_min=Number(cfg.bolus_tau_min);
+ if(Number.isFinite(Number(cfg.bolus_duration_min)))state.bolus_duration_min=Number(cfg.bolus_duration_min);
  if(cfg.steroid){state.steroid=true;state.steroid_severity=clamp(Number(cfg.steroid_severity??0.6),0,1)}
  if(cfg.allow_npo&&day>0&&day<course.days-1&&r()<Number(cfg.npo_day_probability??0.08)){
    const meal=['breakfast','lunch','dinner'][Math.floor(r()*3)];
@@ -58,11 +60,11 @@ function simulateCourse(baseModel,dynamicModel,p,initialOrder,config={},seed=1){
    state.effective_basal_u=effectiveBasal;
    const sim=dynamicModel.simulateDay(baseModel,p,order,state,seed*100+d,prevState);
    const bg=fourPoint(sim.series);
-   course.records.push({day:d+1,state,order:copyOrder(order),effective_basal_u:effectiveBasal,bg,end_glucose:sim.end,series:sim.series});
+   course.records.push({day:d+1,state,order:copyOrder(order),effective_basal_u:effectiveBasal,bolus_kernel:sim.bolus_kernel,bg,end_glucose:sim.end,series:sim.series});
    prevState=sim.next_state;
    if(config.titrate!==false)order=titrateOrder(order,bg);
  }
  course.final_order=copyOrder(order);course.final_effective_basal_u=effectiveBasal;return course;
 }
-window.T2DMInpatientCourseV1Exp={version:'0.2-multiday-basal-depot-carryover-2026-08-20',simulateCourse,titrateOrder};
+window.T2DMInpatientCourseV1Exp={version:'0.3-formulation-kernel-course-2026-08-20',simulateCourse,titrateOrder};
 })();
