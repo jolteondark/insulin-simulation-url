@@ -95,6 +95,8 @@ jobs:
         run: node validation_meal_appearance_finalists_node.js
       - name: Run meal rapid timing grid
         run: node validation_kernel_timing_grid_node.js
+      - name: Run basal delta potency mechanism audit
+        run: node scripts/audit_basal_delta_potency.js
       - uses: actions/upload-artifact@v4
         with:
           name: v2-validation-result
@@ -140,3 +142,5 @@ jobs:
             v094_meal_intake_variability_result.json
             meal_appearance_24h_result.json
             meal_appearance_finalists_result.json
+            analysis/basal_delta_potency/results.json
+            analysis/basal_delta_potency/report.md
