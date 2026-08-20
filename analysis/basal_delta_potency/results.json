@@ -1,0 +1,67 @@
+{
+  "derived_daily_gain": 60.29302726843878,
+  "rows": [
+    {
+      "mode": "legacy",
+      "mult": 0.8,
+      "mean": 229.9239185102458,
+      "tbr54": 0.5185546875,
+      "nocturnal54": 0.5
+    },
+    {
+      "mode": "legacy",
+      "mult": 1,
+      "mean": 229.86233637289752,
+      "tbr54": 0.5211588541666667,
+      "nocturnal54": 0.5
+    },
+    {
+      "mode": "legacy",
+      "mult": 1.2,
+      "mean": 229.80075423554902,
+      "tbr54": 0.5231119791666667,
+      "nocturnal54": 0.5
+    },
+    {
+      "mode": "unit_consistent",
+      "mult": 0.8,
+      "mean": 257.00823262873524,
+      "tbr54": 0.4264322916666666,
+      "nocturnal54": 0.25
+    },
+    {
+      "mode": "unit_consistent",
+      "mult": 1,
+      "mean": 244.6316543407712,
+      "tbr54": 0.9300130208333333,
+      "nocturnal54": 1
+    },
+    {
+      "mode": "unit_consistent",
+      "mult": 1.2,
+      "mean": 232.25507605280694,
+      "tbr54": 1.8011067708333337,
+      "nocturnal54": 3.75
+    }
+  ],
+  "legacy_mean_slope_08_to_12": 0.1231642746967907,
+  "unit_mean_slope_08_to_12": 24.7531565759283,
+  "checks": [
+    [
+      "legacy basal response is pathologically weak",
+      true
+    ],
+    [
+      "unit-consistent basal response is materially stronger",
+      true
+    ],
+    [
+      "unit-consistent response is >5x legacy",
+      true
+    ],
+    [
+      "higher basal raises nocturnal <54 incidence",
+      true
+    ]
+  ]
+}
