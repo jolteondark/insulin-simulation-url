@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# trigger: 2026-08-20T13:43+09:00
 import csv, json, math, os, re
 from collections import defaultdict
 from datetime import datetime, timedelta
