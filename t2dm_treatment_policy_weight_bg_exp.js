@@ -11,7 +11,7 @@ function startingOrder(patient,ctx={}){
   const admissionBg=Number(ctx.admission_bg_mg_dl??patient.observed_fasting_glucose_mg_dl??180);
   if(Number.isFinite(Number(ctx.home_tdd_u))&&Number(ctx.home_tdd_u)>0)return splitTdd(.80*Number(ctx.home_tdd_u));
   let ukg=admissionBg>200?.50:.40;
-  if(age>70||(egfr>=30&&egfr<=60))ukg=.30;
+  if(age>70||(egfr>0&&egfr<=60))ukg=.30;
   return splitTdd(roundUnit(ukg*weight));
 }
 function proportionalTitrate(order,summary={}){
@@ -28,8 +28,8 @@ function physiologyBlindCheck(a,b,ctx={}){
   return JSON.stringify(startingOrder(a,ctx))===JSON.stringify(startingOrder(b,ctx));
 }
 window.T2DMTreatmentPolicyWeightBgExp={
-  version:'0.1-physiology-blind-weight-bg-policy-2026-08-20',
+  version:'0.2-renal-threshold-fix-2026-08-20',
   startingOrder,proportionalTitrate,splitTdd,physiologyBlindCheck,
-  note:'Experimental treatment-policy layer. Uses observable weight/age/eGFR/admission BG or home TDD only; never hidden SI, beta-cell reserve, or hepatic IR.'
+  note:'Experimental treatment-policy layer. Uses observable weight/age/eGFR/admission BG or home TDD only; never hidden SI, beta-cell reserve, or hepatic IR. eGFR <=60 receives the conservative 0.30 U/kg starting rule, including eGFR <30.'
 };
 })();
