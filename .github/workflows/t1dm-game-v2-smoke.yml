@@ -15,7 +15,11 @@ jobs:
           node-version: '22'
       - name: Run frozen T1DM game model smoke test
         run: node validation_t1dm_game_model_v2_smoke_node.js
+      - name: Run frozen T1DM UI integration smoke test
+        run: node validation_t1dm_ui_integration_smoke_node.js
       - uses: actions/upload-artifact@v4
         with:
           name: t1dm-game-v2-smoke-result
-          path: t1dm_game_model_v2_smoke_result.json
+          path: |
+            t1dm_game_model_v2_smoke_result.json
+            t1dm_ui_integration_smoke_result.json
