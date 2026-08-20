@@ -24,6 +24,11 @@ def quantile(xs,q):
     return a[lo]*(hi-p)+a[hi]*(p-lo)
 def desc(xs):
     return {'n':len(xs),'mean':mean(xs),'sd':sd(xs),'median':quantile(xs,.5),'p25':quantile(xs,.25),'p75':quantile(xs,.75),'p05':quantile(xs,.05),'p95':quantile(xs,.95)}
+def glycemic(xs):
+    d=desc(xs); n=len(xs)
+    if n:
+        d.update({'tbr70':100*sum(x<70 for x in xs)/n,'tbr54':100*sum(x<54 for x in xs)/n,'tir70_180':100*sum(70<=x<=180 for x in xs)/n,'tar180':100*sum(x>180 for x in xs)/n,'tar250':100*sum(x>250 for x in xs)/n})
+    return d
 def corr(a,b):
     z=[(x,y) for x,y in zip(a,b) if x is not None and y is not None]
     if len(z)<3:return None
@@ -85,8 +90,7 @@ for fp in files:
     sessions.append({'file':fp.name,'n_cgm':len(cg),'mean':mean(cg),'sd':sd(cg),'tbr70':tbr,'tir70_180':tir,'tar180':tar})
     ev=defaultdict(dict)
     for dt,g,r in rows:
-        diet=(r.get('Dietary intake') or '').strip()
-        zh=(r.get('饮食') or '').strip()
+        diet=(r.get('Dietary intake') or '').strip(); zh=(r.get('饮食') or '').strip()
         if not diet and not zh: continue
         mc=meal_class(dt)
         if not mc: continue
@@ -113,10 +117,10 @@ session_tbr=[s['tbr70'] for s in sessions]; session_tir=[s['tir70_180'] for s in
 exclude2077=[s for s in sessions if not s['file'].startswith('2077_')]
 result={
  'source':{'mirror_repo':'MouzKarrigan/2024_TJU_Data_Mining-Analysis','mirror_commit':'cf5e7f32e8f8295e49df27ea70d9d6b21ab30598','raw_path':'pre-process/raw-data/Shanghai_T2DM','note':'raw CSV is direct pandas read_excel->to_csv conversion; mirror predates 2023 additions to 2003/2029'},
- 'n_files_found':len(files),'n_sessions_with_cgm':len(sessions),'pooled_cgm':{'n':len(all_cgm),'mean':mean(all_cgm),'sd':sd(all_cgm),'tbr70':sum(g<70 for g in all_cgm)/len(all_cgm)*100,'tir70_180':sum(70<=g<=180 for g in all_cgm)/len(all_cgm)*100,'tar180':sum(g>180 for g in all_cgm)/len(all_cgm)*100},
+ 'n_files_found':len(files),'n_sessions_with_cgm':len(sessions),'pooled_cgm':glycemic(all_cgm),
  'session_metrics':{'tbr70':desc(session_tbr),'tir70_180':desc(session_tir),'tar180':desc(session_tar),'mean_glucose':desc([s['mean'] for s in sessions]),'within_session_sd':desc([s['sd'] for s in sessions])},
  'session_metrics_excluding_2077':{'tbr70':desc([s['tbr70'] for s in exclude2077]),'tir70_180':desc([s['tir70_180'] for s in exclude2077]),'tar180':desc([s['tar180'] for s in exclude2077])},
- 'meal_relative_pre_cgm':{k:desc(v) for k,v in pre.items()},
+ 'meal_relative_pre_cgm':{k:glycemic(v) for k,v in pre.items()},
  'meal_clock_minutes':{k:desc(v) for k,v in meal_clock.items()},
  'total_food_weight_g':{k:desc(v) for k,v in food_w.items()},
  'staple_weight_proxy_g':{k:desc(v) for k,v in staple_w.items()},
@@ -135,8 +139,8 @@ with (OUT/'shanghai109_sessions.csv').open('w',newline='',encoding='utf-8') as f
     w=csv.DictWriter(f,fieldnames=list(sessions[0]));w.writeheader();w.writerows(sessions)
 md=['# ShanghaiT2DM mirror-snapshot all-session analysis','',f"Files found: **{len(files)}**; sessions with CGM: **{len(sessions)}**",'', '## Session-level CGM metrics',f"- TIR: {mean(session_tir):.3f} ± {sd(session_tir):.3f}%",f"- TBR <70: {mean(session_tbr):.3f} ± {sd(session_tbr):.3f}%",f"- TAR >180: {mean(session_tar):.3f} ± {sd(session_tar):.3f}%",'', '## Meal-relative pre-meal CGM']
 for k in ('breakfast','lunch','dinner'):
-    d=result['meal_relative_pre_cgm'][k]; md.append(f"- {k}: n={d['n']}, {d['mean']:.2f} ± {d['sd']:.2f} mg/dL")
+    d=result['meal_relative_pre_cgm'][k]; md.append(f"- {k}: n={d['n']}, {d['mean']:.2f} ± {d['sd']:.2f} mg/dL; TBR={d['tbr70']:.2f}%, TIR={d['tir70_180']:.2f}%, TAR={d['tar180']:.2f}%")
 md += ['', '## Caveat','This is the third-party mirror snapshot at cf5e7f3. It is a direct CSV conversion of the original spreadsheets, but it predates the 2023 additions to sessions 2003 and 2029.']
 (OUT/'shanghai109_report.md').write_text('\n'.join(md)+'\n',encoding='utf-8')
 print(json.dumps(result,ensure_ascii=False))
-# workflow trigger marker: 2026-08-20
+# workflow trigger marker: premeal-tail-metrics-2026-08-20
