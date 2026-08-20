@@ -1,0 +1,27 @@
+name: counterregulation-rescue-audit
+on:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 't2dm_inpatient_dynamic_v1_exp.js'
+      - 't2dm_counterregulation_v1_exp.js'
+      - 't2dm_hypoglycemia_rescue_policy_exp.js'
+      - 'scripts/audit_counterregulation_rescue_interaction.js'
+      - '.github/workflows/counterregulation-rescue-audit.yml'
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run counterregulation rescue interaction audit
+        run: node scripts/audit_counterregulation_rescue_interaction.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: counterregulation-rescue-audit
+          path: |
+            analysis/counterregulation_rescue_interaction/results.json
+            analysis/counterregulation_rescue_interaction/report.md
