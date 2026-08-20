@@ -33,7 +33,7 @@ function buildDayState(r,day,cfg,course){
  if(cfg.steroid){state.steroid=true;state.steroid_severity=clamp(Number(cfg.steroid_severity??0.6),0,1)}
  if(cfg.allow_npo&&day>0&&day<course.days-1&&r()<Number(cfg.npo_day_probability??0.08)){
    const meal=['breakfast','lunch','dinner'][Math.floor(r()*3)];
-   state.intake_fraction={[meal]:0};state.bolus_fraction={[meal]:0};
+   state.intake_fraction={[meal]:0};state.bolus_fraction={[meal]:0;
    course.events.push({day:day+1,type:'NPO',meal});
  }else if(cfg.allow_meal_mismatch){
    const intake={},mealShift={},bolusShift={},bolusFrac={};
@@ -53,6 +53,7 @@ function simulateCourse(baseModel,dynamicModel,p,initialOrder,config={},seed=1){
  const days=Math.max(1,Math.round(config.days||5)),r=rng('course:'+seed);
  const course={days,events:[],records:[]};let order=copyOrder(initialOrder),prevState=null;
  const carry=clamp(Number(config.basal_depot_carry_fraction)||0,0,0.95);
+ const titrateFn=typeof config.titrate_order_fn==='function'?config.titrate_order_fn:titrateOrder;
  let effectiveBasal=Number(order.basal_u);
  for(let d=0;d<days;d++){
    const state=buildDayState(r,d,config,course);
@@ -62,9 +63,9 @@ function simulateCourse(baseModel,dynamicModel,p,initialOrder,config={},seed=1){
    const bg=fourPoint(sim.series);
    course.records.push({day:d+1,state,order:copyOrder(order),effective_basal_u:effectiveBasal,bolus_kernel:sim.bolus_kernel,bg,end_glucose:sim.end,series:sim.series});
    prevState=sim.next_state;
-   if(config.titrate!==false)order=titrateOrder(order,bg);
+   if(config.titrate!==false)order=copyOrder(titrateFn(copyOrder(order),bg,{day:d+1,patient:p,state,course}));
  }
  course.final_order=copyOrder(order);course.final_effective_basal_u=effectiveBasal;return course;
 }
-window.T2DMInpatientCourseV1Exp={version:'0.3-formulation-kernel-course-2026-08-20',simulateCourse,titrateOrder};
+window.T2DMInpatientCourseV1Exp={version:'0.4-external-treatment-policy-hook-2026-08-20',simulateCourse,titrateOrder};
 })();
