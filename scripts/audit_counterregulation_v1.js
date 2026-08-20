@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 'use strict';
+// CI rerun marker after replacing spread-based minimum with stack-safe minOf().
 const fs=require('fs'),vm=require('vm');global.window=global;
 for(const f of ['t2dm_patient_phenotype_v1_shanghai_exp.js','t2dm_patient_phenotype_v2_shanghai106_exp.js','t2dm_patient_phenotype_v3_inpatient_mix_exp.js','t2dm_game_model_v2_order_decomp_exp.js','t2dm_inpatient_dynamic_v1_exp.js','t2dm_inpatient_course_v1_exp.js','t2dm_treatment_policy_weight_bg_exp.js','insulin_prandial_pk_prior_ranges_exp.js','t2dm_inpatient_trajectory_v1_exp.js','insulin_basal_potency_prior_exp.js','t2dm_counterregulation_v1_exp.js'])vm.runInThisContext(fs.readFileSync(f,'utf8'),{filename:f});
 const P1=T2DMPatientPhenotypeV1ShanghaiExp,P3=T2DMPatientPhenotypeV3InpatientMixExp,M=T2DMGameModelV2OrderDecompExp,D=T2DMInpatientDynamicV1Exp,C=T2DMInpatientCourseV1Exp,TP=T2DMTreatmentPolicyWeightBgExp,PK=InsulinPrandialPkPriorRangesExp,T=T2DMInpatientTrajectoryV1Exp,B=InsulinBasalPotencyPriorExp,CR=T2DMCounterregulationV1Exp;
