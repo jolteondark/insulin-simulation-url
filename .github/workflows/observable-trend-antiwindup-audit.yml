@@ -1,0 +1,21 @@
+name: observable-trend-antiwindup-audit
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run observable trend anti-windup audit
+        run: node scripts/audit_observable_trend_antiwindup.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: observable-trend-antiwindup-audit
+          path: |
+            analysis/observable_trend_antiwindup/results.json
+            analysis/observable_trend_antiwindup/report.md
