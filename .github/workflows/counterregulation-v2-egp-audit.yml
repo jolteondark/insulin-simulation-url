@@ -1,0 +1,27 @@
+name: counterregulation-v2-egp-audit
+on:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 't2dm_counterregulation_v2_egp_exp.js'
+      - 'scripts/audit_counterregulation_v2_egp.js'
+      - '.github/workflows/counterregulation-v2-egp-audit.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run counterregulation V2 EGP audit
+        run: node scripts/audit_counterregulation_v2_egp.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: counterregulation-v2-egp-audit
+          path: |
+            analysis/counterregulation_v2_egp/results.json
+            analysis/counterregulation_v2_egp/report.md
