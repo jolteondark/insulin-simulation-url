@@ -1,6 +1,5 @@
 (function(){
 'use strict';
-const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const roundUnit=x=>Math.max(0,Math.round(Number(x)||0));
 function splitTdd(tdd){
   const total=Math.max(0,Number(tdd)||0),basal=roundUnit(total*.5),prandial=Math.max(0,total-basal),each=roundUnit(prandial/3);
@@ -13,6 +12,25 @@ function startingOrder(patient,ctx={}){
   let ukg=admissionBg>200?.50:.40;
   if(age>70||(egfr>0&&egfr<=60))ukg=.30;
   return splitTdd(roundUnit(ukg*weight));
+}
+function adjustComponent(u,bg){
+  if(!Number.isFinite(Number(bg)))return roundUnit(u);
+  bg=Number(bg);
+  if(bg<70)return roundUnit(Number(u)-2);
+  if(bg<100)return roundUnit(Number(u)-1);
+  if(bg>250)return roundUnit(Number(u)+2);
+  if(bg>180)return roundUnit(Number(u)+1);
+  return roundUnit(u);
+}
+function componentTitrate(order,summary={}){
+  const o={breakfast_u:roundUnit(order.breakfast_u),lunch_u:roundUnit(order.lunch_u),dinner_u:roundUnit(order.dinner_u),basal_u:roundUnit(order.basal_u)};
+  // Map each pre-meal/bedtime glucose to the insulin component that most directly precedes it.
+  // This avoids changing all four components from one daily mean and is deliberately physiology-blind.
+  o.basal_u=adjustComponent(o.basal_u,summary.pre_breakfast);
+  o.breakfast_u=adjustComponent(o.breakfast_u,summary.pre_lunch);
+  o.lunch_u=adjustComponent(o.lunch_u,summary.pre_dinner);
+  o.dinner_u=adjustComponent(o.dinner_u,summary.bedtime);
+  return o;
 }
 function proportionalTitrate(order,summary={}){
   const vals=['pre_breakfast','pre_lunch','pre_dinner','bedtime'].map(k=>Number(summary[k])).filter(Number.isFinite);
@@ -28,8 +46,8 @@ function physiologyBlindCheck(a,b,ctx={}){
   return JSON.stringify(startingOrder(a,ctx))===JSON.stringify(startingOrder(b,ctx));
 }
 window.T2DMTreatmentPolicyWeightBgExp={
-  version:'0.2-renal-threshold-fix-2026-08-20',
-  startingOrder,proportionalTitrate,splitTdd,physiologyBlindCheck,
-  note:'Experimental treatment-policy layer. Uses observable weight/age/eGFR/admission BG or home TDD only; never hidden SI, beta-cell reserve, or hepatic IR. eGFR <=60 receives the conservative 0.30 U/kg starting rule, including eGFR <30.'
+  version:'0.3-component-specific-four-point-titration-2026-08-20',
+  startingOrder,componentTitrate,proportionalTitrate,splitTdd,physiologyBlindCheck,
+  note:'Experimental observable-data treatment-policy layer. Starting dose uses weight/age/eGFR/admission BG or home TDD only. Four-point titration changes the corresponding basal or prandial component rather than globally scaling all insulin. Hidden SI, beta-cell reserve and hepatic IR are never policy inputs.'
 };
 })();
