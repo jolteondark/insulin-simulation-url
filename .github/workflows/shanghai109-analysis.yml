@@ -1,0 +1,29 @@
+name: Shanghai109 analysis
+on:
+  push:
+    branches:
+      - v2/state-space-minimal
+    paths:
+      - 'scripts/analyze_shanghai109.py'
+      - '.github/workflows/shanghai109-analysis.yml'
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Clone mirror snapshot
+        run: |
+          git clone --quiet https://github.com/MouzKarrigan/2024_TJU_Data_Mining-Analysis.git /tmp/tju
+          cd /tmp/tju
+          git checkout --quiet cf5e7f32e8f8295e49df27ea70d9d6b21ab30598
+      - name: Analyze all raw Shanghai T2DM sessions
+        run: |
+          python3 scripts/analyze_shanghai109.py
+      - name: Show report
+        run: cat analysis_out/shanghai109_report.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shanghai109-analysis
+          path: analysis_out/
