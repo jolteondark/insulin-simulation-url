@@ -1,0 +1,27 @@
+name: nocturnal-upper-bound-audit
+on:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 'scripts/audit_nocturnal_upper_bound_combined.js'
+      - 't2dm_inpatient_dynamic_v1_exp.js'
+      - 't2dm_inpatient_course_v1_exp.js'
+      - 'insulin_basal_time_profile_prior_exp.js'
+      - '.github/workflows/nocturnal-upper-bound-audit.yml'
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run nocturnal upper-bound combined audit
+        run: node scripts/audit_nocturnal_upper_bound_combined.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nocturnal-upper-bound-audit
+          path: |
+            analysis/nocturnal_upper_bound_combined/results.json
+            analysis/nocturnal_upper_bound_combined/report.md
