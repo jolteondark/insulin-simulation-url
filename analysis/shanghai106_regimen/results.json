@@ -2,9 +2,9 @@
   "summary_counts": {
     "Premix": 28,
     "No insulin": 53,
-    "Short/regular-only": 9,
-    "Basal-only": 12,
-    "Other insulin": 7
+    "Short/regular-only": 7,
+    "Basal-only": 14,
+    "Basal-bolus": 7
   },
   "audit": {
     "Premix": [
@@ -349,10 +349,6 @@
         "agent": "Novolin R"
       },
       {
-        "id": "2025_0_20210506",
-        "agent": "Novolin R, insulin glarigine"
-      },
-      {
         "id": "2034_0_20210624",
         "agent": "Novolin R"
       },
@@ -367,10 +363,6 @@
       {
         "id": "2041_0_20210813",
         "agent": "Novolin R, metformin"
-      },
-      {
-        "id": "2090_0_20201130",
-        "agent": "insulin glarigine, insulin glulisine"
       }
     ],
     "Basal-only": [
@@ -399,8 +391,16 @@
         "agent": "voglibose, insulin degludec"
       },
       {
+        "id": "2020_0_20210423",
+        "agent": "insulin glarigine, metformin"
+      },
+      {
         "id": "2022_0_20210419",
         "agent": "insulin detemir, acarbose, metformin"
+      },
+      {
+        "id": "2027_0_20210521",
+        "agent": "insulin glarigine, metformin, acarbose"
       },
       {
         "id": "2033_0_20210615",
@@ -423,14 +423,10 @@
         "agent": "sitagliptin, gliclazide, insulin degludec"
       }
     ],
-    "Other insulin": [
+    "Basal-bolus": [
       {
-        "id": "2020_0_20210423",
-        "agent": "insulin glarigine, metformin"
-      },
-      {
-        "id": "2027_0_20210521",
-        "agent": "insulin glarigine, metformin, acarbose"
+        "id": "2025_0_20210506",
+        "agent": "Novolin R, insulin glarigine"
       },
       {
         "id": "2035_0_20210629",
@@ -447,6 +443,10 @@
       {
         "id": "2074_0_20210707",
         "agent": "insulin detemir, Novolin R"
+      },
+      {
+        "id": "2090_0_20201130",
+        "agent": "insulin glarigine, insulin glulisine"
       },
       {
         "id": "2094_0_20211109",
@@ -514,86 +514,114 @@
       }
     },
     "Basal-only": {
-      "n_sessions": 11,
+      "n_sessions": 13,
       "pooled_cgm": {
-        "n": 13320,
-        "mean": 143.6254054054054,
-        "sd": 45.344709789750866,
-        "tbr": 0.2627627627627628,
-        "tir": 81.23873873873873,
-        "tar": 18.4984984984985
+        "n": 14992,
+        "mean": 143.9606189967983,
+        "sd": 44.59425332849897,
+        "tbr": 0.23345784418356458,
+        "tir": 81.57017075773746,
+        "tar": 18.196371398078977
       },
       "premeal": {
         "breakfast": {
-          "n": 137,
-          "mean": 132.22773722627738,
-          "sd": 32.14867090355769
+          "n": 155,
+          "mean": 133.26967741935482,
+          "sd": 32.15447869109281
         },
         "lunch": {
-          "n": 137,
-          "mean": 134.26423357664234,
-          "sd": 37.93867455950858
+          "n": 151,
+          "mean": 135.7867549668874,
+          "sd": 39.00303719791336
         },
         "dinner": {
-          "n": 139,
-          "mean": 143.28776978417267,
-          "sd": 49.14567460556635
+          "n": 156,
+          "mean": 143.1346153846154,
+          "sd": 47.50539598749803
         }
       }
     },
     "Short/regular-only": {
-      "n_sessions": 9,
+      "n_sessions": 7,
       "pooled_cgm": {
-        "n": 6040,
-        "mean": 166.89844370860928,
-        "sd": 54.095181239548005,
-        "tbr": 0.6788079470198676,
-        "tir": 63.145695364238414,
-        "tar": 36.175496688741724
+        "n": 3949,
+        "mean": 152.77027095467207,
+        "sd": 51.03449781306934,
+        "tbr": 1.0382375284882248,
+        "tir": 73.91744745505191,
+        "tar": 25.044315016459862
+      },
+      "premeal": {
+        "breakfast": {
+          "n": 42,
+          "mean": 149.27142857142857,
+          "sd": 30.484807189610944
+        },
+        "lunch": {
+          "n": 40,
+          "mean": 158.715,
+          "sd": 59.01130209544609
+        },
+        "dinner": {
+          "n": 41,
+          "mean": 150.93658536585366,
+          "sd": 39.919124068409296
+        }
+      }
+    },
+    "Basal-bolus": {
+      "n_sessions": 7,
+      "pooled_cgm": {
+        "n": 6177,
+        "mean": 164.3020883924235,
+        "sd": 57.57499027450403,
+        "tbr": 1.5055852355512385,
+        "tir": 61.615671037720574,
+        "tar": 36.87874372672818
       },
       "premeal": {
         "breakfast": {
           "n": 64,
-          "mean": 152.83125,
-          "sd": 29.583382555710223
+          "mean": 147.740625,
+          "sd": 35.37770625138627
         },
         "lunch": {
           "n": 62,
-          "mean": 179.68064516129033,
-          "sd": 64.14468986824586
+          "mean": 156.68709677419355,
+          "sd": 67.56397800477222
         },
         "dinner": {
-          "n": 63,
-          "mean": 170.85714285714286,
-          "sd": 50.41357122110381
+          "n": 64,
+          "mean": 171.928125,
+          "sd": 64.97475824490904
         }
       }
     },
     "Other insulin": {
-      "n_sessions": 7,
+      "n_sessions": 0,
       "pooled_cgm": {
-        "n": 5758,
-        "mean": 148.53845085098993,
-        "sd": 51.16692693983498,
-        "tbr": 1.6151441472733588,
-        "tir": 75.00868357068427,
-        "tar": 23.376172282042376
+        "n": 0,
+        "mean": null,
+        "sd": null,
+        "tbr": null,
+        "tir": null,
+        "tar": null
       },
       "premeal": {
         "breakfast": {
-          "n": 60,
-          "mean": 141.42000000000002,
-          "sd": 35.896902373324636
+          "n": 0,
+          "mean": null,
+          "sd": null
         },
         "lunch": {
-          "n": 54,
-          "mean": 130.23333333333335,
-          "sd": 48.38242334659239
+          "n": 0,
+          "mean": null,
+          "sd": null
         },
         "dinner": {
-          "n": 59,
-          "mean": 149.82711864406778,
-          "sd": 57.67083048047736
+          "n": 0,
+          "mean": null,
+          "sd": null
         }
       }
     }
