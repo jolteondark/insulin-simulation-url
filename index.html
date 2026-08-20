@@ -5,66 +5,45 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="theme-color" content="#f2f4f7" />
 <title>WARD GLUCOSE — Inpatient Insulin Simulation</title>
-<link rel="stylesheet" href="style.css?v=20260818-2305" />
+<link rel="stylesheet" href="style.css?v=20260820-0915" />
 </head>
 <body>
 <div class="app-shell">
   <header class="topbar">
-    <div>
-      <div class="eyebrow">INPATIENT GLUCOSE SIMULATION</div>
-      <h1>WARD GLUCOSE</h1>
-    </div>
+    <div><div class="eyebrow">INPATIENT GLUCOSE SIMULATION</div><h1>WARD GLUCOSE</h1></div>
     <div class="day-pill">DAY <span id="dayNo">1</span></div>
   </header>
   <main>
     <section class="patient-card">
-      <div class="patient-head">
-        <div>
-          <div class="case-line"><span id="caseId">GENERATING</span></div>
-          <div class="phenotype-line"><span id="phenotype">1型糖尿病</span></div>
-          <div id="contextBadges" class="badges"></div>
-        </div>
-        <button id="newCaseBtn" class="ghost-btn">患者変更</button>
-      </div>
+      <div class="patient-head"><div><div class="case-line"><span id="caseId">GENERATING</span></div><div class="phenotype-line"><span id="phenotype">1型糖尿病</span></div><div id="contextBadges" class="badges"></div></div><button id="newCaseBtn" class="ghost-btn">患者変更</button></div>
       <div class="rule-line"><b>GAME OVER</b> hidden glucose が 70未満 または 400超。</div>
     </section>
-
     <section class="record-card">
-      <div class="record-title-row">
-        <div><div class="section-kicker">LATEST</div><h2>直近の4検</h2></div>
-        <div class="record-caption">4検・食事・前回処方</div>
-      </div>
+      <div class="record-title-row"><div><div class="section-kicker">LATEST</div><h2>直近の4検</h2></div><div class="record-caption">4検・食事・前回処方</div></div>
       <div class="time-head"><div></div><div>朝</div><div>昼</div><div>夕</div><div>眠前</div></div>
       <div class="record-row"><div class="row-label">血糖</div><div id="bgGrid" class="record-values bg-grid"></div></div>
       <div class="record-row"><div class="row-label">食事</div><div id="mealGrid" class="record-values meal-grid"></div></div>
       <div class="record-row last"><div class="row-label">Ins</div><div id="prevDoseGrid" class="record-values dose-summary"></div></div>
     </section>
-
     <section class="record-card">
-      <div class="record-title-row">
-        <div><div class="section-kicker">TODAY'S MEALS</div><h2>今日の食事量</h2></div>
-        <div class="record-caption">処方前に確認できます</div>
-      </div>
+      <div class="record-title-row"><div><div class="section-kicker">TODAY'S MEALS</div><h2>今日の食事量</h2></div><div class="record-caption">処方前に確認できます</div></div>
       <div id="todayMealGrid" class="record-values meal-grid"></div>
       <div class="micro-note">この食事量を見て、朝・昼・夕のrapidを決めてください。</div>
     </section>
-
     <section class="order-card">
       <div class="order-head"><div><div class="section-kicker">ORDER</div><h2>今日の処方</h2></div><div class="order-note">当院：整数 U</div></div>
       <div id="doseGrid" class="dose-grid"></div>
       <button id="submitBtn" class="primary-btn">この処方で1日進める</button>
     </section>
-
     <section id="resultPanel" class="result-panel hidden" aria-live="polite"></section>
-    <section id="runHistory" class="section-block" style="margin-top:24px">
-      <div class="section-title"><span>H</span> この患者の全履歴</div>
-      <div id="runHistoryBody"></div>
-    </section>
+    <section id="runHistory" class="section-block" style="margin-top:24px"><div class="section-title"><span>H</span> この患者の全履歴</div><div id="runHistoryBody"></div></section>
   </main>
   <footer>Educational simulation only — not for clinical dosing.</footer>
 </div>
-<script src="engine.js?v=20260818-2305"></script>
-<script src="patient_generator.js?v=20260818-2305"></script>
-<script src="app.js?v=20260818-2305"></script>
+<script src="patient_generator.js?v=20260820-0915"></script>
+<script src="patient_phenotype_v2.js?v=20260820-0915"></script>
+<script src="clinical_modifiers_v2.js?v=20260820-0915"></script>
+<script src="t1dm_game_model_v2.js?v=20260820-0915"></script>
+<script src="app_t1dm_v2.js?v=20260820-0915"></script>
 </body>
 </html>
