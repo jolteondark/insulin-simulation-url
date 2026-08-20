@@ -1,0 +1,42 @@
+name: Basal delta potency audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 'insulin_basal_potency_prior_exp.js'
+      - 't2dm_inpatient_dynamic_v1_exp.js'
+      - 't2dm_inpatient_course_v1_exp.js'
+      - 't2dm_patient_phenotype_v3_inpatient_mix_exp.js'
+      - 't2dm_treatment_policy_weight_bg_exp.js'
+      - 't2dm_inpatient_trajectory_v1_exp.js'
+      - 'scripts/audit_basal_delta_potency.js'
+      - '.github/workflows/basal-delta-potency-audit.yml'
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v2/state-space-minimal
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run audit and preserve report on failure
+        run: |
+          set +e
+          node scripts/audit_basal_delta_potency.js
+          code=$?
+          echo "AUDIT_EXIT=$code" >> "$GITHUB_ENV"
+          exit 0
+      - name: Commit report
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add analysis/basal_delta_potency
+          git diff --cached --quiet || git commit -m 'Update basal delta potency audit'
+          git push origin HEAD:v2/state-space-minimal
+      - name: Propagate audit status
+        run: exit "${AUDIT_EXIT:-0}"
