@@ -1,0 +1,290 @@
+{
+  "target": {
+    "pooled": {
+      "mean": 138.9854,
+      "sd": 49.6216,
+      "tbr": 2.3155,
+      "tir": 79.5993,
+      "tar": 18.0852
+    },
+    "slots": {
+      "breakfast": {
+        "mean": 131.9034,
+        "sd": 35.5345
+      },
+      "lunch": {
+        "mean": 133.1606,
+        "sd": 50.8746
+      },
+      "dinner": {
+        "mean": 136.103,
+        "sd": 48.8568
+      }
+    }
+  },
+  "base_cfg": {
+    "breakfast": 0.45,
+    "lunch": 0.2,
+    "dinner": 0.2,
+    "mismatch_sd": 0.1
+  },
+  "proxy_cv": {
+    "breakfast": 0.658425102037072,
+    "lunch": 0.8312856556031687,
+    "dinner": 0.7345719642546672
+  },
+  "results": [
+    {
+      "si_cv": 0,
+      "pooled": {
+        "mean": null,
+        "sd": null,
+        "tbr": null,
+        "tir": null,
+        "tar": null
+      },
+      "slots": {
+        "breakfast": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "lunch": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "dinner": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        }
+      },
+      "score": null
+    },
+    {
+      "si_cv": 0.03,
+      "pooled": {
+        "mean": null,
+        "sd": null,
+        "tbr": null,
+        "tir": null,
+        "tar": null
+      },
+      "slots": {
+        "breakfast": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "lunch": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "dinner": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        }
+      },
+      "score": null
+    },
+    {
+      "si_cv": 0.05,
+      "pooled": {
+        "mean": null,
+        "sd": null,
+        "tbr": null,
+        "tir": null,
+        "tar": null
+      },
+      "slots": {
+        "breakfast": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "lunch": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "dinner": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        }
+      },
+      "score": null
+    },
+    {
+      "si_cv": 0.075,
+      "pooled": {
+        "mean": null,
+        "sd": null,
+        "tbr": null,
+        "tir": null,
+        "tar": null
+      },
+      "slots": {
+        "breakfast": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "lunch": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "dinner": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        }
+      },
+      "score": null
+    },
+    {
+      "si_cv": 0.1,
+      "pooled": {
+        "mean": null,
+        "sd": null,
+        "tbr": null,
+        "tir": null,
+        "tar": null
+      },
+      "slots": {
+        "breakfast": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "lunch": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "dinner": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        }
+      },
+      "score": null
+    },
+    {
+      "si_cv": 0.125,
+      "pooled": {
+        "mean": null,
+        "sd": null,
+        "tbr": null,
+        "tir": null,
+        "tar": null
+      },
+      "slots": {
+        "breakfast": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "lunch": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "dinner": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        }
+      },
+      "score": null
+    },
+    {
+      "si_cv": 0.15,
+      "pooled": {
+        "mean": null,
+        "sd": null,
+        "tbr": null,
+        "tir": null,
+        "tar": null
+      },
+      "slots": {
+        "breakfast": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "lunch": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "dinner": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        }
+      },
+      "score": null
+    },
+    {
+      "si_cv": 0.175,
+      "pooled": {
+        "mean": null,
+        "sd": null,
+        "tbr": null,
+        "tir": null,
+        "tar": null
+      },
+      "slots": {
+        "breakfast": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "lunch": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "dinner": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        }
+      },
+      "score": null
+    },
+    {
+      "si_cv": 0.2,
+      "pooled": {
+        "mean": null,
+        "sd": null,
+        "tbr": null,
+        "tir": null,
+        "tar": null
+      },
+      "slots": {
+        "breakfast": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "lunch": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "dinner": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        }
+      },
+      "score": null
+    }
+  ]
+}
