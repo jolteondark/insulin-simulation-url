@@ -97,6 +97,8 @@ jobs:
         run: node validation_kernel_timing_grid_node.js
       - name: Run basal delta potency mechanism audit
         run: node scripts/audit_basal_delta_potency.js
+      - name: Run Shanghai basal prior preservation audit
+        run: node scripts/audit_shanghai_basal_prior_preservation.js
       - uses: actions/upload-artifact@v4
         with:
           name: v2-validation-result
@@ -144,3 +146,5 @@ jobs:
             meal_appearance_finalists_result.json
             analysis/basal_delta_potency/results.json
             analysis/basal_delta_potency/report.md
+            analysis/shanghai_basal_prior_preservation/results.json
+            analysis/shanghai_basal_prior_preservation/report.md
