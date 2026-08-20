@@ -29,3 +29,4 @@ for(const os of orderSigmas) for(const ss of siSigmas){
 out.sort((a,b)=>a.score-b.score);
 fs.mkdirSync('analysis_out',{recursive:true});fs.writeFileSync('analysis_out/t2dm_v2_mismatch_sweep.json',JSON.stringify({target:TARGET,best:out.slice(0,12),all:out},null,2));
 console.log(JSON.stringify(out.slice(0,12),null,2));
+// trigger marker 2026-08-20T12:44+09:00
