@@ -1,0 +1,29 @@
+name: Strict meal carb estimate
+on:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 'scripts/estimate_strict_meal_carbs.py'
+      - '.github/workflows/strict-meal-carb-estimate.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  estimate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v2/state-space-minimal
+      - run: |
+          git clone --quiet https://github.com/MouzKarrigan/2024_TJU_Data_Mining-Analysis.git /tmp/tju
+          cd /tmp/tju
+          git checkout --quiet cf5e7f32e8f8295e49df27ea70d9d6b21ab30598
+      - run: python3 scripts/estimate_strict_meal_carbs.py
+      - run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add analysis/shanghai_strict_meal_carb_estimate
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Store strict meal carb proxy analysis'
+          git push origin HEAD:v2/state-space-minimal
