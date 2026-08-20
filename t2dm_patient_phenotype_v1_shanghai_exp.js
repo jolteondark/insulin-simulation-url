@@ -16,9 +16,12 @@ function sample(seed=1){
   const bmi_kg_m2=clamp(24.12+3.25*zBmi,17,36);
   const body_weight_kg=bmi_kg_m2*height_m*height_m;
 
-  // Duration is positively associated with age and is strongly right-skewed.
-  const zDur=0.38*zAge+Math.sqrt(1-0.38**2)*zDur0;
-  const duration_years=clamp(lognormalFromMeanSd(9.2,9.0,zDur),0,40);
+  // Duration: age-positive but BMI-neutral after residual compensation, matching the observed cohort structure.
+  const ageBmiCorr=-0.28/Math.sqrt(0.28**2+0.62**2+0.52**2);
+  const aDur=0.45,bDur=0.20;
+  const residualVar=Math.max(0.01,1-aDur*aDur-bDur*bDur-2*aDur*bDur*ageBmiCorr);
+  const zDur=aDur*zAge+bDur*zBmi+Math.sqrt(residualVar)*zDur0;
+  const duration_years=clamp(lognormalFromMeanSd(9.0,10.5,zDur),0,40);
 
   // eGFR is explicit, with the observed age-associated decline (rho ~ -0.42).
   const zEgfr=-0.42*zAge+Math.sqrt(1-0.42**2)*zRenal;
@@ -50,5 +53,5 @@ function sample(seed=1){
     }
   };
 }
-window.T2DMPatientPhenotypeV1ShanghaiExp={version:'0.1-shanghai-static-exp-2026-08-20',sample};
+window.T2DMPatientPhenotypeV1ShanghaiExp={version:'0.2-shanghai-static-exp-2026-08-20',sample};
 })();
