@@ -21,6 +21,8 @@ jobs:
         run: N=300 node validation_t1dm_starter_order_policy_node.js
       - name: Evaluate five-day 90pct starter policy
         run: N=300 node validation_t1dm_starter_5day_node.js
+      - name: Evaluate ADA-style guideline initial doses
+        run: N=500 node validation_t1dm_guideline_initial_dose_node.js
       - uses: actions/upload-artifact@v4
         with:
           name: t1dm-game-v2-smoke-result
@@ -29,3 +31,4 @@ jobs:
             t1dm_ui_integration_smoke_result.json
             t1dm_starter_order_policy_result.json
             t1dm_starter_5day_result.json
+            t1dm_guideline_initial_dose_result.json
