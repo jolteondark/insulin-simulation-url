@@ -1,0 +1,26 @@
+name: T2DM v2 day SI calibration
+on:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 'scripts/validate_t2dm_v2_day_si.js'
+      - '.github/workflows/t2dm-v2-day-si.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v2/state-space-minimal
+      - run: node scripts/validate_t2dm_v2_day_si.js
+      - name: Persist results
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add analysis/t2dm_v2_day_si
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Store T2DM v2 day SI calibration results'
+          git push origin HEAD:v2/state-space-minimal
