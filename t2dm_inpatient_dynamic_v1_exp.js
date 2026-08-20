@@ -15,7 +15,9 @@ function simulateDay(baseModel,p,order,state={},seed=1,prevState=null){
  const meals=[[480+mealShift.breakfast,mealPlan.breakfast*intake.breakfast],[780+mealShift.lunch,mealPlan.lunch*intake.lunch],[1140+mealShift.dinner,mealPlan.dinner*intake.dinner]];
  const bolus=[[465+bolusShift.breakfast,dose.breakfast_u*clamp(bolusFrac.breakfast,0,1.5)],[765+bolusShift.lunch,dose.lunch_u*clamp(bolusFrac.lunch,0,1.5)],[1125+bolusShift.dinner,dose.dinner_u*clamp(bolusFrac.dinner,0,1.5)]];
  const baseEq=Number(p.dynamic_fasting_setpoint_mg_dl??p.fasting_setpoint_mg_dl);
- g[0]=Number(prevState?.glucose_mg_dl??baseEq);
+ const admissionOffset=Number(state.admission_glucose_offset_mg_dl)||0;
+ const initialFromState=clamp(baseEq+admissionOffset,40,500);
+ g[0]=Number(prevState?.glucose_mg_dl??initialFromState);
  const baseMr=baseModel.mealResponseMultiplier(p);
  function stressAt(t){
    if(Array.isArray(state.stress_blocks)){
@@ -42,5 +44,5 @@ function simulateDay(baseModel,p,order,state={},seed=1,prevState=null){
  }
  return{series:g,min:mn,max:mx,end:g[1440],order_u:dose,next_state:{glucose_mg_dl:g[1440]},inpatient_dynamic_state:state};
 }
-window.T2DMInpatientDynamicV1Exp={version:'0.2-time-varying-treatment-environment-2026-08-20',simulateDay};
+window.T2DMInpatientDynamicV1Exp={version:'0.3-admission-state-and-treatment-environment-2026-08-20',simulateDay};
 })();
