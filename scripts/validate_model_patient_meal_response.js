@@ -1,3 +1,4 @@
+// trigger: model patient meal-response validation 2026-08-20T13:51+09:00
 const fs=require('fs'),vm=require('vm');
 global.window=global;
 for(const f of ['t2dm_patient_phenotype_v1_shanghai_exp.js','t2dm_game_model_v2_order_decomp_exp.js']) vm.runInThisContext(fs.readFileSync(f,'utf8'),{filename:f});
