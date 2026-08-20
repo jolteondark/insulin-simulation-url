@@ -54,18 +54,20 @@ function simulateCourse(baseModel,dynamicModel,p,initialOrder,config={},seed=1){
  const course={days,events:[],records:[]};let order=copyOrder(initialOrder),prevState=null;
  const carry=clamp(Number(config.basal_depot_carry_fraction)||0,0,0.95);
  const titrateFn=typeof config.titrate_order_fn==='function'?config.titrate_order_fn:titrateOrder;
+ const stateModifierFn=typeof config.state_modifier_fn==='function'?config.state_modifier_fn:null;
  let effectiveBasal=Number(order.basal_u);
  for(let d=0;d<days;d++){
    const state=buildDayState(r,d,config,course);
+   if(stateModifierFn){const patch=stateModifierFn({day:d+1,patient:p,order:copyOrder(order),state:{...state},course})||{};Object.assign(state,patch);}
    effectiveBasal=carry*effectiveBasal+(1-carry)*Number(order.basal_u);
    state.effective_basal_u=effectiveBasal;
    const sim=dynamicModel.simulateDay(baseModel,p,order,state,seed*100+d,prevState);
    const bg=fourPoint(sim.series);
-   course.records.push({day:d+1,state,order:copyOrder(order),effective_basal_u:effectiveBasal,bolus_kernel:sim.bolus_kernel,bg,end_glucose:sim.end,series:sim.series});
+   course.records.push({day:d+1,state,order:copyOrder(order),effective_basal_u:effectiveBasal,insulin_exposure_multiplier:sim.insulin_exposure_multiplier,bolus_kernel:sim.bolus_kernel,bg,end_glucose:sim.end,series:sim.series});
    prevState=sim.next_state;
    if(config.titrate!==false)order=copyOrder(titrateFn(copyOrder(order),bg,{day:d+1,patient:p,state,course}));
  }
  course.final_order=copyOrder(order);course.final_effective_basal_u=effectiveBasal;return course;
 }
-window.T2DMInpatientCourseV1Exp={version:'0.4-external-treatment-policy-hook-2026-08-20',simulateCourse,titrateOrder};
+window.T2DMInpatientCourseV1Exp={version:'0.5-external-state-modifier-hook-2026-08-20',simulateCourse,titrateOrder};
 })();
