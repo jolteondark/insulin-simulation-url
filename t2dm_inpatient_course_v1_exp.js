@@ -33,7 +33,7 @@ function buildDayState(r,day,cfg,course){
  if(cfg.steroid){state.steroid=true;state.steroid_severity=clamp(Number(cfg.steroid_severity??0.6),0,1)}
  if(cfg.allow_npo&&day>0&&day<course.days-1&&r()<Number(cfg.npo_day_probability??0.08)){
    const meal=['breakfast','lunch','dinner'][Math.floor(r()*3)];
-   state.intake_fraction={[meal]:0};state.bolus_fraction={[meal]:0;
+   state.intake_fraction={[meal]:0};state.bolus_fraction={[meal]:0};
    course.events.push({day:day+1,type:'NPO',meal});
  }else if(cfg.allow_meal_mismatch){
    const intake={},mealShift={},bolusShift={},bolusFrac={};
