@@ -12,6 +12,7 @@ function simulateDay(baseModel,p,order,state={},seed=1,prevState=null){
  const bolusFrac={breakfast:1,lunch:1,dinner:1,...(state.bolus_fraction||{})};
  const dose={breakfast_u:Math.max(0,Math.round(order.breakfast_u||0)),lunch_u:Math.max(0,Math.round(order.lunch_u||0)),dinner_u:Math.max(0,Math.round(order.dinner_u||0)),basal_u:Math.max(0,Math.round(order.basal_u||0))};
  const ref=baseModel.suggestOrder(p,mealPlan);
+ const effectiveBasalU=Number.isFinite(Number(state.effective_basal_u))?Math.max(0,Number(state.effective_basal_u)):dose.basal_u;
  const meals=[[480+mealShift.breakfast,mealPlan.breakfast*intake.breakfast],[780+mealShift.lunch,mealPlan.lunch*intake.lunch],[1140+mealShift.dinner,mealPlan.dinner*intake.dinner]];
  const bolus=[[465+bolusShift.breakfast,dose.breakfast_u*clamp(bolusFrac.breakfast,0,1.5)],[765+bolusShift.lunch,dose.lunch_u*clamp(bolusFrac.lunch,0,1.5)],[1125+bolusShift.dinner,dose.dinner_u*clamp(bolusFrac.dinner,0,1.5)]];
  const baseEq=Number(p.dynamic_fasting_setpoint_mg_dl??p.fasting_setpoint_mg_dl);
@@ -38,11 +39,11 @@ function simulateDay(baseModel,p,order,state={},seed=1,prevState=null){
    const eq=clamp(baseEq+45*stress+20*steroid,55,360);
    let mealDrive=0;for(const [tm,c] of meals){const dt=t-tm;if(dt>=0&&dt<K.meal_duration_min)mealDrive+=c*gamma1(dt,K.meal_tau_min)*S.meal_gain*mr}
    let bolusDrive=0;for(const [tb,u] of bolus){const dt=t-tb;if(dt>=0&&dt<K.bolus_duration_min)bolusDrive+=u*gamma1(dt,K.bolus_tau_min)*S.bolus_gain*si}
-   const basalDelta=(dose.basal_u-ref.basal_u)/1440*S.basal_delta_gain*si;
+   const basalDelta=(effectiveBasalU-ref.basal_u)/1440*S.basal_delta_gain*si;
    const restore=-S.restore_gain*(g[t]-eq);
    g[t+1]=g[t]+mealDrive-bolusDrive-basalDelta+restore;mn=Math.min(mn,g[t+1]);mx=Math.max(mx,g[t+1]);
  }
- return{series:g,min:mn,max:mx,end:g[1440],order_u:dose,next_state:{glucose_mg_dl:g[1440]},inpatient_dynamic_state:state};
+ return{series:g,min:mn,max:mx,end:g[1440],order_u:dose,effective_basal_u:effectiveBasalU,next_state:{glucose_mg_dl:g[1440]},inpatient_dynamic_state:state};
 }
-window.T2DMInpatientDynamicV1Exp={version:'0.3-admission-state-and-treatment-environment-2026-08-20',simulateDay};
+window.T2DMInpatientDynamicV1Exp={version:'0.4-basal-depot-exposure-2026-08-20',simulateDay};
 })();
