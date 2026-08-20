@@ -17,12 +17,12 @@ jobs:
         run: node validation_t1dm_game_model_v2_smoke_node.js
       - name: Run frozen T1DM UI integration smoke test
         run: node validation_t1dm_ui_integration_smoke_node.js
-      - name: Run gameplay balance validation
-        run: N=500 node validation_t1dm_gameplay_balance_node.js
+      - name: Evaluate starter-order policies
+        run: N=300 node validation_t1dm_starter_order_policy_node.js
       - uses: actions/upload-artifact@v4
         with:
           name: t1dm-game-v2-smoke-result
           path: |
             t1dm_game_model_v2_smoke_result.json
             t1dm_ui_integration_smoke_result.json
-            t1dm_gameplay_balance_result.json
+            t1dm_starter_order_policy_result.json
