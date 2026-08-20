@@ -8,6 +8,8 @@ on:
       - 't2dm_hypoglycemia_rescue_policy_exp.js'
       - 'scripts/audit_counterregulation_rescue_interaction.js'
       - '.github/workflows/counterregulation-rescue-audit.yml'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 jobs:
   audit:
