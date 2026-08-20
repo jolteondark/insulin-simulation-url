@@ -24,8 +24,6 @@ function adjustComponent(u,bg){
 }
 function componentTitrate(order,summary={}){
   const o={breakfast_u:roundUnit(order.breakfast_u),lunch_u:roundUnit(order.lunch_u),dinner_u:roundUnit(order.dinner_u),basal_u:roundUnit(order.basal_u)};
-  // Map each pre-meal/bedtime glucose to the insulin component that most directly precedes it.
-  // This avoids changing all four components from one daily mean and is deliberately physiology-blind.
   o.basal_u=adjustComponent(o.basal_u,summary.pre_breakfast);
   o.breakfast_u=adjustComponent(o.breakfast_u,summary.pre_lunch);
   o.lunch_u=adjustComponent(o.lunch_u,summary.pre_dinner);
@@ -42,12 +40,22 @@ function proportionalTitrate(order,summary={}){
   if(m>240)factor=1.30;else if(m>180)factor=1.20;else if(m>140)factor=1.10;
   return splitTdd(roundUnit(current*factor));
 }
+// Glargine U300 Hospital Trial protocol, Appendix 1: bedtime supplemental "usual" glulisine scale.
+// This is a protocol treatment input, not a fitted physiology parameter.
+function emoryBedtimeCorrection(bg){
+  bg=Number(bg);if(!Number.isFinite(bg)||bg<=220)return 0;
+  if(bg<=260)return 2;
+  if(bg<=300)return 3;
+  if(bg<=350)return 4;
+  if(bg<=400)return 5;
+  return 6;
+}
 function physiologyBlindCheck(a,b,ctx={}){
   return JSON.stringify(startingOrder(a,ctx))===JSON.stringify(startingOrder(b,ctx));
 }
 window.T2DMTreatmentPolicyWeightBgExp={
-  version:'0.3-component-specific-four-point-titration-2026-08-20',
-  startingOrder,componentTitrate,proportionalTitrate,splitTdd,physiologyBlindCheck,
-  note:'Experimental observable-data treatment-policy layer. Starting dose uses weight/age/eGFR/admission BG or home TDD only. Four-point titration changes the corresponding basal or prandial component rather than globally scaling all insulin. Hidden SI, beta-cell reserve and hepatic IR are never policy inputs.'
+  version:'0.4-component-titration-plus-protocol-bedtime-correction-2026-08-20',
+  startingOrder,componentTitrate,proportionalTitrate,splitTdd,emoryBedtimeCorrection,physiologyBlindCheck,
+  note:'Observable-data treatment-policy layer. Starting dose uses weight/age/eGFR/admission BG or home TDD only. Four-point titration changes the corresponding component. emoryBedtimeCorrection reproduces the published Glargine U300 Hospital Trial usual bedtime supplemental glulisine table; hidden SI, beta-cell reserve and hepatic IR are never policy inputs.'
 };
 })();
