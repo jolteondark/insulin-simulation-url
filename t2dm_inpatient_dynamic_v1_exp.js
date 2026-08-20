@@ -14,6 +14,7 @@ function simulateDay(baseModel,p,order,state={},seed=1,prevState=null){
  const dose={breakfast_u:Math.max(0,Math.round(order.breakfast_u||0)),lunch_u:Math.max(0,Math.round(order.lunch_u||0)),dinner_u:Math.max(0,Math.round(order.dinner_u||0)),basal_u:Math.max(0,Math.round(order.basal_u||0))};
  const ref=baseModel.suggestOrder(p,mealPlan);
  const effectiveBasalU=Number.isFinite(Number(state.effective_basal_u))?Math.max(0,Number(state.effective_basal_u)):dose.basal_u;
+ const insulinExposureMultiplier=clamp(Number(state.insulin_exposure_multiplier)||1,0.70,1.35);
  const bolusTau=Math.max(20,Number(state.bolus_tau_min)||K.bolus_tau_min);
  const bolusDuration=Math.max(60,Math.round(Number(state.bolus_duration_min)||K.bolus_duration_min));
  const bolusAreaNorm=kernelArea(K.bolus_tau_min,K.bolus_duration_min)/kernelArea(bolusTau,bolusDuration);
@@ -39,15 +40,16 @@ function simulateDay(baseModel,p,order,state={},seed=1,prevState=null){
  for(let t=0;t<n-1;t++){
    const stress=stressAt(t), steroid=steroidAt(t);
    const si=clamp(p.si_relative*(1-0.35*stress)*(1-0.25*steroid),0.20,1.45);
+   const effectiveInsulinSensitivity=si*insulinExposureMultiplier;
    const mr=baseMr*(1+0.35*stress+0.20*steroid);
    const eq=clamp(baseEq+45*stress+20*steroid,55,360);
    let mealDrive=0;for(const [tm,c] of meals){const dt=t-tm;if(dt>=0&&dt<K.meal_duration_min)mealDrive+=c*gamma1(dt,K.meal_tau_min)*S.meal_gain*mr}
-   let bolusDrive=0;for(const [tb,u] of bolus){const dt=t-tb;if(dt>=0&&dt<bolusDuration)bolusDrive+=u*gamma1(dt,bolusTau)*bolusAreaNorm*S.bolus_gain*si}
-   const basalDelta=(effectiveBasalU-ref.basal_u)/1440*S.basal_delta_gain*si;
+   let bolusDrive=0;for(const [tb,u] of bolus){const dt=t-tb;if(dt>=0&&dt<bolusDuration)bolusDrive+=u*gamma1(dt,bolusTau)*bolusAreaNorm*S.bolus_gain*effectiveInsulinSensitivity}
+   const basalDelta=(effectiveBasalU-ref.basal_u)/1440*S.basal_delta_gain*effectiveInsulinSensitivity;
    const restore=-S.restore_gain*(g[t]-eq);
    g[t+1]=g[t]+mealDrive-bolusDrive-basalDelta+restore;mn=Math.min(mn,g[t+1]);mx=Math.max(mx,g[t+1]);
  }
- return{series:g,min:mn,max:mx,end:g[1440],order_u:dose,effective_basal_u:effectiveBasalU,bolus_kernel:{tau_min:bolusTau,duration_min:bolusDuration,area_norm:bolusAreaNorm},next_state:{glucose_mg_dl:g[1440]},inpatient_dynamic_state:state};
+ return{series:g,min:mn,max:mx,end:g[1440],order_u:dose,effective_basal_u:effectiveBasalU,insulin_exposure_multiplier:insulinExposureMultiplier,bolus_kernel:{tau_min:bolusTau,duration_min:bolusDuration,area_norm:bolusAreaNorm},next_state:{glucose_mg_dl:g[1440]},inpatient_dynamic_state:state};
 }
-window.T2DMInpatientDynamicV1Exp={version:'0.5-formulation-specific-prandial-kernel-2026-08-20',simulateDay};
+window.T2DMInpatientDynamicV1Exp={version:'0.6-optional-insulin-exposure-modifier-2026-08-20',simulateDay};
 })();
