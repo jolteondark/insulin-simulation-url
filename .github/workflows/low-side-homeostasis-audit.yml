@@ -1,0 +1,27 @@
+name: low-side-homeostasis-audit
+on:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 'scripts/audit_low_side_homeostasis_ablation.js'
+      - '.github/workflows/low-side-homeostasis-audit.yml'
+      - 't2dm_inpatient_dynamic_v1_exp.js'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run low-side homeostasis ablation
+        run: node scripts/audit_low_side_homeostasis_ablation.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: low-side-homeostasis-audit
+          path: |
+            analysis/low_side_homeostasis_ablation/results.json
+            analysis/low_side_homeostasis_ablation/report.md
