@@ -83,7 +83,6 @@ for fp in files:
     all_cgm.extend(cg)
     tbr=sum(g<70 for g in cg)/len(cg)*100; tar=sum(g>180 for g in cg)/len(cg)*100; tir=100-tbr-tar
     sessions.append({'file':fp.name,'n_cgm':len(cg),'mean':mean(cg),'sd':sd(cg),'tbr70':tbr,'tir70_180':tir,'tar180':tar})
-    # day x meal, take earliest dietary event in each window
     ev=defaultdict(dict)
     for dt,g,r in rows:
         diet=(r.get('Dietary intake') or '').strip()
@@ -93,14 +92,11 @@ for fp in files:
         if not mc: continue
         d=dt.date()
         if mc not in ev[d]: ev[d][mc]=(dt,r)
-    # insulin event index
     ins=[(dt,insulin_units(r)) for dt,g,r in rows if insulin_units(r)>0]
-    # CGM index
     crows=[(dt,g) for dt,g,r in rows if g is not None]
     for d,es in ev.items():
         dayvals={}
         for mc,(mt,r) in es.items():
-            # nearest CGM at or before meal within 30 min
             candidates=[(abs((mt-dt).total_seconds()),g) for dt,g in crows if dt<=mt and mt-dt<=timedelta(minutes=30)]
             if candidates:
                 pg=min(candidates,key=lambda x:x[0])[1]; pre[mc].append(pg); dayvals[mc]=pg
@@ -113,7 +109,6 @@ for fp in files:
             if sw is not None: meal_food_pairs[mc].append((sw,iu))
         if len(dayvals)>=2: daily_triplets.append(dayvals)
 
-# integrity / metrics
 session_tbr=[s['tbr70'] for s in sessions]; session_tir=[s['tir70_180'] for s in sessions]; session_tar=[s['tar180'] for s in sessions]
 exclude2077=[s for s in sessions if not s['file'].startswith('2077_')]
 result={
@@ -144,3 +139,4 @@ for k in ('breakfast','lunch','dinner'):
 md += ['', '## Caveat','This is the third-party mirror snapshot at cf5e7f3. It is a direct CSV conversion of the original spreadsheets, but it predates the 2023 additions to sessions 2003 and 2029.']
 (OUT/'shanghai109_report.md').write_text('\n'.join(md)+'\n',encoding='utf-8')
 print(json.dumps(result,ensure_ascii=False))
+# workflow trigger marker: 2026-08-20
