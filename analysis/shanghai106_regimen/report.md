@@ -1,10 +1,17 @@
 # Shanghai106 regimen-stratified CGM
 
-Summary n=109; CGM sessions matched=106
-
 Summary counts: {'Premix': 28, 'No insulin': 53, 'Short/regular-only': 9, 'Basal-only': 12, 'Other insulin': 7}
 
-| Regimen | n sessions | mean±SD | TBR | TIR | TAR | pre-B | pre-L | pre-D |
+## Other insulin audit
+- 2020_0_20210423: insulin glarigine, metformin
+- 2027_0_20210521: insulin glarigine, metformin, acarbose
+- 2035_0_20210629: insulin detemir, Novolin R, acarbose, metformin
+- 2036_0_20210803: insulin detemir, Novolin R
+- 2043_0_20210513: insulin detemir, Novolin R
+- 2074_0_20210707: insulin detemir, Novolin R
+- 2094_0_20211109: insulin glargine, Humulin R, voglibose
+
+| Regimen | n | mean±SD | TBR | TIR | TAR | pre-B | pre-L | pre-D |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | No insulin | 53 | 129.4±45.8 | 3.33% | 83.70% | 12.97% | 123.3±32.4 | 122.8±44.0 | 124.2±42.2 |
 | Premix | 26 | 151.2±53.4 | 1.49% | 73.60% | 24.90% | 145.7±38.8 | 147.7±59.2 | 149.9±52.0 |
