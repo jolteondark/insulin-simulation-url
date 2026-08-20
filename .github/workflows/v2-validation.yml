@@ -15,12 +15,16 @@ jobs:
           node-version: '22'
       - name: Run basal relative-potency admissibility sweep
         run: node scripts/sweep_basal_relative_potency_admissibility.js
+      - name: Run glargine time-profile sensitivity audit
+        run: node scripts/audit_glargine_time_profile_sensitivity.js
       - uses: actions/upload-artifact@v4
         with:
           name: basal-audit-result
           path: |
             analysis/basal_relative_potency_admissibility/results.json
             analysis/basal_relative_potency_admissibility/report.md
+            analysis/glargine_time_profile_sensitivity/results.json
+            analysis/glargine_time_profile_sensitivity/report.md
   validate:
     runs-on: ubuntu-latest
     steps:
