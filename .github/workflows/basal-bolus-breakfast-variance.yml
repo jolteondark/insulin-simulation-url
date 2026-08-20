@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/analyze_basal_bolus_breakfast_variance.py'
       - 'scripts/analyze_basal_bolus_within_patient.py'
+      - 'scripts/analyze_basal_bolus_patient_meal_response.py'
       - '.github/workflows/basal-bolus-breakfast-variance.yml'
   workflow_dispatch:
 permissions:
@@ -25,11 +26,12 @@ jobs:
         run: |
           python3 scripts/analyze_basal_bolus_breakfast_variance.py
           python3 scripts/analyze_basal_bolus_within_patient.py
+          python3 scripts/analyze_basal_bolus_patient_meal_response.py
       - name: Persist results
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add analysis/basal_bolus_breakfast_variance
+          git add analysis/basal_bolus_breakfast_variance analysis/basal_bolus_patient_meal_response
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'Store basal-bolus breakfast variance analysis'
           git push origin HEAD:v2/state-space-minimal
