@@ -63,11 +63,11 @@ function simulateCourse(baseModel,dynamicModel,p,initialOrder,config={},seed=1){
    state.effective_basal_u=effectiveBasal;
    const sim=dynamicModel.simulateDay(baseModel,p,order,state,seed*100+d,prevState);
    const bg=fourPoint(sim.series);
-   course.records.push({day:d+1,state,order:copyOrder(order),effective_basal_u:effectiveBasal,insulin_exposure_multiplier:sim.insulin_exposure_multiplier,bolus_kernel:sim.bolus_kernel,bg,end_glucose:sim.end,series:sim.series});
+   course.records.push({day:d+1,state,order:copyOrder(order),effective_basal_u:effectiveBasal,insulin_exposure_multiplier:sim.insulin_exposure_multiplier,bolus_kernel:sim.bolus_kernel,bedtime_corrections:sim.bedtime_corrections||[],bg,end_glucose:sim.end,series:sim.series});
    prevState=sim.next_state;
    if(config.titrate!==false)order=copyOrder(titrateFn(copyOrder(order),bg,{day:d+1,patient:p,state,course}));
  }
  course.final_order=copyOrder(order);course.final_effective_basal_u=effectiveBasal;return course;
 }
-window.T2DMInpatientCourseV1Exp={version:'0.5-external-state-modifier-hook-2026-08-20',simulateCourse,titrateOrder};
+window.T2DMInpatientCourseV1Exp={version:'0.6-record-bedtime-correction-2026-08-20',simulateCourse,titrateOrder};
 })();
