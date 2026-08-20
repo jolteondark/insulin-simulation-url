@@ -13,18 +13,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run basal delta potency mechanism audit
-        run: node scripts/audit_basal_delta_potency.js
-      - name: Run Shanghai basal prior preservation audit
-        run: node scripts/audit_shanghai_basal_prior_preservation.js
+      - name: Run basal relative-potency admissibility sweep
+        run: node scripts/sweep_basal_relative_potency_admissibility.js
       - uses: actions/upload-artifact@v4
         with:
           name: basal-audit-result
           path: |
-            analysis/basal_delta_potency/results.json
-            analysis/basal_delta_potency/report.md
-            analysis/shanghai_basal_prior_preservation/results.json
-            analysis/shanghai_basal_prior_preservation/report.md
+            analysis/basal_relative_potency_admissibility/results.json
+            analysis/basal_relative_potency_admissibility/report.md
   validate:
     runs-on: ubuntu-latest
     steps:
