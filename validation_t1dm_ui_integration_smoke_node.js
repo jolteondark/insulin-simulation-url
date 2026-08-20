@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm');
+const html=fs.readFileSync('index.html','utf8');
+const expected=['patient_generator.js','patient_phenotype_v2.js','clinical_modifiers_v2.js','t1dm_game_model_v2.js','app_t1dm_v2.js'];
+for(const f of expected)if(!html.includes(f))throw new Error('missing script '+f);
+if(html.includes('src="engine.js')||html.includes('src="app.js'))throw new Error('legacy game backend still loaded');
+global.window=global;
+for(const f of expected.slice(0,4))vm.runInThisContext(fs.readFileSync(f,'utf8'),{filename:f});
+const game=T1DMGameModelV2.generatePatient(20260820);const order=T1DMGameModelV2.suggestOrder(game.patient,game.case.meal_plan_carb_g);
+const prior=T1DMGameModelV2.simulateDay(game.patient,order,{meal_plan_carb_g:game.case.meal_plan_carb_g,intake_fraction:{breakfast:1,lunch:1,dinner:1}},111,null);game.state=prior.next_state;
+const d1=T1DMGameModelV2.playDay(game,{...order,breakfast_u:order.breakfast_u+.4},{meal_plan_carb_g:game.case.meal_plan_carb_g,intake_fraction:{breakfast:.8,lunch:1.1,dinner:.9}},222);
+const d2=T1DMGameModelV2.playDay(game,order,{meal_plan_carb_g:game.case.meal_plan_carb_g,intake_fraction:{breakfast:1,lunch:1,dinner:1}},333);
+const pass=Number.isInteger(d1.order_u.breakfast_u)&&game.history.length===2&&game.state.requirement_history.length===660&&Number.isFinite(d2.end);
+const out={pass,model:T1DMGameModelV2.version,order,d1:{bg:d1.bg,min:d1.min,max:d1.max,order:d1.order_u,meal:d1.actual_meal_carb_g},d2:{bg:d2.bg,min:d2.min,max:d2.max},history_days:game.history.length,requirement_history_len:game.state.requirement_history.length};fs.writeFileSync('t1dm_ui_integration_smoke_result.json',JSON.stringify(out,null,2));console.log(JSON.stringify(out,null,2));if(!pass)process.exit(1);
