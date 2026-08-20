@@ -35,9 +35,11 @@ function applyArchetype(base,archetype,seed){
  }
  if(archetype==='obesity_ir'){
    // Expand the phenotype support rather than multiplying glucose directly.
-   // BMI and IR move together, but retain within-group heterogeneity.
+   // BMI and IR move together, but retain within-group heterogeneity. The SI
+   // shift is chosen to broaden static support (mixture p05 ~0.35), not to fit
+   // glucose outcomes in any external cohort.
    p.bmi_kg_m2=clamp(34.0+6.0*z1,24,52);
-   p.si_relative=clamp(base.si_relative*Math.exp(-0.42-0.018*(p.bmi_kg_m2-30)+0.10*z2),0.18,1.05);
+   p.si_relative=clamp(base.si_relative*Math.exp(-0.60-0.020*(p.bmi_kg_m2-30)+0.10*z2),0.18,1.05);
    p.hepatic_ir=clamp(base.hepatic_ir*Math.exp(0.22+0.012*(p.bmi_kg_m2-30)+0.08*z3),0.85,2.20);
    p.fasting_c_peptide_nmol_l=clamp(base.fasting_c_peptide_nmol_l*Math.exp(0.20+0.08*z2),0.06,2.5);
    p.observed_fasting_glucose_mg_dl=clamp(base.observed_fasting_glucose_mg_dl+18+18*z3,70,500);
@@ -81,5 +83,5 @@ function sample(seed=1,opts={}){
  p.phenotype='T2DM';p.generator_version='t2dm-v3-inpatient-mixture-exp-2026-08-20';
  return p;
 }
-window.T2DMPatientPhenotypeV3InpatientMixExp={version:'0.1-inpatient-mixture-exp-2026-08-20',DEFAULT_WEIGHTS,sample,applyArchetype};
+window.T2DMPatientPhenotypeV3InpatientMixExp={version:'0.2-inpatient-mixture-broader-ir-support-exp-2026-08-20',DEFAULT_WEIGHTS,sample,applyArchetype};
 })();
