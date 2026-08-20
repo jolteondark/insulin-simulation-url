@@ -4,6 +4,7 @@ on:
     branches: [v2/state-space-minimal]
     paths:
       - 'scripts/analyze_basal_bolus_breakfast_variance.py'
+      - 'scripts/analyze_basal_bolus_within_patient.py'
       - '.github/workflows/basal-bolus-breakfast-variance.yml'
   workflow_dispatch:
 permissions:
@@ -21,7 +22,9 @@ jobs:
           cd /tmp/tju
           git checkout --quiet cf5e7f32e8f8295e49df27ea70d9d6b21ab30598
       - name: Analyze breakfast variance
-        run: python3 scripts/analyze_basal_bolus_breakfast_variance.py
+        run: |
+          python3 scripts/analyze_basal_bolus_breakfast_variance.py
+          python3 scripts/analyze_basal_bolus_within_patient.py
       - name: Persist results
         run: |
           git config user.name github-actions[bot]
