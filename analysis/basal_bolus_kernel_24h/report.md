@@ -1,0 +1,22 @@
+# Basal-bolus 24h kernel grid
+
+- mealTau 70, bolusTau 135: score 11.43; pooled 166.0±55.4, TBR 1.69%, TIR 63.65%, TAR 34.65%; pre B/L/D 148.3±34.8 / 167.9±51.7 / 153.6±64.9; Δ120 39.2±between 17.3
+- mealTau 70, bolusTau 150: score 11.59; pooled 166.1±56.2, TBR 1.90%, TIR 63.31%, TAR 34.79%; pre B/L/D 148.1±34.8 / 167.9±51.2 / 150.7±65.2; Δ120 41.7±between 16.9
+- mealTau 70, bolusTau 120: score 11.62; pooled 165.6±54.7, TBR 1.64%, TIR 64.06%, TAR 34.29%; pre B/L/D 148.4±34.8 / 168.1±51.7 / 156.8±65.3; Δ120 36.1±between 17.0
+- mealTau 70, bolusTau 165: score 11.91; pooled 166.2±55.9, TBR 1.82%, TIR 63.33%, TAR 34.85%; pre B/L/D 148.0±34.8 / 168.8±51.5 / 147.5±63.3; Δ120 44.5±between 17.5
+- mealTau 65, bolusTau 150: score 12.43; pooled 164.8±54.7, TBR 1.91%, TIR 63.90%, TAR 34.20%; pre B/L/D 147.8±34.8 / 165.7±49.6 / 145.9±61.0; Δ120 43.7±between 17.3
+- mealTau 65, bolusTau 135: score 12.53; pooled 164.3±53.8, TBR 1.72%, TIR 64.54%, TAR 33.75%; pre B/L/D 147.9±34.8 / 166.0±49.6 / 148.0±59.9; Δ120 41.6±between 17.6
+- mealTau 65, bolusTau 120: score 12.89; pooled 164.5±53.1, TBR 1.70%, TIR 64.67%, TAR 33.63%; pre B/L/D 148.2±34.8 / 165.6±50.2 / 151.6±59.1; Δ120 38.0±between 16.9
+- mealTau 65, bolusTau 165: score 13.05; pooled 165.1±55.3, TBR 1.96%, TIR 63.62%, TAR 34.42%; pre B/L/D 147.7±34.8 / 166.7±49.7 / 143.0±61.4; Δ120 46.4±between 17.8
+- mealTau 60, bolusTau 135: score 13.34; pooled 163.9±53.5, TBR 1.78%, TIR 64.68%, TAR 33.54%; pre B/L/D 147.8±34.8 / 163.6±47.7 / 144.5±57.8; Δ120 43.3±between 16.8
+- mealTau 60, bolusTau 150: score 13.42; pooled 164.6±53.9, TBR 1.69%, TIR 64.56%, TAR 33.75%; pre B/L/D 147.6±34.7 / 164.4±47.1 / 143.6±57.9; Δ120 46.2±between 17.7
+- mealTau 60, bolusTau 120: score 13.47; pooled 163.9±52.7, TBR 1.49%, TIR 65.19%, TAR 33.32%; pre B/L/D 148.0±34.8 / 162.9±47.7 / 148.0±56.8; Δ120 39.7±between 16.3
+- mealTau 60, bolusTau 165: score 14.25; pooled 164.1±54.4, TBR 1.99%, TIR 64.33%, TAR 33.68%; pre B/L/D 147.4±34.8 / 164.5±48.5 / 140.4±57.4; Δ120 48.0±between 18.3
+- mealTau 55, bolusTau 120: score 14.47; pooled 163.1±51.4, TBR 1.55%, TIR 65.63%, TAR 32.82%; pre B/L/D 147.8±34.8 / 162.1±46.0 / 143.7±52.5; Δ120 43.1±between 18.1
+- mealTau 55, bolusTau 135: score 14.54; pooled 163.0±52.1, TBR 1.64%, TIR 65.67%, TAR 32.69%; pre B/L/D 147.5±34.8 / 161.1±45.5 / 142.1±53.4; Δ120 44.5±between 16.9
+- mealTau 55, bolusTau 150: score 15.57; pooled 163.2±51.9, TBR 1.60%, TIR 65.47%, TAR 32.92%; pre B/L/D 147.3±34.7 / 162.2±45.8 / 139.6±52.6; Δ120 47.7±between 17.8
+- mealTau 55, bolusTau 165: score 16.13; pooled 163.3±52.5, TBR 1.81%, TIR 65.06%, TAR 33.13%; pre B/L/D 147.2±34.7 / 162.4±45.4 / 138.0±53.2; Δ120 49.6±between 18.1
+- mealTau 50, bolusTau 120: score 16.14; pooled 161.8±50.0, TBR 1.46%, TIR 66.73%, TAR 31.81%; pre B/L/D 147.4±34.8 / 158.7±43.6 / 141.1±48.6; Δ120 43.5±between 17.2
+- mealTau 50, bolusTau 135: score 16.50; pooled 161.8±50.7, TBR 1.66%, TIR 66.47%, TAR 31.87%; pre B/L/D 147.2±34.8 / 159.2±44.0 / 139.0±48.9; Δ120 46.5±between 18.2
+- mealTau 50, bolusTau 150: score 17.31; pooled 161.9±51.3, TBR 1.85%, TIR 66.10%, TAR 32.05%; pre B/L/D 147.1±34.8 / 159.4±43.0 / 136.7±50.0; Δ120 48.3±between 17.7
+- mealTau 50, bolusTau 165: score 17.40; pooled 162.1±52.1, TBR 1.96%, TIR 65.76%, TAR 32.28%; pre B/L/D 146.9±34.7 / 159.1±43.4 / 135.5±51.0; Δ120 49.3±between 17.4
