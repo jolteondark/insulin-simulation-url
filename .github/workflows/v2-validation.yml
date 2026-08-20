@@ -13,10 +13,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run basal relative-potency admissibility sweep
-        run: node scripts/sweep_basal_relative_potency_admissibility.js
       - name: Run glargine time-profile sensitivity audit
         run: node scripts/audit_glargine_time_profile_sensitivity_bootstrap.js
+      - name: Run basal relative-potency admissibility sweep
+        run: node scripts/sweep_basal_relative_potency_admissibility.js
       - uses: actions/upload-artifact@v4
         with:
           name: basal-audit-result
