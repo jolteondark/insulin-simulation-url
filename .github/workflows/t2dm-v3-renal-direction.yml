@@ -5,6 +5,7 @@ on:
     branches: [v2/state-space-minimal]
     paths:
       - 't2dm_renal_insulin_modifier_v1_exp.js'
+      - 't2dm_treatment_policy_weight_bg_exp.js'
       - 't2dm_inpatient_dynamic_v1_exp.js'
       - 't2dm_inpatient_course_v1_exp.js'
       - 't2dm_patient_phenotype_v3_inpatient_mix_exp.js'
