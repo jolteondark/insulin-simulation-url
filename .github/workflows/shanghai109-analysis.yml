@@ -5,6 +5,7 @@ on:
       - v2/state-space-minimal
     paths:
       - 'scripts/analyze_shanghai109.py'
+      - 'scripts/diagnose_shanghai109_dates.py'
       - '.github/workflows/shanghai109-analysis.yml'
   workflow_dispatch:
 
@@ -27,14 +28,18 @@ jobs:
         run: |
           rm -rf analysis_out
           python3 scripts/analyze_shanghai109.py
+          python3 scripts/diagnose_shanghai109_dates.py
       - name: Show report
-        run: cat analysis_out/shanghai109_report.md
+        run: |
+          cat analysis_out/shanghai109_report.md
+          cat analysis_out/shanghai109_date_diagnostics.json
       - name: Persist results on experiment branch
         run: |
           mkdir -p analysis/shanghai109
           cp analysis_out/shanghai109_metrics.json analysis/shanghai109/
           cp analysis_out/shanghai109_sessions.csv analysis/shanghai109/
           cp analysis_out/shanghai109_report.md analysis/shanghai109/
+          cp analysis_out/shanghai109_date_diagnostics.json analysis/shanghai109/
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add analysis/shanghai109
