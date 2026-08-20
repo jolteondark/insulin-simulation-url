@@ -16,8 +16,6 @@ function adjustOne(u,bg){
 }
 function titrateOrder(order,bg){
  const o=copyOrder(order);
- // Bedtime basal is adjusted from next-morning fasting; meal doses from the
- // following premeal glucose. Integer-only by ward design.
  o.basal_u=adjustOne(o.basal_u,bg.pre_breakfast);
  o.breakfast_u=adjustOne(o.breakfast_u,bg.pre_lunch);
  o.lunch_u=adjustOne(o.lunch_u,bg.pre_dinner);
@@ -31,7 +29,6 @@ function buildDayState(r,day,cfg,course){
  const state={stress_severity:stress};
  if(day===0)state.admission_glucose_offset_mg_dl=Number(cfg.admission_glucose_offset_mg_dl)||0;
  if(cfg.steroid){state.steroid=true;state.steroid_severity=clamp(Number(cfg.steroid_severity??0.6),0,1)}
- // Procedure/NPO is an environment event, not a patient parameter.
  if(cfg.allow_npo&&day>0&&day<course.days-1&&r()<Number(cfg.npo_day_probability??0.08)){
    const meal=['breakfast','lunch','dinner'][Math.floor(r()*3)];
    state.intake_fraction={[meal]:0};state.bolus_fraction={[meal]:0};
@@ -53,15 +50,19 @@ function simulateCourse(baseModel,dynamicModel,p,initialOrder,config={},seed=1){
  if(!baseModel||!dynamicModel)throw new Error('baseModel and dynamicModel required');
  const days=Math.max(1,Math.round(config.days||5)),r=rng('course:'+seed);
  const course={days,events:[],records:[]};let order=copyOrder(initialOrder),prevState=null;
+ const carry=clamp(Number(config.basal_depot_carry_fraction)||0,0,0.95);
+ let effectiveBasal=Number(order.basal_u);
  for(let d=0;d<days;d++){
    const state=buildDayState(r,d,config,course);
+   effectiveBasal=carry*effectiveBasal+(1-carry)*Number(order.basal_u);
+   state.effective_basal_u=effectiveBasal;
    const sim=dynamicModel.simulateDay(baseModel,p,order,state,seed*100+d,prevState);
    const bg=fourPoint(sim.series);
-   course.records.push({day:d+1,state,order:copyOrder(order),bg,end_glucose:sim.end,series:sim.series});
+   course.records.push({day:d+1,state,order:copyOrder(order),effective_basal_u:effectiveBasal,bg,end_glucose:sim.end,series:sim.series});
    prevState=sim.next_state;
    if(config.titrate!==false)order=titrateOrder(order,bg);
  }
- course.final_order=copyOrder(order);return course;
+ course.final_order=copyOrder(order);course.final_effective_basal_u=effectiveBasal;return course;
 }
-window.T2DMInpatientCourseV1Exp={version:'0.1-multiday-state-carryover-2026-08-20',simulateCourse,titrateOrder};
+window.T2DMInpatientCourseV1Exp={version:'0.2-multiday-basal-depot-carryover-2026-08-20',simulateCourse,titrateOrder};
 })();
