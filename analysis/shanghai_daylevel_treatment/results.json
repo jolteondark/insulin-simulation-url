@@ -1,0 +1,79 @@
+{
+  "n_days": 1253,
+  "counts": {
+    "Premix": 224,
+    "CSII-regular": 174,
+    "No recorded insulin": 661,
+    "Basal-only": 145,
+    "Basal+regular": 17,
+    "Regular-only": 4,
+    "Basal+rapid": 27,
+    "Rapid-only": 1
+  },
+  "groups": {
+    "Basal+rapid": {
+      "n_days": 27,
+      "mean_day_mean": 187.24376715247243,
+      "mean_within_day_sd": 45.52163644471141,
+      "weighted_tbr": 1.5384615384615385,
+      "weighted_tir": 43.98422090729783,
+      "weighted_tar": 54.47731755424063
+    },
+    "Basal+regular": {
+      "n_days": 17,
+      "mean_day_mean": 139.18638438133874,
+      "mean_within_day_sd": 33.459825835294396,
+      "weighted_tbr": 0.5111821086261981,
+      "weighted_tir": 80.12779552715655,
+      "weighted_tar": 19.361022364217252
+    },
+    "Basal-only": {
+      "n_days": 145,
+      "mean_day_mean": 143.07948153413255,
+      "mean_within_day_sd": 31.335561229286334,
+      "weighted_tbr": 0.26453026982087524,
+      "weighted_tir": 82.170659814073,
+      "weighted_tar": 17.564809916106114
+    },
+    "CSII-regular": {
+      "n_days": 174,
+      "mean_day_mean": 162.05281549463785,
+      "mean_within_day_sd": 39.65302259911795,
+      "weighted_tbr": 0.9250632237455078,
+      "weighted_tir": 68.56781578597098,
+      "weighted_tar": 30.507120990283507
+    },
+    "No recorded insulin": {
+      "n_days": 661,
+      "mean_day_mean": 126.78251054730455,
+      "mean_within_day_sd": 29.581748589558384,
+      "weighted_tbr": 3.4807133097431944,
+      "weighted_tir": 84.99632133973303,
+      "weighted_tar": 11.522965350523771
+    },
+    "Premix": {
+      "n_days": 224,
+      "mean_day_mean": 149.63244753843884,
+      "mean_within_day_sd": 38.581181496030844,
+      "weighted_tbr": 1.6285802915934235,
+      "weighted_tir": 74.97673456726295,
+      "weighted_tar": 23.394685141143626
+    },
+    "Rapid-only": {
+      "n_days": 1,
+      "mean_day_mean": 175.89375,
+      "mean_within_day_sd": 8.576418887711817,
+      "weighted_tbr": 0.0,
+      "weighted_tir": 65.625,
+      "weighted_tar": 34.375
+    },
+    "Regular-only": {
+      "n_days": 4,
+      "mean_day_mean": 118.84908602150537,
+      "mean_within_day_sd": 10.651336520386115,
+      "weighted_tbr": 0.0,
+      "weighted_tir": 100.0,
+      "weighted_tar": 0.0
+    }
+  }
+}
