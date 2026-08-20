@@ -16,3 +16,4 @@ for(const x of results){const p=x.pooled,s=x.slots;x.score=Math.abs(p.mean-targe
 results.sort((a,b)=>a.score-b.score);
 fs.mkdirSync('analysis/t2dm_v2_day_si',{recursive:true});fs.writeFileSync('analysis/t2dm_v2_day_si/results.json',JSON.stringify({target,base_cfg:BASECFG,proxy_cv:PROXY_CV,results},null,2));let md='# T2DM v2 day-level SI calibration\n\n';for(const x of results){md+=`- SI CV ${(100*x.si_cv).toFixed(1)}%: score ${x.score.toFixed(2)}; pooled ${x.pooled.mean.toFixed(1)}±${x.pooled.sd.toFixed(1)}, TBR ${x.pooled.tbr.toFixed(2)}%, TIR ${x.pooled.tir.toFixed(2)}%, TAR ${x.pooled.tar.toFixed(2)}%; premeal mean B/L/D ${x.slots.breakfast.mean.toFixed(1)}/${x.slots.lunch.mean.toFixed(1)}/${x.slots.dinner.mean.toFixed(1)}; SD ${x.slots.breakfast.sd.toFixed(1)}/${x.slots.lunch.sd.toFixed(1)}/${x.slots.dinner.sd.toFixed(1)}\n`;}
 fs.writeFileSync('analysis/t2dm_v2_day_si/report.md',md);console.log(md);
+// trigger: 2026-08-20 rerun
