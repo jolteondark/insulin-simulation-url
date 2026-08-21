@@ -1,0 +1,22 @@
+name: us-obese-preset-demographics
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run US obese preset demographic audit
+        run: node scripts/audit_us_obese_preset_demographics.js
+      - name: Upload audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: us-obese-preset-demographics
+          path: |
+            analysis/us_obese_preset_demographics/results.json
+            analysis/us_obese_preset_demographics/report.md
