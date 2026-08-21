@@ -30,10 +30,11 @@ function registered2019Titrate(order,bg){
  if(Number.isFinite(f)&&Number.isFinite(d)&&f>=70&&f<=99&&d>=70&&d<=99)return scaleOrder(o,.90);
  if(!(Number.isFinite(f)&&Number.isFinite(d)))return o;
  if(f<100||d<100)return o; // mixed low/high pair: protocol leaves clinician discretion; do not intensify in this deterministic implementation
- const hi=Math.max(f,d);
- if(hi>=300)o.basal_u=roundUnit(o.basal_u*1.30);
- else if(hi>=181)o.basal_u=roundUnit(o.basal_u*1.20);
- else if(hi>=141)o.basal_u=roundUnit(o.basal_u*1.10);
+ // Registered protocol uses AND for the 141–180 and 181–299 bands; only >=300 is explicitly fasting and/or pre-dinner.
+ if(f>=300||d>=300)o.basal_u=roundUnit(o.basal_u*1.30);
+ else if(f>=181&&f<=299&&d>=181&&d<=299)o.basal_u=roundUnit(o.basal_u*1.20);
+ else if(f>=141&&f<=180&&d>=141&&d<=180)o.basal_u=roundUnit(o.basal_u*1.10);
+ // Mixed bands (e.g. one 120 and one 220) are not explicitly assigned by the registered deterministic table; leave unchanged.
  return o;
 }
 function mealDose({meal,poc_glucose_mg_dl,planned_units,state}){
@@ -44,8 +45,8 @@ function mealDose({meal,poc_glucose_mg_dl,planned_units,state}){
  return scheduled+premealSupplement(poc_glucose_mg_dl,scale);
 }
 window.T2DMTreatmentPolicyEmoryU300TrialExp={
- version:'0.1-published-2019-protocol-exp-2026-08-21',
+ version:'0.2-published-2019-protocol-and-logic-fix-exp-2026-08-21',
  startingOrder,premealSupplement,bedtimeSupplement,registered2019Titrate,mealDose,splitTdd,
- note:'Context-specific policy implementing the registered 2019 Glargine U300 Hospital Trial protocol: weight/admission-BG start; 50/50 basal-prandial split; usual premeal supplemental glulisine when eating; scheduled prandial held and sensitive correction used for poor intake/NPO; daily basal adjustment from fasting/predinner POC; TDD reductions for POC hypoglycemia. Not a global T2DM policy and not fitted to Emory outcomes.'
+ note:'Context-specific policy implementing the registered 2019 Glargine U300 Hospital Trial protocol: weight/admission-BG start; 50/50 basal-prandial split; usual premeal supplemental glulisine when eating; scheduled prandial held and sensitive correction used for poor intake/NPO; daily basal adjustment from fasting/predinner POC using the registered AND logic for 141–180 and 181–299 bands and fasting and/or for >=300; TDD reductions for POC hypoglycemia. Not a global T2DM policy and not fitted to Emory outcomes.'
 };
 })();
