@@ -18,6 +18,7 @@ function supplement(bg,scale='usual'){
   resistant:[[180,6],[220,8],[260,10],[300,12],[350,14],[400,16],[Infinity,18]]
  }[scale];if(!table)throw new Error('unknown correction scale '+scale);for(const [hi,u] of table)if(bg<=hi)return u;return 0;
 }
+function bedtimeSupplement(bg,scale='usual'){return roundUnit(.5*supplement(bg,scale));}
 function titrateBasal(order,bg){
  const o=copyOrder(order),vals=Object.values(bg||{}).map(Number).filter(Number.isFinite);
  if(vals.some(x=>x<70)){o.basal_u=roundUnit(o.basal_u*.80);return o}
@@ -33,8 +34,8 @@ function mealDose({poc_glucose_mg_dl,planned_units,intake_fraction=1,meal_match=
  return scheduled+supplement(poc_glucose_mg_dl,'usual');
 }
 window.T2DMTreatmentPolicyBogotaRabbitExp={
- version:'0.1-bogota-rabbit-context-exp-2026-08-21',
- startingOrder,supplement,titrateBasal,mealDose,splitTdd,copyOrder,
- note:'Context-specific Bogotá/RABBIT external-validation policy. Start 0.4 U/kg for admission BG 140-200 and 0.5 U/kg for >200, with 0.3 U/kg for age >=70 in the primary mapping; eGFR<60 is an explicitly labeled renal-proxy sensitivity because serum creatinine is unavailable. TDD is split 50/50 basal-prandial and prandial is divided across three meals. RABBIT usual supplemental scale 4/6/8/10/12/14/16 U is used. Bogotá-explicit basal titration is +10% for fasting 140-180 and +20% for >180; observed POC hypoglycemia <70 triggers a 20% basal reduction. No outcome from Bogotá defines a parameter.'
+ version:'0.2-rabbit-bedtime-half-scale-fix-2026-08-21',
+ startingOrder,supplement,bedtimeSupplement,titrateBasal,mealDose,splitTdd,copyOrder,
+ note:'Context-specific Bogotá/RABBIT external-validation policy. Start 0.4 U/kg for admission BG 140-200 and 0.5 U/kg for >200, with 0.3 U/kg for age >=70 in the primary mapping; eGFR<60 is an explicitly labeled renal-proxy sensitivity because serum creatinine is unavailable. TDD is split 50/50 basal-prandial and prandial is divided across three meals. RABBIT usual premeal supplemental scale 4/6/8/10/12/14/16 U is used; bedtime correction is one-half of the corresponding supplemental scale per the RABBIT 2 protocol. Bogotá-explicit basal titration is +10% for fasting 140-180 and +20% for >180; observed POC hypoglycemia <70 triggers a 20% basal reduction. No outcome from Bogotá defines a parameter.'
 };
 })();
