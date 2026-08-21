@@ -1,0 +1,21 @@
+name: rapid-insulin-isf-consistency
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run rapid-insulin ISF consistency diagnostic
+        run: node scripts/audit_rapid_insulin_isf_consistency.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rapid-insulin-isf-consistency
+          path: |
+            analysis/rapid_insulin_isf_consistency/results.json
+            analysis/rapid_insulin_isf_consistency/report.md
