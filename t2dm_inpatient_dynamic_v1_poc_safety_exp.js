@@ -85,7 +85,7 @@ function simulateDay(baseModel,p,order,state={},seed=1,prevState=null){
      let carbs=0,cooldown=15,label='fast_carbohydrate';
      if(Number.isFinite(Number(raw)))carbs=Math.max(0,Number(raw));
      else if(raw&&typeof raw==='object'){
-       carbs=Math.max(0,Number(raw.carbs_g)||0;
+       carbs=Math.max(0,Number(raw.carbs_g)||0);
        cooldown=Math.max(1,Math.round(Number(raw.cooldown_min)||15));
        if(raw.label)label=String(raw.label);
      }
