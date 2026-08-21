@@ -1,0 +1,21 @@
+name: emory-registered-rescue-meal-specificity
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run meal specificity audit
+        run: node scripts/audit_emory_registered_rescue_meal_specificity.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: emory-registered-rescue-meal-specificity
+          path: |
+            analysis/emory_registered_rescue_meal_specificity/results.json
+            analysis/emory_registered_rescue_meal_specificity/report.md
