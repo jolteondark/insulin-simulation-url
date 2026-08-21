@@ -1,0 +1,22 @@
+name: emory-protocol-exposure-trajectory
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run Emory protocol exposure trajectory audit
+        run: node scripts/audit_emory_protocol_exposure_trajectory.js
+      - name: Upload audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emory-protocol-exposure-trajectory
+          path: |
+            analysis/emory_protocol_exposure_trajectory/results.json
+            analysis/emory_protocol_exposure_trajectory/report.md
