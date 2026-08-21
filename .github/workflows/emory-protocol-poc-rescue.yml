@@ -1,0 +1,22 @@
+name: emory-protocol-poc-rescue
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run Emory protocol POC rescue audit
+        run: node scripts/audit_emory_protocol_poc_rescue.js
+      - name: Upload audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emory-protocol-poc-rescue
+          path: |
+            analysis/emory_protocol_poc_rescue/results.json
+            analysis/emory_protocol_poc_rescue/report.md
