@@ -1,0 +1,21 @@
+name: poc-safety-residual-tail-attribution
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run residual tail attribution after same-day POC safety
+        run: node scripts/audit_poc_safety_residual_tail_attribution.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: poc-safety-residual-tail-attribution
+          path: |
+            analysis/poc_safety_residual_tail_attribution/results.json
+            analysis/poc_safety_residual_tail_attribution/report.md
