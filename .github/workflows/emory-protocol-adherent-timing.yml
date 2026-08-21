@@ -1,0 +1,21 @@
+name: emory-protocol-adherent-timing
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run protocol-adherent timing audit
+        run: node scripts/audit_emory_protocol_adherent_timing.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: emory-protocol-adherent-timing
+          path: |
+            analysis/emory_protocol_adherent_timing/results.json
+            analysis/emory_protocol_adherent_timing/report.md
