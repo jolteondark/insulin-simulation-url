@@ -1,0 +1,21 @@
+name: graz-day1-treatment-identifiability
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run Graz day1 treatment-context identifiability audit
+        run: node scripts/audit_graz_day1_treatment_identifiability.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: graz-day1-treatment-identifiability
+          path: |
+            analysis/graz_day1_treatment_identifiability/results.json
+            analysis/graz_day1_treatment_identifiability/report.md
