@@ -1,0 +1,21 @@
+name: emory-baseline-entropy-matched-external
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run baseline entropy-matched external audit
+        run: node scripts/audit_emory_baseline_entropy_matched_external.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: emory-baseline-entropy-matched-external
+          path: |
+            analysis/emory_baseline_entropy_matched_external/results.json
+            analysis/emory_baseline_entropy_matched_external/report.md
