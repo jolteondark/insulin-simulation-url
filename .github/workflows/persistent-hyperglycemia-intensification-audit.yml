@@ -1,0 +1,22 @@
+name: persistent-hyperglycemia-intensification-audit
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run persistent hyperglycemia intensification audit
+        run: node scripts/audit_persistent_hyperglycemia_intensification.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: persistent-hyperglycemia-intensification-audit
+          path: |
+            analysis/persistent_hyperglycemia_intensification/results.json
+            analysis/persistent_hyperglycemia_intensification/report.md
