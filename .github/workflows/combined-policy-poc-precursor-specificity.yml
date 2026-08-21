@@ -1,0 +1,20 @@
+name: combined-policy-poc-precursor-specificity
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run POC-only precursor specificity audit
+        run: node scripts/audit_combined_policy_poc_precursor_specificity.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: combined-policy-poc-precursor-specificity
+          path: |
+            analysis/combined_policy_poc_precursor_specificity/results.json
+            analysis/combined_policy_poc_precursor_specificity/report.md
