@@ -1,0 +1,21 @@
+name: combined-policy-shanghai-preservation
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run combined policy Shanghai preservation audit
+        run: node scripts/audit_combined_policy_shanghai_preservation.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: combined-policy-shanghai-preservation
+          path: |
+            analysis/combined_policy_shanghai_preservation/results.json
+            analysis/combined_policy_shanghai_preservation/report.md
