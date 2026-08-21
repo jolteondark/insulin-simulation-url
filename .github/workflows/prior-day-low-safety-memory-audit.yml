@@ -1,0 +1,26 @@
+name: prior-day-low-safety-memory-audit
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run prior-day low POC safety-memory audit
+        run: node scripts/audit_prior_day_low_safety_memory.js
+        continue-on-error: true
+      - name: Upload audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prior-day-low-safety-memory-audit
+          path: |
+            analysis/prior_day_low_safety_memory/results.json
+            analysis/prior_day_low_safety_memory/report.md
