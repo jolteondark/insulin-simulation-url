@@ -1,0 +1,22 @@
+name: emory-published-protocol-external-validation
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run Emory published-protocol external validation
+        run: node scripts/audit_emory_published_protocol_external_validation.js
+      - name: Upload audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emory-published-protocol-external-validation
+          path: |
+            analysis/emory_published_protocol_external_validation/results.json
+            analysis/emory_published_protocol_external_validation/report.md
