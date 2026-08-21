@@ -1,0 +1,22 @@
+name: threshold-aligned-residual-tail-attribution
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run threshold-aligned residual tail attribution
+        run: node scripts/audit_threshold_aligned_residual_tail_attribution.js
+      - name: Upload audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: threshold-aligned-residual-tail-attribution
+          path: |
+            analysis/threshold_aligned_residual_tail_attribution/results.json
+            analysis/threshold_aligned_residual_tail_attribution/report.md
