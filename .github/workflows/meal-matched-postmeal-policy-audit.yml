@@ -1,0 +1,23 @@
+name: meal-matched-postmeal-policy-audit
+on:
+  push:
+    branches: [v2/state-space-minimal]
+  pull_request:
+    branches: [main]
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run meal-matched postmeal policy audit
+        run: node scripts/audit_meal_matched_postmeal_policy.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: meal-matched-postmeal-policy-audit
+          path: |
+            analysis/meal_matched_postmeal_policy/results.json
+            analysis/meal_matched_postmeal_policy/report.md
