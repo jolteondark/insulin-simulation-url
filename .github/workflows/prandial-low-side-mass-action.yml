@@ -1,0 +1,22 @@
+name: prandial-low-side-mass-action
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run prandial low-side mass-action audit
+        continue-on-error: true
+        run: node scripts/audit_prandial_low_side_mass_action.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prandial-low-side-mass-action
+          path: |
+            analysis/prandial_low_side_mass_action/results.json
+            analysis/prandial_low_side_mass_action/report.md
