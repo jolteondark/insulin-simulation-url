@@ -1,0 +1,23 @@
+name: counterregulation-threshold-aligned-switch
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run threshold-aligned counterregulation audit
+        run: node scripts/audit_counterregulation_threshold_aligned_switch.js
+      - name: Upload audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: counterregulation-threshold-aligned-switch
+          path: |
+            analysis/counterregulation_threshold_aligned_switch/results.json
+            analysis/counterregulation_threshold_aligned_switch/report.md
