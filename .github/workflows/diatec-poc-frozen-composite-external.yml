@@ -1,0 +1,21 @@
+name: diatec-poc-frozen-composite-external
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run DIATEC POC frozen-composite external audit
+        run: node scripts/audit_diatec_poc_frozen_composite_external.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: diatec-poc-frozen-composite-external
+          path: |
+            analysis/diatec_poc_frozen_composite_external/results.json
+            analysis/diatec_poc_frozen_composite_external/report.md
