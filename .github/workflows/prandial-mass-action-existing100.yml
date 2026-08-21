@@ -1,0 +1,22 @@
+name: prandial-mass-action-existing100
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run existing-100 mass-action audit
+        continue-on-error: true
+        run: node scripts/audit_prandial_mass_action_existing100.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prandial-mass-action-existing100
+          path: |
+            analysis/prandial_mass_action_existing100/results.json
+            analysis/prandial_mass_action_existing100/report.md
