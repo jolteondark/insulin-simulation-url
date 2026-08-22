@@ -11,6 +11,8 @@ on:
       - 't2dm_counterregulation_v2_egp_exp.js'
       - 'scripts/audit_baldwin2012_renal_rct_external.js'
       - '.github/workflows/baldwin2012-renal-rct-external.yml'
+  pull_request:
+    branches: [v2/state-space-minimal]
 jobs:
   audit:
     runs-on: ubuntu-24.04
@@ -26,6 +28,7 @@ jobs:
       - name: Run Baldwin renal RCT audit
         run: node scripts/audit_baldwin2012_renal_rct_external.js
       - name: Commit report
+        if: github.event_name != 'pull_request'
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
