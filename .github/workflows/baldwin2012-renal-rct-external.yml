@@ -1,0 +1,40 @@
+name: Baldwin 2012 renal RCT external audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 't2dm_treatment_policy_baldwin_renal_rct_exp.js'
+      - 't2dm_renal_insulin_modifier_v1_exp.js'
+      - 't2dm_inpatient_dynamic_v1_poc_safety_exp.js'
+      - 't2dm_inpatient_course_v1_exp.js'
+      - 't2dm_counterregulation_v2_egp_exp.js'
+      - 'scripts/audit_baldwin2012_renal_rct_external.js'
+      - '.github/workflows/baldwin2012-renal-rct-external.yml'
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v2/state-space-minimal
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run Baldwin renal RCT audit
+        run: node scripts/audit_baldwin2012_renal_rct_external.js
+      - name: Commit report
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add analysis/baldwin2012_renal_rct_external
+          git diff --cached --quiet || git commit -m 'Update Baldwin 2012 renal RCT audit'
+          git push origin HEAD:v2/state-space-minimal
+      - uses: actions/upload-artifact@v4
+        with:
+          name: baldwin2012-renal-rct-external
+          path: |
+            analysis/baldwin2012_renal_rct_external/results.json
+            analysis/baldwin2012_renal_rct_external/report.md
