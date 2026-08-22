@@ -1,0 +1,31 @@
+name: T1DM meal-insulin kernel width screen
+
+on:
+  push:
+    branches: [validation/azt1d-acf-20260819]
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/azt1d-kernel-width-screen.yml']
+permissions: {contents: read}
+jobs:
+  screen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - shell: bash
+        run: |
+          node <<'JS'
+          const fs=require('fs'),vm=require('vm');const E=fs.readFileSync('engine.js','utf8'),G=fs.readFileSync('patient_generator.js','utf8');
+          const T={30:.8627021804030711,60:.6351287169138964,120:.21844683502175127,240:.007311763980037047},L=[30,60,120,240],N=250;
+          function ctx(src){const c={console,Float64Array,Math,Number,String,Object,Array,JSON,Date,Set,Map};c.window=c;c.globalThis=c;vm.createContext(c);vm.runInContext(src,c);return c}
+          const b=ctx(E);vm.runInContext(G,b);const C=[];for(let i=0;i<N;i++){const seed=940001+i,x=b.PatientGenerator.generate(seed);C.push({seed,p:structuredClone(x.patient),c:structuredClone(x.case)})}
+          function mealScale(s){const n='function mealKernel(p){const h=Math.floor(Math.max(720,p.meal_t50_slow_min*5)),f=gamma2(p.meal_t50_fast_min,h),s=gamma2(p.meal_t50_slow_min,h),q=p.meal_fast_fraction,k=new Float64Array(h);for(let i=0;i<h;i++)k[i]=q*f[i]+(1-q)*s[i];return k}';if(!E.includes(n))throw Error('meal signature');const r=`function mealKernel(p){const h=Math.floor(Math.max(720,p.meal_t50_slow_min*${s}*5)),f=gamma2(p.meal_t50_fast_min*${s},h),ss=gamma2(p.meal_t50_slow_min*${s},h),q=p.meal_fast_fraction,k=new Float64Array(h);for(let i=0;i<h;i++)k[i]=q*f[i]+(1-q)*ss[i];return k}`;return E.replace(n,r)}
+          function aspart(peak,dur){const n="if(['aspart','novolog','novorapid','insulin_aspart'].includes(n))return shiftedGammaTaper(15,105,300,h,3);";if(!E.includes(n))throw Error('aspart signature');return E.replace(n,`if(['aspart','novolog','novorapid','insulin_aspart'].includes(n))return shiftedGammaTaper(15,${peak},${dur},h,3);`)}
+          function both(ms,peak,dur){let x=mealScale(ms);const n="if(['aspart','novolog','novorapid','insulin_aspart'].includes(n))return shiftedGammaTaper(15,105,300,h,3);";return x.replace(n,`if(['aspart','novolog','novorapid','insulin_aspart'].includes(n))return shiftedGammaTaper(15,${peak},${dur},h,3);`)}
+          function cor(a,b){let n=a.length,sx=0,sy=0,sxx=0,syy=0,sxy=0;for(let i=0;i<n;i++){let x=a[i],y=b[i];sx+=x;sy+=y;sxx+=x*x;syy+=y*y;sxy+=x*y}return(n*sxy-sx*sy)/Math.sqrt((n*sxx-sx*sx)*(n*syy-sy*sy))}function med(a){a.sort((x,y)=>x-y);return a.length%2?a[(a.length-1)/2]:(a[a.length/2-1]+a[a.length/2])/2}
+          function run(name,src){const q=ctx(src),A=Object.fromEntries(L.map(l=>[l,[]]));let n=0,sum=0,sum2=0,tir=0,lo=0,hi=0,lo54=0,hi250=0;for(const z of C){const o=z.c.previous_order_u,r=q.GlucoseEngine.simulate(z.p,z.c,{breakfast_u:o.breakfast_u,lunch_u:o.lunch_u,dinner_u:o.dinner_u},o.basal_u,z.seed,z.c.previous_day_end_glucose_mg_dl),s=[];for(let t=0;t<r.series.length;t+=5)s.push(r.series[t]);for(const l of L){let k=l/5;A[l].push(cor(s.slice(0,-k),s.slice(k)))}for(const g of s){n++;sum+=g;sum2+=g*g;if(g>=70&&g<=180)tir++;if(g<70)lo++;if(g<54)lo54++;if(g>180)hi++;if(g>250)hi250++}}let m=sum/n,sd=Math.sqrt((sum2-sum*sum/n)/(n-1)),acf=Object.fromEntries(L.map(l=>[l,med(A[l])]));let rmse=Math.sqrt(L.reduce((v,l)=>v+(acf[l]-T[l])**2,0)/4);return{name,acf,rmse,mean:m,sd,cv:100*sd/m,TIR:100*tir/n,TBR70:100*lo/n,TBR54:100*lo54/n,TAR180:100*hi/n,TAR250:100*hi250/n}}
+          const R=[run('baseline',E),run('meal_1.25x',mealScale(1.25)),run('meal_1.5x',mealScale(1.5)),run('aspart_peak120_dur360',aspart(120,360)),run('aspart_peak140_dur420',aspart(140,420)),run('meal1.25_aspart120_360',both(1.25,120,360)),run('meal1.5_aspart140_420',both(1.5,140,420))];fs.writeFileSync('kernel-screen.json',JSON.stringify({target:T,results:R},null,2));console.log('KERNEL_SCREEN_BEGIN');console.log(JSON.stringify({target:T,results:R},null,2));console.log('KERNEL_SCREEN_END');
+          JS
+      - uses: actions/upload-artifact@v4
+        with: {name: kernel-width-screen, path: kernel-screen.json}
