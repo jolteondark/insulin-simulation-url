@@ -1,7 +1,8 @@
 (function(){
 'use strict';
 const roundUnit=x=>Math.max(0,Math.round(Number(x)||0));
-function copyOrder(o){return{breakfast_u:roundUnit(o.breakfast_u),lunch_u:roundUnit(o.lunch_u),dinner_u:roundUnit(o.dinner_u),basal_u:roundUnit(o.basal_u)}}
+const POC_MIN={night:180,pre_breakfast:465,pre_lunch:765,pre_dinner:1125,bedtime:1320};
+function copyOrder(o){return{breakfast_u:roundUnit(o&&o.breakfast_u),lunch_u:roundUnit(o&&o.lunch_u),dinner_u:roundUnit(o&&o.dinner_u),basal_u:roundUnit(o&&o.basal_u)}}
 function reducedStart(patient){
  const age=Number(patient&&patient.age_years)||60,egfr=Number(patient&&patient.egfr_ml_min_1_73m2)||90,bmi=Number(patient&&patient.bmi_kg_m2)||25;
  return age>75||(egfr>0&&egfr<=60)||bmi<=22.5;
@@ -31,32 +32,30 @@ function pctForSignal(bg,hadHypo=false){
  if(bg<=180)return.10;if(bg<=270)return.20;return.30;
 }
 function adjustPct(u,pct){return roundUnit(Number(u||0)*(1+pct))}
-function anyHypo(series){if(!series)return false;for(let t=0;t<1440;t+=5)if(Number(series[t])<70)return true;return false}
+function observedPoc(record){const s=record&&record.series;if(!s)return null;return{night:Number(s[POC_MIN.night]),pre_breakfast:Number(s[POC_MIN.pre_breakfast]),pre_lunch:Number(s[POC_MIN.pre_lunch]),pre_dinner:Number(s[POC_MIN.pre_dinner]),bedtime:Number(s[POC_MIN.bedtime])}}
+function anyObservedHypo(record){const p=observedPoc(record);return !!(p&&Object.values(p).some(x=>Number.isFinite(x)&&x<70))}
 function ruleSignal(vals){
  vals=(vals||[]).map(Number).filter(Number.isFinite);if(!vals.length)return NaN;
  const low=vals.filter(x=>x<100);if(low.length)return Math.min(...low);
  return Math.max(...vals);
 }
-function postmealHigh(record){
- if(!record||!record.series)return false;const s=record.series;
- return Number(s[600])>180||Number(s[900])>180||Number(s[1260])>180;
-}
+function observedDaytimeHigh(record){const p=observedPoc(record);return !!(p&&[p.pre_lunch,p.pre_dinner,p.bedtime].some(x=>Number(x)>180))}
 function titratePoc(order,bg,ctx={},opts={}){
- const o=copyOrder(order),records=ctx.course&&ctx.course.records||[],last=records[records.length-1],series=last&&last.series,hadHypo=anyHypo(series);
+ const o=copyOrder(order),records=ctx.course&&ctx.course.records||[],last=records[records.length-1],poc=observedPoc(last),hadHypo=anyObservedHypo(last);
  const prandialStarted=(o.breakfast_u+o.lunch_u+o.dinner_u)>0;
  if(!prandialStarted){
    const n=Math.max(1,Math.min(2,Math.round(Number(opts.prandial_start_days)||2)));
    let persistent=records.length>=n;
-   for(let k=0;k<n&&persistent;k++)persistent=postmealHigh(records[records.length-1-k]);
+   for(let k=0;k<n&&persistent;k++)persistent=observedDaytimeHigh(records[records.length-1-k]);
    if(persistent){const p=startingPrandial(ctx.patient);o.breakfast_u=p.breakfast_u;o.lunch_u=p.lunch_u;o.dinner_u=p.dinner_u;}
  }
- if(series){
-   const basalSig=ruleSignal([series[180],series[420]]);
+ if(poc){
+   const basalSig=ruleSignal([poc.night,poc.pre_breakfast]);
    o.basal_u=adjustPct(o.basal_u,pctForSignal(basalSig,hadHypo));
    if((o.breakfast_u+o.lunch_u+o.dinner_u)>0){
-     o.breakfast_u=adjustPct(o.breakfast_u,pctForSignal(series[720],hadHypo));
-     o.lunch_u=adjustPct(o.lunch_u,pctForSignal(series[1080],hadHypo));
-     o.dinner_u=adjustPct(o.dinner_u,pctForSignal(series[1260],hadHypo));
+     o.breakfast_u=adjustPct(o.breakfast_u,pctForSignal(poc.pre_lunch,hadHypo));
+     o.lunch_u=adjustPct(o.lunch_u,pctForSignal(poc.pre_dinner,hadHypo));
+     o.dinner_u=adjustPct(o.dinner_u,pctForSignal(poc.bedtime,hadHypo));
    }
  }
  return o;
@@ -68,7 +67,7 @@ function correctionModeFromCourse(course){
  if(up&&!down)return'resistant';if(down&&!up)return'sensitive';return'recommended';
 }
 window.T2DMTreatmentPolicyDiatecPocExp={
- version:'0.1-diatec-poc-context-exp-2026-08-22',copyOrder,reducedStart,startingOrder,startingPrandial,correctionTier,supplement,pctForSignal,titratePoc,correctionModeFromCourse,
- note:'Context-specific DIATEC POC-arm policy. Published starting basal 0.25 U/kg or 0.20 U/kg for age>75/eGFR<=60/BMI<=22.5; prandial starts at the same total U/kg after postprandial >180 mg/dL for a pre-specified 1- or 2-day sensitivity; correction scale is 4/6/8/10 U with optional trend-guided sensitive/resistant adjustment as a sensitivity only. POC titration uses rule-of-lowest/extremes and published +/-10/20/30% steps. Home insulin continuation is not represented because patient-level home doses are unavailable.'
+ version:'0.2-observable-only-poc-context-exp-2026-08-22',POC_MIN,copyOrder,reducedStart,startingOrder,startingPrandial,correctionTier,supplement,pctForSignal,observedPoc,anyObservedHypo,ruleSignal,observedDaytimeHigh,titratePoc,correctionModeFromCourse,
+ note:'Context-specific DIATEC POC-arm policy. Published starting basal 0.25 U/kg or 0.20 U/kg for age>75/eGFR<=60/BMI<=22.5; prandial starts at the same total U/kg after observed daytime POC hyperglycemia for a pre-specified 1- or 2-day sensitivity; correction scale is 4/6/8/10 U with optional trend-guided sensitive/resistant adjustment as a sensitivity only. Basal/prandial titration uses only the five scheduled observable POC points (03:00, premeal, 22:00), rule-of-lowest/extremes, and published +/-10/20/30% steps. No hidden CGM/minute-series value is used for a treatment decision. Home insulin continuation is not represented because patient-level home doses are unavailable.'
 };
 })();
