@@ -43,16 +43,17 @@ function observedDaytimeHigh(record){const p=observedPoc(record);return !!(p&&[p
 function titratePoc(order,bg,ctx={},opts={}){
  const o=copyOrder(order),records=ctx.course&&ctx.course.records||[],last=records[records.length-1],poc=observedPoc(last),hadHypo=anyObservedHypo(last);
  const prandialStarted=(o.breakfast_u+o.lunch_u+o.dinner_u)>0;
+ let startedPrandialNow=false;
  if(!prandialStarted){
    const n=Math.max(1,Math.min(2,Math.round(Number(opts.prandial_start_days)||2)));
    let persistent=records.length>=n;
    for(let k=0;k<n&&persistent;k++)persistent=observedDaytimeHigh(records[records.length-1-k]);
-   if(persistent){const p=startingPrandial(ctx.patient);o.breakfast_u=p.breakfast_u;o.lunch_u=p.lunch_u;o.dinner_u=p.dinner_u;}
+   if(persistent){const p=startingPrandial(ctx.patient);o.breakfast_u=p.breakfast_u;o.lunch_u=p.lunch_u;o.dinner_u=p.dinner_u;startedPrandialNow=true;}
  }
  if(poc){
    const basalSig=ruleSignal([poc.night,poc.pre_breakfast]);
    o.basal_u=adjustPct(o.basal_u,pctForSignal(basalSig,hadHypo));
-   if((o.breakfast_u+o.lunch_u+o.dinner_u)>0){
+   if(!startedPrandialNow&&(o.breakfast_u+o.lunch_u+o.dinner_u)>0){
      o.breakfast_u=adjustPct(o.breakfast_u,pctForSignal(poc.pre_lunch,hadHypo));
      o.lunch_u=adjustPct(o.lunch_u,pctForSignal(poc.pre_dinner,hadHypo));
      o.dinner_u=adjustPct(o.dinner_u,pctForSignal(poc.bedtime,hadHypo));
@@ -67,7 +68,7 @@ function correctionModeFromCourse(course){
  if(up&&!down)return'resistant';if(down&&!up)return'sensitive';return'recommended';
 }
 window.T2DMTreatmentPolicyDiatecPocExp={
- version:'0.2-observable-only-poc-context-exp-2026-08-22',POC_MIN,copyOrder,reducedStart,startingOrder,startingPrandial,correctionTier,supplement,pctForSignal,observedPoc,anyObservedHypo,ruleSignal,observedDaytimeHigh,titratePoc,correctionModeFromCourse,
- note:'Context-specific DIATEC POC-arm policy. Published starting basal 0.25 U/kg or 0.20 U/kg for age>75/eGFR<=60/BMI<=22.5; prandial starts at the same total U/kg after observed daytime POC hyperglycemia for a pre-specified 1- or 2-day sensitivity; correction scale is 4/6/8/10 U with optional trend-guided sensitive/resistant adjustment as a sensitivity only. Basal/prandial titration uses only the five scheduled observable POC points (03:00, premeal, 22:00), rule-of-lowest/extremes, and published +/-10/20/30% steps. No hidden CGM/minute-series value is used for a treatment decision. Home insulin continuation is not represented because patient-level home doses are unavailable.'
+ version:'0.3-no-double-titration-on-prandial-start-2026-08-22',POC_MIN,copyOrder,reducedStart,startingOrder,startingPrandial,correctionTier,supplement,pctForSignal,observedPoc,anyObservedHypo,ruleSignal,observedDaytimeHigh,titratePoc,correctionModeFromCourse,
+ note:'Context-specific DIATEC POC-arm policy. Published starting basal 0.25 U/kg or 0.20 U/kg for age>75/eGFR<=60/BMI<=22.5; prandial starts at the same total U/kg after observed daytime POC hyperglycemia for a pre-specified 1- or 2-day sensitivity; the newly started published prandial dose is not re-titrated again from the same triggering POC day before its first administration. Correction scale is 4/6/8/10 U with optional trend-guided sensitive/resistant adjustment as a sensitivity only. Basal/prandial titration uses only the five scheduled observable POC points (03:00, premeal, 22:00), rule-of-lowest/extremes, and published +/-10/20/30% steps. No hidden CGM/minute-series value is used for a treatment decision. Home insulin continuation is not represented because patient-level home doses are unavailable.'
 };
 })();
