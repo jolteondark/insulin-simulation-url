@@ -1,0 +1,23 @@
+name: diatec-treatment-exposure-ablation
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run DIATEC treatment-exposure causal ablation
+        run: node scripts/audit_diatec_treatment_exposure_ablation.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: diatec-treatment-exposure-ablation
+          path: |
+            analysis/diatec_treatment_exposure_ablation/results.json
+            analysis/diatec_treatment_exposure_ablation/report.md
