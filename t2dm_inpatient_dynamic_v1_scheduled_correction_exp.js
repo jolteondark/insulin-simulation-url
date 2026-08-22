@@ -11,6 +11,8 @@ function simulateDay(baseModel,p,order,state={},seed=1,prevState=null){
  const mealShift={breakfast:0,lunch:0,dinner:0,...(state.meal_shift_min||{})};
  const bolusShift={breakfast:0,lunch:0,dinner:0,...(state.bolus_shift_min||{})};
  const bolusFrac={breakfast:1,lunch:1,dinner:1,...(state.bolus_fraction||{})};
+ const pocCfg={breakfast:420,lunch:720,dinner:1080,...(state.prandial_poc_min||{})};
+ const prandialPocMin={breakfast:Math.max(0,Math.min(1439,Math.round(Number(pocCfg.breakfast)))),lunch:Math.max(0,Math.min(1439,Math.round(Number(pocCfg.lunch)))),dinner:Math.max(0,Math.min(1439,Math.round(Number(pocCfg.dinner))))};
  const dose={breakfast_u:Math.max(0,Math.round(order.breakfast_u||0)),lunch_u:Math.max(0,Math.round(order.lunch_u||0)),dinner_u:Math.max(0,Math.round(order.dinner_u||0)),basal_u:Math.max(0,Math.round(order.basal_u||0))};
  const ref=baseModel.suggestOrder(p,mealPlan);
  const effectiveBasalU=Number.isFinite(Number(state.effective_basal_u))?Math.max(0,Number(state.effective_basal_u)):dose.basal_u;
@@ -33,7 +35,7 @@ function simulateDay(baseModel,p,order,state={},seed=1,prevState=null){
  const rescueAreaNorm=kernelArea(K.meal_tau_min,K.meal_duration_min)/kernelArea(rescueTau,rescueDuration);
  const meals=[[480+mealShift.breakfast,mealPlan.breakfast*intake.breakfast],[780+mealShift.lunch,mealPlan.lunch*intake.lunch],[1140+mealShift.dinner,mealPlan.dinner*intake.dinner]];
  const bolus=[[465+bolusShift.breakfast,dose.breakfast_u*clamp(bolusFrac.breakfast,0,1.5)],[765+bolusShift.lunch,dose.lunch_u*clamp(bolusFrac.lunch,0,1.5)],[1125+bolusShift.dinner,dose.dinner_u*clamp(bolusFrac.dinner,0,1.5)]];
- const mealBolusMeta=[{meal:'breakfast',poc_min:420,index:0,adjusted:false},{meal:'lunch',poc_min:720,index:1,adjusted:false},{meal:'dinner',poc_min:1080,index:2,adjusted:false}];
+ const mealBolusMeta=[{meal:'breakfast',poc_min:prandialPocMin.breakfast,index:0,adjusted:false},{meal:'lunch',poc_min:prandialPocMin.lunch,index:1,adjusted:false},{meal:'dinner',poc_min:prandialPocMin.dinner,index:2,adjusted:false}];
  const observedPoc={},prandialSafetyAdjustments=[];
  const bedtimeCorrections=[],scheduledCorrections=[],hypoglycemiaRescues=[],rescueCarbEvents=[];
  let nextRescueAllowedMin=-1;
@@ -126,5 +128,5 @@ function simulateDay(baseModel,p,order,state={},seed=1,prevState=null){
  }
  return{series:g,min:mn,max:mx,end:g[1440],order_u:dose,effective_basal_u:effectiveBasalU,insulin_exposure_multiplier:insulinExposureMultiplier,basal_delta_gain_per_day:basalDeltaGainPerDay,prandial_mass_action_low_side:prandialMassActionLowSide,prandial_mass_action_reference_mg_dl:prandialMassActionReference,bedtime_corrections:bedtimeCorrections,scheduled_corrections:scheduledCorrections,prandial_safety_adjustments:prandialSafetyAdjustments,hypoglycemia_rescues:hypoglycemiaRescues,rescue_kernel:{tau_min:rescueTau,duration_min:rescueDuration,area_norm:rescueAreaNorm},bolus_kernel:{tau_min:bolusTau,duration_min:bolusDuration,area_norm:bolusAreaNorm},next_state:{glucose_mg_dl:g[1440]},inpatient_dynamic_state:state};
 }
-window.T2DMInpatientDynamicV1ScheduledCorrectionExp={version:'0.1-optional-observable-scheduled-correction-exp-2026-08-22',simulateDay};
+window.T2DMInpatientDynamicV1ScheduledCorrectionExp={version:'0.2-optional-poc-timing-and-scheduled-correction-exp-2026-08-22',simulateDay};
 })();
