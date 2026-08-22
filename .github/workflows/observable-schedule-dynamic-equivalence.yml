@@ -1,0 +1,14 @@
+name: observable-schedule-dynamic-equivalence
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Compare derivative with legacy dynamic
+        run: node scripts/smoke_observable_schedule_dynamic_equivalence.js

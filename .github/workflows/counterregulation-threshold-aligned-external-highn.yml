@@ -1,0 +1,23 @@
+name: counterregulation-threshold-aligned-external-highn
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run external high-N confirmation
+        run: node scripts/confirm_threshold_aligned_counterreg_external_highn.js
+      - name: Upload audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: counterregulation-threshold-aligned-external-highn
+          path: |
+            analysis/counterregulation_threshold_aligned_external_highn/results.json
+            analysis/counterregulation_threshold_aligned_external_highn/report.md

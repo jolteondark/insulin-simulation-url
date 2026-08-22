@@ -1,0 +1,26 @@
+name: stress-titration-lag-audit
+on:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 'scripts/audit_stress_titration_lag.js'
+      - '.github/workflows/stress-titration-lag-audit.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run stress titration lag audit
+        run: node scripts/audit_stress_titration_lag.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stress-titration-lag-audit
+          path: |
+            analysis/stress_titration_lag/results.json
+            analysis/stress_titration_lag/report.md

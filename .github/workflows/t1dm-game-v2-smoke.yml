@@ -1,0 +1,37 @@
+name: t1dm-game-v2-smoke
+on:
+  push:
+    branches: [v2/state-space-minimal]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run frozen T1DM game model smoke test
+        run: node validation_t1dm_game_model_v2_smoke_node.js
+      - name: Run frozen T1DM UI integration smoke test
+        run: node validation_t1dm_ui_integration_smoke_node.js
+      - name: Evaluate starter-order policies
+        run: N=300 node validation_t1dm_starter_order_policy_node.js
+      - name: Evaluate five-day 90pct starter policy
+        run: N=300 node validation_t1dm_starter_5day_node.js
+      - name: Evaluate ADA-style guideline initial doses
+        run: N=500 node validation_t1dm_guideline_initial_dose_node.js
+      - name: Evaluate visible-information value
+        run: N=500 node validation_t1dm_information_value_node.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: t1dm-game-v2-smoke-result
+          path: |
+            t1dm_game_model_v2_smoke_result.json
+            t1dm_ui_integration_smoke_result.json
+            t1dm_starter_order_policy_result.json
+            t1dm_starter_5day_result.json
+            t1dm_guideline_initial_dose_result.json
+            t1dm_information_value_result.json

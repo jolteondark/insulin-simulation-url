@@ -1,0 +1,32 @@
+name: shanghai-policy-unwind-preservation
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/audit_shanghai_policy_unwind_preservation.js'
+      - '.github/workflows/shanghai-policy-unwind-preservation.yml'
+      - 't2dm_treatment_policy_weight_bg_exp.js'
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 'scripts/audit_shanghai_policy_unwind_preservation.js'
+      - '.github/workflows/shanghai-policy-unwind-preservation.yml'
+      - 't2dm_treatment_policy_weight_bg_exp.js'
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run Shanghai policy unwind preservation audit
+        run: node scripts/audit_shanghai_policy_unwind_preservation.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shanghai-policy-unwind-preservation
+          path: |
+            analysis/shanghai_policy_unwind_preservation/results.json
+            analysis/shanghai_policy_unwind_preservation/report.md

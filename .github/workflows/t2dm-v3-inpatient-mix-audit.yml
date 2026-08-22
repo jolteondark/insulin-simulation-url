@@ -1,0 +1,29 @@
+name: T2DM V3 inpatient phenotype audit
+on:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 't2dm_patient_phenotype_v3_inpatient_mix_exp.js'
+      - 'scripts/audit_t2dm_v3_inpatient_mix.js'
+      - '.github/workflows/t2dm-v3-inpatient-mix-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v2/state-space-minimal
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/audit_t2dm_v3_inpatient_mix.js
+      - run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add analysis/t2dm_v3_inpatient_mix
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Store T2DM V3 inpatient phenotype audit'
+          git push origin HEAD:v2/state-space-minimal

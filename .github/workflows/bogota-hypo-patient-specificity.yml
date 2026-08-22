@@ -1,0 +1,22 @@
+name: bogota-hypo-patient-specificity
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run Bogotá hypo patient specificity diagnostic
+        run: node scripts/audit_bogota_hypo_patient_specificity.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bogota-hypo-patient-specificity
+          path: |
+            analysis/bogota_hypo_patient_specificity/results.json
+            analysis/bogota_hypo_patient_specificity/report.md

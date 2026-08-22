@@ -1,0 +1,30 @@
+name: Emory rapid-kernel sweep
+on:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 't2dm_inpatient_dynamic_v1_exp.js'
+      - 't2dm_inpatient_course_v1_exp.js'
+      - 'scripts/sweep_emory_rapid_kernel.js'
+      - '.github/workflows/emory-rapid-kernel-sweep.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v2/state-space-minimal
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/sweep_emory_rapid_kernel.js
+      - run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add analysis/emory_rapid_kernel_sweep
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Store Emory rapid-kernel sweep'
+          git push origin HEAD:v2/state-space-minimal

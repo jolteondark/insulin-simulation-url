@@ -1,0 +1,22 @@
+name: persistent2of4-transient-correction
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run persistent2of4 transient correction audit
+        run: node scripts/audit_persistent2of4_with_transient_correction.js
+      - name: Upload audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: persistent2of4-transient-correction
+          path: |
+            analysis/persistent2of4_transient_correction/results.json
+            analysis/persistent2of4_transient_correction/report.md

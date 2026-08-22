@@ -1,0 +1,22 @@
+name: emory-poc-latent-decomposition
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run Emory POC vs latent decomposition
+        run: node scripts/audit_emory_poc_vs_latent_decomposition.js
+      - name: Upload audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emory-poc-latent-decomposition
+          path: |
+            analysis/emory_poc_latent_decomposition/results.json
+            analysis/emory_poc_latent_decomposition/report.md

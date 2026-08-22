@@ -1,0 +1,23 @@
+name: persistent-policy-meal-interaction
+on:
+  push:
+    branches: [v2/state-space-minimal]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run persistent policy x partial meal interaction audit
+        run: node scripts/audit_persistent_policy_meal_interaction.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: persistent-policy-meal-interaction
+          path: |
+            analysis/persistent_policy_meal_interaction/results.json
+            analysis/persistent_policy_meal_interaction/report.md

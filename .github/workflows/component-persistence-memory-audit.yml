@@ -1,0 +1,21 @@
+name: component-persistence-memory-audit
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run component-specific persistence memory audit
+        run: node scripts/audit_component_persistence_memory.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: component-persistence-memory-audit
+          path: |
+            analysis/component_persistence_memory/results.json
+            analysis/component_persistence_memory/report.md

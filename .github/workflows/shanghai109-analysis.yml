@@ -1,0 +1,55 @@
+name: Shanghai109 analysis
+on:
+  push:
+    branches:
+      - v2/state-space-minimal
+    paths:
+      - 'scripts/analyze_shanghai109.py'
+      - 'scripts/diagnose_shanghai109_dates.py'
+      - '.github/workflows/shanghai109-analysis.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v2/state-space-minimal
+      - name: Clone mirror snapshot
+        run: |
+          git clone --quiet https://github.com/MouzKarrigan/2024_TJU_Data_Mining-Analysis.git /tmp/tju
+          cd /tmp/tju
+          git checkout --quiet cf5e7f32e8f8295e49df27ea70d9d6b21ab30598
+      - name: Analyze all raw Shanghai T2DM sessions
+        run: |
+          rm -rf analysis_out
+          python3 scripts/analyze_shanghai109.py
+          python3 scripts/diagnose_shanghai109_dates.py
+      - name: Show report
+        run: |
+          cat analysis_out/shanghai109_report.md
+          cat analysis_out/shanghai109_date_diagnostics.json
+      - name: Persist results on experiment branch
+        run: |
+          mkdir -p analysis/shanghai109
+          cp analysis_out/shanghai109_metrics.json analysis/shanghai109/
+          cp analysis_out/shanghai109_sessions.csv analysis/shanghai109/
+          cp analysis_out/shanghai109_report.md analysis/shanghai109/
+          cp analysis_out/shanghai109_date_diagnostics.json analysis/shanghai109/
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add analysis/shanghai109
+          if git diff --cached --quiet; then
+            echo 'No result changes'
+          else
+            git commit -m 'Store Shanghai109 analysis results'
+            git push origin HEAD:v2/state-space-minimal
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shanghai109-analysis
+          path: analysis_out/

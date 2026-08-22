@@ -1,0 +1,26 @@
+name: counterregulation-v2-shanghai-highn
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run high-N Shanghai confirmation
+        run: node scripts/confirm_counterregulation_v2_shanghai_highn.js
+        continue-on-error: true
+      - name: Upload audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: counterregulation-v2-shanghai-highn
+          path: |
+            analysis/counterregulation_v2_shanghai_highn/results.json
+            analysis/counterregulation_v2_shanghai_highn/report.md

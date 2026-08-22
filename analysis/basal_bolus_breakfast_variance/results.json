@@ -1,0 +1,181 @@
+{
+  "ids": [
+    "2025_0_20210506",
+    "2035_0_20210629",
+    "2036_0_20210803",
+    "2043_0_20210513",
+    "2074_0_20210707",
+    "2090_0_20201130",
+    "2094_0_20211109"
+  ],
+  "n_breakfast_records": 64,
+  "metrics": {
+    "pre": {
+      "n": 64,
+      "mean": 147.740625,
+      "sd": 35.65737626554788
+    },
+    "g60": {
+      "n": 61,
+      "mean": 169.02295081967213,
+      "sd": 48.52850843728396
+    },
+    "g120": {
+      "n": 60,
+      "mean": 188.91,
+      "sd": 63.03914764329559
+    },
+    "g180": {
+      "n": 60,
+      "mean": 174.48,
+      "sd": 62.544532744846585
+    },
+    "pre_lunch": {
+      "n": 59,
+      "mean": 152.6033898305085,
+      "sd": 67.19876324319056
+    },
+    "d60": {
+      "n": 61,
+      "mean": 21.127868852459017,
+      "sd": 29.244510203612236
+    },
+    "d120": {
+      "n": 60,
+      "mean": 42.269999999999996,
+      "sd": 46.46732148619818
+    },
+    "d180": {
+      "n": 60,
+      "mean": 27.84,
+      "sd": 49.283294518975374
+    },
+    "food_weight_g": {
+      "n": 55,
+      "mean": 202.4,
+      "sd": 90.07272781645007
+    },
+    "staple_weight_g": {
+      "n": 47,
+      "mean": 100.8936170212766,
+      "sd": 32.09444895965737
+    },
+    "near_breakfast_insulin_u": {
+      "n": 64,
+      "mean": 13.890625,
+      "sd": 7.372443732393052
+    },
+    "insulin_time_rel_breakfast_min": {
+      "n": 64,
+      "mean": -12.1875,
+      "sd": 12.210943569484828
+    },
+    "auc_above_baseline_0_180": {
+      "n": 61,
+      "mean": 4570.524590163935,
+      "sd": 5211.7790040335785
+    }
+  },
+  "relationships": {
+    "food_weight_g__d60": {
+      "n": 55,
+      "pearson": 0.2594192858055441,
+      "spearman": 0.14618535745480637
+    },
+    "food_weight_g__d120": {
+      "n": 54,
+      "pearson": 0.13120397928067792,
+      "spearman": 0.10012595991745911
+    },
+    "food_weight_g__d180": {
+      "n": 54,
+      "pearson": 0.05798348105379209,
+      "spearman": -0.007645842679805972
+    },
+    "food_weight_g__pre_lunch": {
+      "n": 53,
+      "pearson": 0.08178002098750073,
+      "spearman": -0.02548220473797843
+    },
+    "food_weight_g__auc_above_baseline_0_180": {
+      "n": 55,
+      "pearson": 0.1545769148383199,
+      "spearman": 0.07657436547188883
+    },
+    "staple_weight_g__d60": {
+      "n": 47,
+      "pearson": 0.09651350610871494,
+      "spearman": 0.12741898023257361
+    },
+    "staple_weight_g__d120": {
+      "n": 46,
+      "pearson": -0.08857680589186274,
+      "spearman": 0.022433960126499695
+    },
+    "staple_weight_g__d180": {
+      "n": 46,
+      "pearson": -0.19194713130831295,
+      "spearman": -0.11398961837702572
+    },
+    "staple_weight_g__pre_lunch": {
+      "n": 45,
+      "pearson": -0.17119566323678032,
+      "spearman": -0.14925510782084286
+    },
+    "staple_weight_g__auc_above_baseline_0_180": {
+      "n": 47,
+      "pearson": -0.09526116584842137,
+      "spearman": -0.004290272228370041
+    },
+    "near_breakfast_insulin_u__d60": {
+      "n": 61,
+      "pearson": -0.3127250882469249,
+      "spearman": -0.32441111417033586
+    },
+    "near_breakfast_insulin_u__d120": {
+      "n": 60,
+      "pearson": -0.2979144534028586,
+      "spearman": -0.3699391714369992
+    },
+    "near_breakfast_insulin_u__d180": {
+      "n": 60,
+      "pearson": -0.304740136021001,
+      "spearman": -0.41729680366139793
+    },
+    "near_breakfast_insulin_u__pre_lunch": {
+      "n": 59,
+      "pearson": -0.49315460864677557,
+      "spearman": -0.6076506840685535
+    },
+    "near_breakfast_insulin_u__auc_above_baseline_0_180": {
+      "n": 61,
+      "pearson": -0.3642204766231764,
+      "spearman": -0.4096745766189829
+    },
+    "insulin_time_rel_breakfast_min__d60": {
+      "n": 61,
+      "pearson": -0.21230550245232296,
+      "spearman": -0.16859357258056543
+    },
+    "insulin_time_rel_breakfast_min__d120": {
+      "n": 60,
+      "pearson": -0.043576387372726545,
+      "spearman": -0.05382515766727909
+    },
+    "insulin_time_rel_breakfast_min__d180": {
+      "n": 60,
+      "pearson": -0.03278006862169578,
+      "spearman": -0.05021353821730843
+    },
+    "insulin_time_rel_breakfast_min__pre_lunch": {
+      "n": 59,
+      "pearson": -0.005427416312363666,
+      "spearman": 0.024420771100383588
+    },
+    "insulin_time_rel_breakfast_min__auc_above_baseline_0_180": {
+      "n": 61,
+      "pearson": -0.10088579435848842,
+      "spearman": -0.09992578045980959
+    }
+  }
+}

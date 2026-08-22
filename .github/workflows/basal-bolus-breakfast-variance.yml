@@ -1,0 +1,45 @@
+name: Basal-bolus breakfast variance
+on:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 'scripts/analyze_basal_bolus_breakfast_variance.py'
+      - 'scripts/analyze_basal_bolus_within_patient.py'
+      - 'scripts/analyze_basal_bolus_patient_meal_response.py'
+      - 'scripts/analyze_shanghai_regular_basal_bolus.py'
+      - 'scripts/audit_regular_breakfast_doses.py'
+      - 'scripts/classify_shanghai_treatment_by_day.py'
+      - 'scripts/analyze_daylevel_basal_regular.py'
+      - '.github/workflows/basal-bolus-breakfast-variance.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v2/state-space-minimal
+      - name: Clone mirror snapshot
+        run: |
+          git clone --quiet https://github.com/MouzKarrigan/2024_TJU_Data_Mining-Analysis.git /tmp/tju
+          cd /tmp/tju
+          git checkout --quiet cf5e7f32e8f8295e49df27ea70d9d6b21ab30598
+      - name: Analyze breakfast variance
+        run: |
+          python3 scripts/analyze_basal_bolus_breakfast_variance.py
+          python3 scripts/analyze_basal_bolus_within_patient.py
+          python3 scripts/analyze_basal_bolus_patient_meal_response.py
+          python3 scripts/analyze_shanghai_regular_basal_bolus.py
+          python3 scripts/audit_regular_breakfast_doses.py
+          python3 scripts/classify_shanghai_treatment_by_day.py
+          python3 scripts/analyze_daylevel_basal_regular.py
+      - name: Persist results
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions-bot@users.noreply.github.com
+          git add analysis/basal_bolus_breakfast_variance analysis/basal_bolus_patient_meal_response analysis/shanghai_regular_basal_bolus analysis/regular_breakfast_dose_audit analysis/shanghai_daylevel_treatment analysis/daylevel_basal_regular
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Store day-level basal regular validation'
+          git push origin HEAD:v2/state-space-minimal

@@ -1,0 +1,23 @@
+name: emory-registered-rescue-residual-tail
+on:
+  push:
+    branches: [v2/state-space-minimal]
+  pull_request:
+    branches: [main]
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run residual tail attribution
+        run: node scripts/audit_emory_registered_rescue_residual_tail.js
+      - name: Upload audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: emory-registered-rescue-residual-tail
+          path: |
+            analysis/emory_registered_rescue_residual_tail/results.json
+            analysis/emory_registered_rescue_residual_tail/report.md

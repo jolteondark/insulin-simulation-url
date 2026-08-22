@@ -1,0 +1,202 @@
+{
+  "n": 800,
+  "rows": [
+    {
+      "hour": 0,
+      "tbr70": 0.046875,
+      "tbr54": 0.0078125,
+      "patient_any70": 0.75,
+      "patient_any54": 0.125
+    },
+    {
+      "hour": 1,
+      "tbr70": 0,
+      "tbr54": 0,
+      "patient_any70": 0,
+      "patient_any54": 0
+    },
+    {
+      "hour": 2,
+      "tbr70": 0,
+      "tbr54": 0,
+      "patient_any70": 0,
+      "patient_any54": 0
+    },
+    {
+      "hour": 3,
+      "tbr70": 0,
+      "tbr54": 0,
+      "patient_any70": 0,
+      "patient_any54": 0
+    },
+    {
+      "hour": 4,
+      "tbr70": 0,
+      "tbr54": 0,
+      "patient_any70": 0,
+      "patient_any54": 0
+    },
+    {
+      "hour": 5,
+      "tbr70": 0,
+      "tbr54": 0,
+      "patient_any70": 0,
+      "patient_any54": 0
+    },
+    {
+      "hour": 6,
+      "tbr70": 0,
+      "tbr54": 0,
+      "patient_any70": 0,
+      "patient_any54": 0
+    },
+    {
+      "hour": 7,
+      "tbr70": 0,
+      "tbr54": 0,
+      "patient_any70": 0,
+      "patient_any54": 0
+    },
+    {
+      "hour": 8,
+      "tbr70": 0.234375,
+      "tbr54": 0.0234375,
+      "patient_any70": 3.875,
+      "patient_any54": 0.5
+    },
+    {
+      "hour": 9,
+      "tbr70": 1.67578125,
+      "tbr54": 0.3046875,
+      "patient_any70": 16.25,
+      "patient_any54": 4.5
+    },
+    {
+      "hour": 10,
+      "tbr70": 2.40234375,
+      "tbr54": 0.796875,
+      "patient_any70": 20.5,
+      "patient_any54": 7.5
+    },
+    {
+      "hour": 11,
+      "tbr70": 1.671875,
+      "tbr54": 0.56640625,
+      "patient_any70": 15.5,
+      "patient_any54": 5.875
+    },
+    {
+      "hour": 12,
+      "tbr70": 0.671875,
+      "tbr54": 0.14453125,
+      "patient_any70": 8.25,
+      "patient_any54": 2
+    },
+    {
+      "hour": 13,
+      "tbr70": 0.5859375,
+      "tbr54": 0.15625,
+      "patient_any70": 11.5,
+      "patient_any54": 3.25
+    },
+    {
+      "hour": 14,
+      "tbr70": 4.78515625,
+      "tbr54": 2.29296875,
+      "patient_any70": 33.875,
+      "patient_any54": 20.625
+    },
+    {
+      "hour": 15,
+      "tbr70": 6.94921875,
+      "tbr54": 3.6171875,
+      "patient_any70": 37.625,
+      "patient_any54": 24.5
+    },
+    {
+      "hour": 16,
+      "tbr70": 4.6328125,
+      "tbr54": 2.56640625,
+      "patient_any70": 30.625,
+      "patient_any54": 19.875
+    },
+    {
+      "hour": 17,
+      "tbr70": 2.140625,
+      "tbr54": 1.0390625,
+      "patient_any70": 20.125,
+      "patient_any54": 12.375
+    },
+    {
+      "hour": 18,
+      "tbr70": 0.3671875,
+      "tbr54": 0.109375,
+      "patient_any70": 5.25,
+      "patient_any54": 2.375
+    },
+    {
+      "hour": 19,
+      "tbr70": 0.23046875,
+      "tbr54": 0.04296875,
+      "patient_any70": 4.5,
+      "patient_any54": 1
+    },
+    {
+      "hour": 20,
+      "tbr70": 1.3359375,
+      "tbr54": 0.4296875,
+      "patient_any70": 13.625,
+      "patient_any54": 5.875
+    },
+    {
+      "hour": 21,
+      "tbr70": 1.640625,
+      "tbr54": 0.7109375,
+      "patient_any70": 15.625,
+      "patient_any54": 6.75
+    },
+    {
+      "hour": 22,
+      "tbr70": 1.15234375,
+      "tbr54": 0.48828125,
+      "patient_any70": 10.75,
+      "patient_any54": 4.875
+    },
+    {
+      "hour": 23,
+      "tbr70": 0.4921875,
+      "tbr54": 0.16796875,
+      "patient_any70": 5.375,
+      "patient_any54": 2.25
+    }
+  ],
+  "peak70": {
+    "hour": 15,
+    "tbr70": 6.94921875,
+    "tbr54": 3.6171875,
+    "patient_any70": 37.625,
+    "patient_any54": 24.5
+  },
+  "peak54": {
+    "hour": 15,
+    "tbr70": 6.94921875,
+    "tbr54": 3.6171875,
+    "patient_any70": 37.625,
+    "patient_any54": 24.5
+  },
+  "checks": [
+    [
+      "nocturnal <54 materially present",
+      false
+    ],
+    [
+      "hypoglycemia not concentrated only in daytime",
+      false
+    ]
+  ],
+  "reference": {
+    "emory_any54_pct": 36,
+    "emory_nocturnal54_pct": 26,
+    "nocturnal_window": "00:00-06:00"
+  }
+}

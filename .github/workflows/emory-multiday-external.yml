@@ -1,0 +1,30 @@
+name: Emory multi-day external validation
+on:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 't2dm_inpatient_course_v1_exp.js'
+      - 't2dm_inpatient_dynamic_v1_exp.js'
+      - 'scripts/validate_emory_multiday_course.js'
+      - '.github/workflows/emory-multiday-external.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v2/state-space-minimal
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/validate_emory_multiday_course.js
+      - run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add analysis/emory_multiday_external
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Store Emory multi-day external validation'
+          git push origin HEAD:v2/state-space-minimal

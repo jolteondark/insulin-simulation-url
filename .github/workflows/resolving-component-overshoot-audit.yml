@@ -1,0 +1,26 @@
+name: resolving-component-overshoot-audit
+on:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 'scripts/audit_resolving_component_overshoot.js'
+      - '.github/workflows/resolving-component-overshoot-audit.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run resolving component overshoot audit
+        run: node scripts/audit_resolving_component_overshoot.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: resolving-component-overshoot-audit
+          path: |
+            analysis/resolving_component_overshoot/results.json
+            analysis/resolving_component_overshoot/report.md

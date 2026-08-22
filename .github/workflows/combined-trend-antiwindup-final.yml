@@ -1,0 +1,23 @@
+name: combined-trend-antiwindup-final
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run combined trend anti-windup audit
+        run: node scripts/audit_combined_trend_antiwindup_final.js
+      - name: Upload audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: combined-trend-antiwindup-final
+          path: |
+            analysis/combined_trend_antiwindup_final/results.json
+            analysis/combined_trend_antiwindup_final/report.md

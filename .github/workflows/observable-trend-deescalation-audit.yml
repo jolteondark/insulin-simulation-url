@@ -1,0 +1,21 @@
+name: observable-trend-deescalation-audit
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run observable trend de-escalation audit
+        run: node scripts/audit_observable_trend_deescalation.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: observable-trend-deescalation-audit
+          path: |
+            analysis/observable_trend_deescalation/results.json
+            analysis/observable_trend_deescalation/report.md

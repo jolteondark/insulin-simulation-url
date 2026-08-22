@@ -1,0 +1,28 @@
+{
+  "n_patients": 1500,
+  "days_per_patient": 10,
+  "cfg": {
+    "eq_center": 147,
+    "eq_sd": 35,
+    "coverage": 0.8,
+    "meal_var_scale": 0.55,
+    "bolus_mismatch_sd": 0.1
+  },
+  "patient_mean_delta120": {
+    "mean": 17.242522995518268,
+    "between_patient_sd": 13.564622443857253,
+    "p05": -2.57616928040179,
+    "p25": 7.902057852160709,
+    "median": 16.00139105481621,
+    "p75": 25.293520726562143,
+    "p95": 41.33793475944391
+  },
+  "observed_basal_bolus_7": {
+    "mean_of_means": 44.4,
+    "between_patient_sd": 28.1,
+    "range": [
+      0.3,
+      73.3
+    ]
+  }
+}

@@ -1,0 +1,161 @@
+name: v2-validation
+on:
+  push:
+    branches: [v2/state-space-minimal]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  basal_audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run glargine time-profile sensitivity audit
+        run: node scripts/audit_glargine_time_profile_sensitivity_bootstrap.js
+      - name: Run basal relative-potency admissibility sweep
+        run: node scripts/sweep_basal_relative_potency_admissibility.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: basal-audit-result
+          path: |
+            analysis/basal_relative_potency_admissibility/results.json
+            analysis/basal_relative_potency_admissibility/report.md
+            analysis/glargine_time_profile_sensitivity/results.json
+            analysis/glargine_time_profile_sensitivity/report.md
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run v1 vs v2 validation
+        run: node validation_v2_node.js
+      - name: Run OU vs finite-memory state validation
+        run: node validation_state_shape_node.js
+      - name: Run OU vs finite vs transient validation
+        run: node validation_state_shape_3way_node.js
+      - name: Run patient-specific meal appearance grid
+        run: node validation_meal_appearance_patient_specific_node.js
+      - name: Run focused meal saturation decision
+        run: node validation_meal_saturation_decision_node.js
+      - name: Run hypoglycemia source ablation
+        run: node validation_hypoglycemia_source_ablation_node.js
+      - name: Run prandial meal vs bolus balance diagnostic
+        run: node validation_prandial_balance_node.js
+      - name: Run fast vs persistent variance budget
+        run: node validation_fast_variance_budget_node.js
+      - name: Run zero-area fast shape redistribution
+        run: node validation_zero_area_fast_shape_node.js
+      - name: Run patient-level hypoglycemia heterogeneity
+        run: node validation_patient_hypo_heterogeneity_node.js
+      - name: Run CF/ICR ratio dispersion ablation
+        run: node validation_prandial_ratio_shrink_node.js
+      - name: Run literature-informed CF/ICR joint validation
+        run: node validation_prandial_ratio_literature_node.js
+      - name: Run effective CF ICR virtual tests
+        run: node validation_effective_cf_icr_node.js
+      - name: Run neutral-ICR centered generator validation
+        run: node validation_neutral_icr_generator_node.js
+      - name: Run neutral ICR slow-state centering validation
+        run: node validation_neutral_icr_slow_centering_node.js
+      - name: Run refined neutral ICR slow compensation grid
+        run: node validation_neutral_icr_slow_refine_node.js
+      - name: Run persistent memory-shape validation
+        run: node validation_persistent_memory_shape_node.js
+      - name: Run persistent memory coupling grid
+        run: node validation_persistent_memory_coupling_node.js
+      - name: Run short-slow zero-area transient grid
+        run: node validation_short_slow_zero_area_transient_node.js
+      - name: Run S_I primitive reparameterization diagnostic
+        run: node validation_si_primitive_reparameterization_node.js
+      - name: Run v0.80 S_I primitive generator candidate
+        run: node validation_generator_v080_si_primitive_node.js
+      - name: Run v0.80 demand residual ablation
+        run: node validation_v080_demand_residual_ablation_node.js
+      - name: Run v0.80 nested TDD models
+        run: node validation_v080_tdd_nested_models_node.js
+      - name: Run v0.81 S_I plus demand generator candidate
+        run: node validation_generator_v081_si_demand_node.js
+      - name: Run v0.82 integrated transient candidate
+        run: node validation_generator_v082_integrated_transient_node.js
+      - name: Run v0.82 transfer function ablation
+        run: node validation_v082_transfer_function_ablation_node.js
+      - name: Run v0.82 ACF component attribution
+        run: node validation_v082_acf_component_ablation_node.js
+      - name: Run biphasic basal requirement state diagnostic
+        run: node validation_v083_biphasic_requirement_state_node.js
+      - name: Run wide biphasic basal requirement state grid
+        run: node validation_v083_biphasic_requirement_state_wide_node.js
+      - name: Run two-component basal requirement state grid
+        run: node validation_v084_two_component_requirement_state_node.js
+      - name: Run focused tapered medium-state diagnostic
+        run: node validation_v085_tapered_medium_state_focused_node.js
+      - name: Run extended biphasic requirement-state grid
+        run: node validation_v086_extended_biphasic_state_node.js
+      - name: Run cross-dataset biphasic refinement
+        run: node validation_v087_crossdataset_biphasic_refine_node.js
+      - name: Run N300 biphasic finalist validation
+        run: N=300 node validation_v088_n300_biphasic_finalists_node.js
+      - name: Run held-out fingerprint validation
+        run: N=300 node validation_v091_heldout_fingerprint_node.js
+      - name: Run behavior timing ablation
+        run: N=180 node validation_v092_behavior_timing_ablation_node.js
+      - name: Run rescue behavior ablation
+        run: N=180 node validation_v093_behavior_rescue_ablation_node.js
+      - name: Run meal intake variability validation
+        run: N=180 node validation_v094_meal_intake_variability_node.js
+      - name: Run decoupled meal appearance 24h grid
+        run: node validation_meal_appearance_24h_node.js
+      - name: Run N120 meal appearance finalists
+        run: node validation_meal_appearance_finalists_node.js
+      - name: Run meal rapid timing grid
+        run: node validation_kernel_timing_grid_node.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v2-validation-result
+          path: |
+            v2_validation_result.json
+            state_shape_validation_result.json
+            state_shape_3way_result.json
+            kernel_timing_grid_result.json
+            meal_appearance_patient_specific_result.json
+            meal_saturation_decision_result.json
+            hypoglycemia_source_ablation_result.json
+            prandial_balance_result.json
+            fast_variance_budget_result.json
+            zero_area_fast_shape_result.json
+            patient_hypo_heterogeneity_result.json
+            prandial_ratio_shrink_result.json
+            prandial_ratio_literature_result.json
+            effective_cf_icr_result.json
+            neutral_icr_generator_result.json
+            neutral_icr_slow_centering_result.json
+            neutral_icr_slow_refine_result.json
+            persistent_memory_shape_result.json
+            persistent_memory_coupling_result.json
+            short_slow_zero_area_transient_result.json
+            si_primitive_reparameterization_result.json
+            generator_v080_si_primitive_result.json
+            v080_demand_residual_ablation_result.json
+            v080_tdd_nested_models_result.json
+            generator_v081_si_demand_result.json
+            generator_v082_integrated_transient_result.json
+            v082_transfer_function_ablation_result.json
+            v082_acf_component_ablation_result.json
+            v083_biphasic_requirement_state_result.json
+            v083_biphasic_requirement_state_wide_result.json
+            v084_two_component_requirement_state_result.json
+            v085_tapered_medium_state_focused_result.json
+            v086_extended_biphasic_state_result.json
+            v087_crossdataset_biphasic_refine_result.json
+            v088_n300_biphasic_finalists_result.json
+            v091_heldout_fingerprint_result.json
+            v092_behavior_timing_ablation_result.json
+            v093_behavior_rescue_ablation_result.json
+            v094_meal_intake_variability_result.json
+            meal_appearance_24h_result.json
+            meal_appearance_finalists_result.json

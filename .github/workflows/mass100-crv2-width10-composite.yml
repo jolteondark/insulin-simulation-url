@@ -1,0 +1,22 @@
+name: mass100-crv2-width10-composite
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run mass100 plus CR V2 width10 composite audit
+        continue-on-error: true
+        run: node scripts/run_mass100_crv2_width10_composite_fixed.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mass100-crv2-width10-composite
+          path: |
+            analysis/mass100_crv2_width10_composite/results.json
+            analysis/mass100_crv2_width10_composite/report.md

@@ -1,0 +1,27 @@
+name: counterregulation-v1-audit
+on:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 't2dm_counterregulation_v1_exp.js'
+      - 'scripts/audit_counterregulation_v1.js'
+      - '.github/workflows/counterregulation-v1-audit.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run thresholded counterregulation audit
+        run: node scripts/audit_counterregulation_v1.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: counterregulation-v1-audit
+          path: |
+            analysis/counterregulation_v1/results.json
+            analysis/counterregulation_v1/report.md

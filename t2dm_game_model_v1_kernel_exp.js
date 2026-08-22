@@ -1,0 +1,45 @@
+(function(){
+'use strict';
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const DEFAULT_MEALS={breakfast:50,lunch:70,dinner:60};
+const SCALE={meal_gain:.025,bolus_gain:.28,basal_delta_gain:.30,restore_gain:.006};
+const KERNEL={meal_tau_min:80,meal_duration_min:330,bolus_tau_min:90,bolus_duration_min:330};
+const MEAL_RESPONSE_SCALE=.96;
+function roundUnit(x){return Math.max(0,Math.round(Number(x)||0))}
+function generatePatient(seed=1){
+ if(!window.T2DMPatientPhenotypeV1ShanghaiExp)throw new Error('T2DMPatientPhenotypeV1ShanghaiExp must load first');
+ const p=T2DMPatientPhenotypeV1ShanghaiExp.sample(seed);
+ return{patient:p,case:{case_id:'T2V1K-'+String(seed),phenotype:'T2DM',meal_plan_carb_g:{...DEFAULT_MEALS},model_version:'t2dm-v1-kernel-exp-2026-08-20'},state:null,history:[]};
+}
+function suggestOrder(p,meals=DEFAULT_MEALS){
+ const ukg=clamp(.18+.42*(1-p.beta_cell_reserve)+.18*(1/p.si_relative-1),.08,.65);
+ const tdd=ukg*p.body_weight_kg,basal=.5*tdd,nut=.5*tdd,total=meals.breakfast+meals.lunch+meals.dinner;
+ return{breakfast_u:roundUnit(nut*meals.breakfast/total),lunch_u:roundUnit(nut*meals.lunch/total),dinner_u:roundUnit(nut*meals.dinner/total),basal_u:roundUnit(basal)};
+}
+function mealResponseMultiplier(p){
+ return clamp(Math.exp(1.5*(0.428-p.beta_cell_reserve)+0.60*Math.log(0.965/p.si_relative)+0.30*Math.log(p.hepatic_ir/1.072)),0.40,2.20)*MEAL_RESPONSE_SCALE;
+}
+function gamma1(dt,tau){return (dt/tau)*Math.exp(1-dt/tau)}
+function simulateDay(p,order,ctx={},seed=1,state=null){
+ const n=1441,g=new Float64Array(n),meal={...DEFAULT_MEALS,...(ctx.meal_plan_carb_g||{})},intake={breakfast:1,lunch:1,dinner:1,...(ctx.intake_fraction||{})};
+ const equilibrium=Number(p.dynamic_fasting_setpoint_mg_dl??p.fasting_setpoint_mg_dl);
+ g[0]=Number(state?.glucose_mg_dl??equilibrium);
+ const dose={breakfast_u:roundUnit(order.breakfast_u),lunch_u:roundUnit(order.lunch_u),dinner_u:roundUnit(order.dinner_u),basal_u:roundUnit(order.basal_u)};
+ const reference=suggestOrder(p,meal);
+ const mealEvents=[[480,meal.breakfast*intake.breakfast],[780,meal.lunch*intake.lunch],[1140,meal.dinner*intake.dinner]],bolus=[[465,dose.breakfast_u],[765,dose.lunch_u],[1125,dose.dinner_u]];
+ const mealResponse=mealResponseMultiplier(p);
+ let mn=g[0],mx=g[0];
+ for(let t=0;t<n-1;t++){
+   let mealDrive=0;for(const [tm,c] of mealEvents){const dt=t-tm;if(dt>=0&&dt<KERNEL.meal_duration_min)mealDrive+=c*gamma1(dt,KERNEL.meal_tau_min)*SCALE.meal_gain*mealResponse;}
+   let bolusDrive=0;for(const [tb,u] of bolus){const dt=t-tb;if(dt>=0&&dt<KERNEL.bolus_duration_min)bolusDrive+=u*gamma1(dt,KERNEL.bolus_tau_min)*SCALE.bolus_gain*p.si_relative;}
+   const basalDelta=(dose.basal_u-reference.basal_u)/1440*SCALE.basal_delta_gain*p.si_relative;
+   const restore=-SCALE.restore_gain*(g[t]-equilibrium);
+   g[t+1]=g[t]+mealDrive-bolusDrive-basalDelta+restore;
+   mn=Math.min(mn,g[t+1]);mx=Math.max(mx,g[t+1]);
+ }
+ const bg={pre_breakfast:g[420],pre_lunch:g[720],pre_dinner:g[1080],bedtime:g[1260]};
+ return{bg,min:mn,max:mx,end:g[1440],series:g,order_u:dose,reference_order_u:reference,actual_meal_carb_g:{breakfast:meal.breakfast*intake.breakfast,lunch:meal.lunch*intake.lunch,dinner:meal.dinner*intake.dinner},next_state:{glucose_mg_dl:g[1440]},meal_response_multiplier:mealResponse,equilibrium_mg_dl:equilibrium,kernel:{...KERNEL}};
+}
+function playDay(game,order,ctx={},seed=1){const r=simulateDay(game.patient,order,ctx,seed,game.state);game.state=r.next_state;game.history.push({day:game.history.length+1,order_u:r.order_u,meal_carb_g:r.actual_meal_carb_g,bg:r.bg,min:r.min,max:r.max});game.case.previous_order_u=r.order_u;game.case.previous_day_4point_bg_mg_dl=r.bg;return r;}
+window.T2DMGameModelV1KernelExp={version:'0.1-kernel-exp-2026-08-20',SCALE,KERNEL,MEAL_RESPONSE_SCALE,generatePatient,suggestOrder,simulateDay,playDay,mealResponseMultiplier,roundUnit};
+})();

@@ -1,0 +1,27 @@
+name: glargine-time-profile-audit
+on:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 'scripts/audit_glargine_time_profile_sensitivity_bootstrap.js'
+      - 'scripts/audit_glargine_time_profile_sensitivity.js'
+      - 'insulin_basal_time_profile_prior_exp.js'
+      - 't2dm_inpatient_dynamic_v1_exp.js'
+      - '.github/workflows/glargine-time-profile-audit.yml'
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run glargine time-profile sensitivity audit
+        run: node scripts/audit_glargine_time_profile_sensitivity_bootstrap.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: glargine-time-profile-audit
+          path: |
+            analysis/glargine_time_profile_sensitivity/results.json
+            analysis/glargine_time_profile_sensitivity/report.md

@@ -1,0 +1,27 @@
+name: extreme-hypoglycemia-mismatch-ablation
+on:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 'scripts/audit_extreme_hypoglycemia_mismatch_ablation.js'
+      - '.github/workflows/extreme-hypoglycemia-mismatch-ablation.yml'
+      - 't2dm_counterregulation_v2_egp_exp.js'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run extreme hypoglycemia mismatch ablation
+        run: node scripts/audit_extreme_hypoglycemia_mismatch_ablation.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extreme-hypoglycemia-mismatch-ablation
+          path: |
+            analysis/extreme_hypoglycemia_mismatch_ablation/results.json
+            analysis/extreme_hypoglycemia_mismatch_ablation/report.md

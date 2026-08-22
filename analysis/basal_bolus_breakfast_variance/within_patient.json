@@ -1,0 +1,156 @@
+{
+  "n_sessions": 7,
+  "session_dose": {
+    "2025_0_20210506": {
+      "n": 8,
+      "mean": 10.75,
+      "sd": 2.6049403612586386,
+      "min": 8.0,
+      "max": 14.0
+    },
+    "2035_0_20210629": {
+      "n": 2,
+      "mean": 12.5,
+      "sd": 0.7071067811865476,
+      "min": 12.0,
+      "max": 13.0
+    },
+    "2036_0_20210803": {
+      "n": 5,
+      "mean": 12.0,
+      "sd": 7.280109889280518,
+      "min": 8.0,
+      "max": 25.0
+    },
+    "2043_0_20210513": {
+      "n": 9,
+      "mean": 13.777777777777779,
+      "sd": 1.7159383568311666,
+      "min": 12.0,
+      "max": 16.0
+    },
+    "2074_0_20210707": {
+      "n": 12,
+      "mean": 12.166666666666666,
+      "sd": 2.691175253012007,
+      "min": 10.0,
+      "max": 16.0
+    },
+    "2090_0_20201130": {
+      "n": 14,
+      "mean": 6.0,
+      "sd": 0.0,
+      "min": 6.0,
+      "max": 6.0
+    },
+    "2094_0_20211109": {
+      "n": 14,
+      "mean": 26.0,
+      "sd": 0.0,
+      "min": 26.0,
+      "max": 26.0
+    }
+  },
+  "within_centered": {
+    "food_weight_g__d60": {
+      "n": 54,
+      "pearson": -0.16028518504924646,
+      "spearman": -0.18516388107180076
+    },
+    "food_weight_g__d120": {
+      "n": 53,
+      "pearson": -0.3666344750124935,
+      "spearman": -0.29913751163462343
+    },
+    "food_weight_g__d180": {
+      "n": 53,
+      "pearson": -0.1993971300692322,
+      "spearman": -0.18138411463419707
+    },
+    "food_weight_g__pre_lunch": {
+      "n": 52,
+      "pearson": -0.08059483737241233,
+      "spearman": 0.006360252467915215
+    },
+    "food_weight_g__auc_above_baseline_0_180": {
+      "n": 54,
+      "pearson": -0.30236997693970524,
+      "spearman": -0.2809276515749801
+    },
+    "staple_weight_g__d60": {
+      "n": 46,
+      "pearson": -0.016151213960669302,
+      "spearman": -0.05254051111062097
+    },
+    "staple_weight_g__d120": {
+      "n": 45,
+      "pearson": -0.27386378344587237,
+      "spearman": -0.3176603943084928
+    },
+    "staple_weight_g__d180": {
+      "n": 45,
+      "pearson": -0.18913151161282069,
+      "spearman": -0.17403706060554694
+    },
+    "staple_weight_g__pre_lunch": {
+      "n": 44,
+      "pearson": 0.023587930569940168,
+      "spearman": -0.011481167727514618
+    },
+    "staple_weight_g__auc_above_baseline_0_180": {
+      "n": 46,
+      "pearson": -0.20168176609655336,
+      "spearman": -0.2511237225358353
+    },
+    "near_breakfast_insulin_u__d60": {
+      "n": 61,
+      "pearson": -0.15548217878919038,
+      "spearman": -0.09458729237518332
+    },
+    "near_breakfast_insulin_u__d120": {
+      "n": 60,
+      "pearson": -0.21344114258436653,
+      "spearman": -0.13414644170458004
+    },
+    "near_breakfast_insulin_u__d180": {
+      "n": 60,
+      "pearson": -0.16162348343837482,
+      "spearman": -0.21242476904213128
+    },
+    "near_breakfast_insulin_u__pre_lunch": {
+      "n": 59,
+      "pearson": -0.031285971925909234,
+      "spearman": -0.033409100618990294
+    },
+    "near_breakfast_insulin_u__auc_above_baseline_0_180": {
+      "n": 61,
+      "pearson": -0.2827843581652104,
+      "spearman": -0.2115857064413936
+    },
+    "insulin_time_rel_breakfast_min__d60": {
+      "n": 61,
+      "pearson": -0.07108886532689003,
+      "spearman": -0.030031243784803163
+    },
+    "insulin_time_rel_breakfast_min__d120": {
+      "n": 60,
+      "pearson": -0.21143897908068668,
+      "spearman": -0.1580121066512213
+    },
+    "insulin_time_rel_breakfast_min__d180": {
+      "n": 60,
+      "pearson": -0.1710728547221648,
+      "spearman": -0.18747709747859748
+    },
+    "insulin_time_rel_breakfast_min__pre_lunch": {
+      "n": 59,
+      "pearson": -0.12460953269138932,
+      "spearman": -0.08860777629576799
+    },
+    "insulin_time_rel_breakfast_min__auc_above_baseline_0_180": {
+      "n": 61,
+      "pearson": -0.2412094335312835,
+      "spearman": -0.1845588038434926
+    }
+  }
+}

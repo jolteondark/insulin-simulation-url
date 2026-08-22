@@ -1,0 +1,629 @@
+{
+  "summary_counts": {
+    "Premix": 28,
+    "No insulin": 53,
+    "Short/regular-only": 7,
+    "Basal-only": 14,
+    "Basal-bolus": 7
+  },
+  "audit": {
+    "Premix": [
+      {
+        "id": "2000_0_20201230",
+        "agent": "Gansulin 40R"
+      },
+      {
+        "id": "2001_0_20201102",
+        "agent": "metformin, Humulin 70/30"
+      },
+      {
+        "id": "2001_1_20201117",
+        "agent": "metformin, Humulin 70/30"
+      },
+      {
+        "id": "2002_0_20210513",
+        "agent": "insulin aspart 50/50, acarbose, metformin, glimepiride"
+      },
+      {
+        "id": "2003_0_20210615",
+        "agent": "metformin, acarbose, Novolin 30R"
+      },
+      {
+        "id": "2004_0_20211028",
+        "agent": "insulin aspart 70/30"
+      },
+      {
+        "id": "2013_0_20220123",
+        "agent": "Novolin 30R, metformin, voglibose"
+      },
+      {
+        "id": "2018_0_20210420",
+        "agent": "insulin aspart 70/30, metformin, acarbose"
+      },
+      {
+        "id": "2019_0_20210513",
+        "agent": "insulin aspart 70/30"
+      },
+      {
+        "id": "2021_0_20211013",
+        "agent": "insulin aspart 70/30, acarbose"
+      },
+      {
+        "id": "2023_0_20210812",
+        "agent": "Novolin 30R, acarbose"
+      },
+      {
+        "id": "2024_0_20210429",
+        "agent": "insulin aspart 70/30, acarbose"
+      },
+      {
+        "id": "2026_0_20210916",
+        "agent": "Novolin 30R"
+      },
+      {
+        "id": "2028_0_20210426",
+        "agent": "insulin aspart 70/30, acarbose"
+      },
+      {
+        "id": "2029_0_20210526",
+        "agent": "insulin aspart 70/30, metformin"
+      },
+      {
+        "id": "2030_0_20210531",
+        "agent": "insulin aspart 70/30, gliclazide"
+      },
+      {
+        "id": "2032_0_20210727",
+        "agent": "Novolin 30R"
+      },
+      {
+        "id": "2038_0_20210608",
+        "agent": "Novolin 30R"
+      },
+      {
+        "id": "2042_0_20211019",
+        "agent": "Novolin 30R"
+      },
+      {
+        "id": "2044_0_20211101",
+        "agent": "insulin aspart 70/30, acarbose, sitagliptin"
+      },
+      {
+        "id": "2049_0_20210426",
+        "agent": "insulin aspart 70/30"
+      },
+      {
+        "id": "2052_0_20210511",
+        "agent": "insulin aspart 70/30"
+      },
+      {
+        "id": "2057_0_20210525",
+        "agent": "insulin aspart 70/30"
+      },
+      {
+        "id": "2059_0_20210525",
+        "agent": "insulin aspart 70/30"
+      },
+      {
+        "id": "2069_2_20210825",
+        "agent": "insulin detemir, insulin aspart 70/30, acarbose"
+      },
+      {
+        "id": "2070_0_20210629",
+        "agent": "Novolin 30R, acarbose"
+      },
+      {
+        "id": "2073_0_20210703",
+        "agent": "Novolin 30R"
+      },
+      {
+        "id": "2095_0_20201116",
+        "agent": "acarbose, insulin aspart 70/30"
+      }
+    ],
+    "No insulin": [
+      {
+        "id": "2005_0_20211201",
+        "agent": "voglibose"
+      },
+      {
+        "id": "2007_0_20220108",
+        "agent": "voglibose"
+      },
+      {
+        "id": "2008_0_20220118",
+        "agent": "pioglitazone, acarbose, metformin, sitagliptin"
+      },
+      {
+        "id": "2011_0_20220123",
+        "agent": "metformin, sitagliptin, gliclazide"
+      },
+      {
+        "id": "2012_0_20220126",
+        "agent": "metformin, liraglutide"
+      },
+      {
+        "id": "2016_0_20201224",
+        "agent": "sitagliptin"
+      },
+      {
+        "id": "2031_0_20210601",
+        "agent": "pioglitazone, metformin, gliquidone"
+      },
+      {
+        "id": "2037_0_20201221",
+        "agent": "sitagliptin"
+      },
+      {
+        "id": "2046_0_20201216",
+        "agent": "metformin"
+      },
+      {
+        "id": "2047_0_20210420",
+        "agent": "metformin"
+      },
+      {
+        "id": "2048_0_20210426",
+        "agent": "sitagliptin"
+      },
+      {
+        "id": "2050_0_20210510",
+        "agent": "gliclazide"
+      },
+      {
+        "id": "2051_0_20210512",
+        "agent": "canagliflozin, metformin"
+      },
+      {
+        "id": "2053_0_20210518",
+        "agent": "metformin"
+      },
+      {
+        "id": "2054_0_20210524",
+        "agent": "none"
+      },
+      {
+        "id": "2055_0_20210524",
+        "agent": "acarbose, dapagliflozin, metformin"
+      },
+      {
+        "id": "2055_1_20201207",
+        "agent": "dapagliflozin"
+      },
+      {
+        "id": "2056_0_20210524",
+        "agent": "none"
+      },
+      {
+        "id": "2058_0_20210524",
+        "agent": "metformin"
+      },
+      {
+        "id": "2060_0_20201214",
+        "agent": "acarbose, dapagliflozin, gliclazide"
+      },
+      {
+        "id": "2061_0_20210601",
+        "agent": "repaglinide"
+      },
+      {
+        "id": "2062_0_20210601",
+        "agent": "none"
+      },
+      {
+        "id": "2063_0_20210608",
+        "agent": "metformin"
+      },
+      {
+        "id": "2064_0_20210608",
+        "agent": "metformin"
+      },
+      {
+        "id": "2065_0_20210615",
+        "agent": "metformin"
+      },
+      {
+        "id": "2066_0_20210615",
+        "agent": "gliclazide"
+      },
+      {
+        "id": "2067_0_20210615",
+        "agent": "metformin"
+      },
+      {
+        "id": "2068_0_20210616",
+        "agent": "acarbose, repaglinide"
+      },
+      {
+        "id": "2069_0_20210621",
+        "agent": "gliclazide"
+      },
+      {
+        "id": "2069_1_20210705",
+        "agent": "metformin, acarbose, gliclazide, sitagliptin"
+      },
+      {
+        "id": "2071_0_20210705",
+        "agent": "dapagliflozin, liraglutide,pioglitazone, metformin"
+      },
+      {
+        "id": "2072_0_20210706",
+        "agent": "repaglinide, metformin"
+      },
+      {
+        "id": "2075_0_20210720",
+        "agent": "metformin"
+      },
+      {
+        "id": "2076_0_20210720",
+        "agent": "metformin"
+      },
+      {
+        "id": "2077_0_20210803",
+        "agent": "sitagliptin, metformin"
+      },
+      {
+        "id": "2078_0_20210803",
+        "agent": "acarbose"
+      },
+      {
+        "id": "2078_1_20210817",
+        "agent": "sitagliptin, acarbose"
+      },
+      {
+        "id": "2079_0_20210809",
+        "agent": "metformin"
+      },
+      {
+        "id": "2080_0_20210816",
+        "agent": "gliclazide"
+      },
+      {
+        "id": "2081_0_20210817",
+        "agent": "metformin"
+      },
+      {
+        "id": "2082_0_20210907",
+        "agent": "metformin"
+      },
+      {
+        "id": "2084_0_20211013",
+        "agent": "gliquidone"
+      },
+      {
+        "id": "2085_0_20200907",
+        "agent": "none"
+      },
+      {
+        "id": "2086_0_20200914",
+        "agent": "metformin"
+      },
+      {
+        "id": "2087_0_20201012",
+        "agent": "sitagliptin, metformin"
+      },
+      {
+        "id": "2088_0_20201123",
+        "agent": "metformin, voglibose"
+      },
+      {
+        "id": "2089_0_20201019",
+        "agent": "metformin, acarbose, gliclazide"
+      },
+      {
+        "id": "2091_0_20201029",
+        "agent": "gliclazide, sitagliptin"
+      },
+      {
+        "id": "2092_0_20201109",
+        "agent": "acarbose, sitagliptin"
+      },
+      {
+        "id": "2093_0_20201109",
+        "agent": "sitagliptin, metformin"
+      },
+      {
+        "id": "2096_0_20201116",
+        "agent": "sitagliptin"
+      },
+      {
+        "id": "2098_0_20201106",
+        "agent": "sitagliptin"
+      },
+      {
+        "id": "2099_0_20201116",
+        "agent": "none"
+      }
+    ],
+    "Short/regular-only": [
+      {
+        "id": "2006_0_20211112",
+        "agent": "Novolin R"
+      },
+      {
+        "id": "2009_0_20211103",
+        "agent": "Novolin R"
+      },
+      {
+        "id": "2010_0_20220111",
+        "agent": "Novolin R"
+      },
+      {
+        "id": "2034_0_20210624",
+        "agent": "Novolin R"
+      },
+      {
+        "id": "2039_0_20210615",
+        "agent": "Novolin R"
+      },
+      {
+        "id": "2040_0_20210729",
+        "agent": "Novolin R"
+      },
+      {
+        "id": "2041_0_20210813",
+        "agent": "Novolin R, metformin"
+      }
+    ],
+    "Basal-only": [
+      {
+        "id": "2014_0_20201224",
+        "agent": "insulin degludec, metformin"
+      },
+      {
+        "id": "2014_1_20210317",
+        "agent": "insulin degludec, metformin"
+      },
+      {
+        "id": "2015_0_20210203",
+        "agent": "pioglitazone, metformin, insulin degludec"
+      },
+      {
+        "id": "2015_1_20210219",
+        "agent": "pioglitazone, metformin, insulin degludec"
+      },
+      {
+        "id": "2017_0_20210102",
+        "agent": "voglibose, insulin degludec"
+      },
+      {
+        "id": "2017_1_20201118",
+        "agent": "voglibose, insulin degludec"
+      },
+      {
+        "id": "2020_0_20210423",
+        "agent": "insulin glarigine, metformin"
+      },
+      {
+        "id": "2022_0_20210419",
+        "agent": "insulin detemir, acarbose, metformin"
+      },
+      {
+        "id": "2027_0_20210521",
+        "agent": "insulin glarigine, metformin, acarbose"
+      },
+      {
+        "id": "2033_0_20210615",
+        "agent": "metformin, insulin detemir"
+      },
+      {
+        "id": "2045_0_20201216",
+        "agent": "insulin degludec, gliclazide, voglibose, metformin"
+      },
+      {
+        "id": "2074_1_20210720",
+        "agent": "insulin detemir, Gansulin R"
+      },
+      {
+        "id": "2083_0_20201214",
+        "agent": "insulin degludec, metformin"
+      },
+      {
+        "id": "2097_0_20201116",
+        "agent": "sitagliptin, gliclazide, insulin degludec"
+      }
+    ],
+    "Basal-bolus": [
+      {
+        "id": "2025_0_20210506",
+        "agent": "Novolin R, insulin glarigine"
+      },
+      {
+        "id": "2035_0_20210629",
+        "agent": "insulin detemir, Novolin R, acarbose, metformin"
+      },
+      {
+        "id": "2036_0_20210803",
+        "agent": "insulin detemir, Novolin R"
+      },
+      {
+        "id": "2043_0_20210513",
+        "agent": "insulin detemir, Novolin R"
+      },
+      {
+        "id": "2074_0_20210707",
+        "agent": "insulin detemir, Novolin R"
+      },
+      {
+        "id": "2090_0_20201130",
+        "agent": "insulin glarigine, insulin glulisine"
+      },
+      {
+        "id": "2094_0_20211109",
+        "agent": "insulin glargine, Humulin R, voglibose"
+      }
+    ]
+  },
+  "n_summary": 109,
+  "n_cgm_sessions": 106,
+  "groups": {
+    "No insulin": {
+      "n_sessions": 53,
+      "pooled_cgm": {
+        "n": 60067,
+        "mean": 129.3961076797576,
+        "sd": 45.75137361897418,
+        "tbr": 3.327950455324887,
+        "tir": 83.70319809546007,
+        "tar": 12.968851449215043
+      },
+      "premeal": {
+        "breakfast": {
+          "n": 622,
+          "mean": 123.29710610932476,
+          "sd": 32.39674408015676
+        },
+        "lunch": {
+          "n": 607,
+          "mean": 122.77660626029653,
+          "sd": 44.04723740762468
+        },
+        "dinner": {
+          "n": 631,
+          "mean": 124.24278922345484,
+          "sd": 42.19869543598658
+        }
+      }
+    },
+    "Premix": {
+      "n_sessions": 26,
+      "pooled_cgm": {
+        "n": 23777,
+        "mean": 151.20711612062078,
+        "sd": 53.41217802214792,
+        "tbr": 1.4930394919459982,
+        "tir": 73.60474408041385,
+        "tar": 24.902216427640155
+      },
+      "premeal": {
+        "breakfast": {
+          "n": 247,
+          "mean": 145.66153846153847,
+          "sd": 38.78460944262481
+        },
+        "lunch": {
+          "n": 236,
+          "mean": 147.67627118644066,
+          "sd": 59.22357191897254
+        },
+        "dinner": {
+          "n": 252,
+          "mean": 149.93571428571428,
+          "sd": 51.99401211599627
+        }
+      }
+    },
+    "Basal-only": {
+      "n_sessions": 13,
+      "pooled_cgm": {
+        "n": 14992,
+        "mean": 143.9606189967983,
+        "sd": 44.59425332849897,
+        "tbr": 0.23345784418356458,
+        "tir": 81.57017075773746,
+        "tar": 18.196371398078977
+      },
+      "premeal": {
+        "breakfast": {
+          "n": 155,
+          "mean": 133.26967741935482,
+          "sd": 32.15447869109281
+        },
+        "lunch": {
+          "n": 151,
+          "mean": 135.7867549668874,
+          "sd": 39.00303719791336
+        },
+        "dinner": {
+          "n": 156,
+          "mean": 143.1346153846154,
+          "sd": 47.50539598749803
+        }
+      }
+    },
+    "Short/regular-only": {
+      "n_sessions": 7,
+      "pooled_cgm": {
+        "n": 3949,
+        "mean": 152.77027095467207,
+        "sd": 51.03449781306934,
+        "tbr": 1.0382375284882248,
+        "tir": 73.91744745505191,
+        "tar": 25.044315016459862
+      },
+      "premeal": {
+        "breakfast": {
+          "n": 42,
+          "mean": 149.27142857142857,
+          "sd": 30.484807189610944
+        },
+        "lunch": {
+          "n": 40,
+          "mean": 158.715,
+          "sd": 59.01130209544609
+        },
+        "dinner": {
+          "n": 41,
+          "mean": 150.93658536585366,
+          "sd": 39.919124068409296
+        }
+      }
+    },
+    "Basal-bolus": {
+      "n_sessions": 7,
+      "pooled_cgm": {
+        "n": 6177,
+        "mean": 164.3020883924235,
+        "sd": 57.57499027450403,
+        "tbr": 1.5055852355512385,
+        "tir": 61.615671037720574,
+        "tar": 36.87874372672818
+      },
+      "premeal": {
+        "breakfast": {
+          "n": 64,
+          "mean": 147.740625,
+          "sd": 35.37770625138627
+        },
+        "lunch": {
+          "n": 62,
+          "mean": 156.68709677419355,
+          "sd": 67.56397800477222
+        },
+        "dinner": {
+          "n": 64,
+          "mean": 171.928125,
+          "sd": 64.97475824490904
+        }
+      }
+    },
+    "Other insulin": {
+      "n_sessions": 0,
+      "pooled_cgm": {
+        "n": 0,
+        "mean": null,
+        "sd": null,
+        "tbr": null,
+        "tir": null,
+        "tar": null
+      },
+      "premeal": {
+        "breakfast": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "lunch": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "dinner": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        }
+      }
+    }
+  }
+}

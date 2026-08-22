@@ -1,0 +1,52 @@
+session,date,meal,estimated_staple_carb_g,regular_u,g_per_u,diet,matched_items
+2021_0_20211013,2021-10-16,breakfast,0.0,4.0,,data not available,
+2021_0_20211013,2021-10-16,lunch,0.0,3.0,,data not available,
+2021_0_20211013,2021-10-16,dinner,0.0,3.0,,data not available,
+2021_0_20211013,2021-10-17,breakfast,0.0,4.0,,data not available,
+2021_0_20211013,2021-10-17,lunch,0.0,3.0,,data not available,
+2021_0_20211013,2021-10-17,dinner,0.0,4.0,,data not available,
+2021_0_20211013,2021-10-24,breakfast,53.1,8.0,6.6375,Egg 62 g | Steamed vegetable bun 118 g | Pickles 25 g,steamed vegetable bun 118g->53.1gC
+2021_0_20211013,2021-10-24,lunch,102.48000000000002,5.0,20.496000000000002,Diced meat with corn and green beans 160 g | Scrambled egg with tomato  163 g | Lettuce 100 g | Rice 246 g,diced meat with corn and green beans 160g->33.6gC; rice 246g->68.9gC
+2021_0_20211013,2021-10-24,dinner,0.0,5.0,,data not available,
+2025_0_20210506,2021-05-13,breakfast,31.25,14.0,2.232142857142857,Egg 61 g | Coarse grain steamed bread 125 g | Boiled vegetable 102 g,coarse grain steamed bread 125g->31.2gC
+2025_0_20210506,2021-05-13,lunch,69.5,10.0,6.95,Coarse grain 278 g | Minced pork with cowpea 107 g | Green vegetables 113 g | Roasted crucian carp with scallion 139 g,coarse grain 278g->69.5gC
+2025_0_20210506,2021-05-13,dinner,85.72,12.0,7.1433333333333335,Sliced pork with snow pea and yam 131 g | Shredded cabbage and carrot 116 g | Shredded pork with broccoli 123 g | Coarse grain 280 g,sliced pork with snow pea and yam 131g->15.7gC; coarse grain 280g->70.0gC
+2035_0_20210629,2021-07-01,breakfast,0.0,13.0,,data not available,
+2035_0_20210629,2021-07-01,lunch,0.0,6.0,,data not available,
+2035_0_20210629,2021-07-01,dinner,0.0,6.0,,data not available,
+2074_0_20210707,2021-07-08,breakfast,30.450000000000003,15.0,2.0300000000000002,Rice cake 30 g | Egg 50 g | Bread 45 g | Milk 250 ml,rice cake 30g->8.4gC; bread 45g->22.1gC
+2074_0_20210707,2021-07-08,lunch,25.0,10.0,2.5,Coarse grain 100 g | Steak 120 g | Hairtail 100 g | Zucchini 100 g,coarse grain 100g->25.0gC
+2074_0_20210707,2021-07-08,dinner,25.0,10.0,2.5,Wax gourd soup 100 ml | Shredded pork with water bamboo 80 g | Fried vegetable 100 g | Coarse grain 100 g,coarse grain 100g->25.0gC
+2074_0_20210707,2021-07-09,breakfast,24.5,15.0,1.6333333333333333,Bread 50 g | Egg 100 g | Soybean milk 175 ml,bread 50g->24.5gC
+2074_0_20210707,2021-07-09,lunch,52.64,10.0,5.264,Mixed rice 128 g | Mushroom and beef 60 g | Rice 60 g | Dehydrated vegetable 8 g,mixed rice 128g->35.8gC; rice 60g->16.8gC
+2074_0_20210707,2021-07-09,dinner,25.0,10.0,2.5,Fried pork with onion 100 g | Cucumber and okra 150 g | Broccoli 50 g | Sea cucumber 45 g | Tomato and wax gourd soup 100 ml | Coarse grain 100 g,coarse grain 100g->25.0gC
+2074_0_20210707,2021-07-10,breakfast,24.5,15.0,1.6333333333333333,Bread 50 g | Soybean milk 175 ml | Egg 100 g,bread 50g->24.5gC
+2074_0_20210707,2021-07-10,lunch,25.0,10.0,2.5,Noodles mixed with  butter 100 g | Beef and king oyster mushroom 150 g | Shrimp with black truffle 100 g | Cucumber 100 g,noodles mixed with  butter 100g->25.0gC
+2074_0_20210707,2021-07-10,dinner,56.5,10.0,5.65,"Coarse grain 100 g | Wax gourd and salted pork soup 100 ml | Fried pork slices with cabbage 100 g | Corn, green bean, carrot, and pine nut 150 g | Roast lamb chops with onion 200 g | Fish 100 g","coarse grain 100g->25.0gC; corn, green bean, carrot, and pine nut 150g->31.5gC"
+2074_0_20210707,2021-07-11,breakfast,0.0,15.0,,Whey protein wafer bar 40 g | Egg 50 g | Water 200 ml,
+2074_0_20210707,2021-07-11,lunch,37.5,10.0,3.75,Konjak cold noodles 150 g | Celery and dried bean curd and shredded beef 100 g | Minced pork with eggplant 100 g,konjak cold noodles 150g->37.5gC
+2074_0_20210707,2021-07-11,dinner,25.0,10.0,2.5,Chicken and wax gourd soup 100 ml | Coarse grain 100 g | Fried eggplant 50 g,coarse grain 100g->25.0gC
+2074_0_20210707,2021-07-12,breakfast,0.0,16.0,,Egg 50 g | Water 200 ml,
+2074_0_20210707,2021-07-12,lunch,0.0,13.0,,Vegetable salad 150 g,
+2074_0_20210707,2021-07-12,dinner,26.25,8.0,3.28125,Sliced beef 95 g | Egg 55 g | Coarse grain 105 g | Fried pork with cabbage 120 g,coarse grain 105g->26.2gC
+2074_0_20210707,2021-07-13,breakfast,0.0,10.0,,Wafer bar 40 g | Egg 50 g | Water 200 ml,
+2074_0_20210707,2021-07-13,lunch,25.0,8.0,3.125,Mix noodles 100 g | Tomato 60 g,mix noodles 100g->25.0gC
+2074_0_20210707,2021-07-13,dinner,0.0,8.0,,data not available,
+2074_0_20210707,2021-07-14,breakfast,0.0,10.0,,Egg 50 g | Water 200 ml,
+2074_0_20210707,2021-07-14,lunch,0.0,8.0,,Hairtail 100 g | Sliced boiled chicken 100 g | Snail 50 g | Scallop 50 g,
+2074_0_20210707,2021-07-14,dinner,0.0,8.0,,Seafood 200 g,
+2074_0_20210707,2021-07-15,breakfast,11.0,10.0,1.1,Wonton 50 g,wonton 50g->11.0gC
+2074_0_20210707,2021-07-15,lunch,0.0,8.0,,Seafood 210 g,
+2074_0_20210707,2021-07-15,dinner,0.0,8.0,,Steak 120 g | Sausage 50 g | Tomato and egg soup 100 ml | Fried needle mushroom 100 g,
+2074_0_20210707,2021-07-16,breakfast,0.0,10.0,,data not available,
+2074_0_20210707,2021-07-16,lunch,0.0,8.0,,data not available,
+2074_0_20210707,2021-07-16,dinner,0.0,8.0,,data not available,
+2074_0_20210707,2021-07-17,breakfast,0.0,10.0,,data not available,
+2074_0_20210707,2021-07-17,lunch,30.0,6.0,5.0,Scallion oil noodles 120 g | Corn soup 100 ml | Green vegetable and mushroom 100 g | Spicy pork 80 g,scallion oil noodles 120g->30.0gC
+2074_0_20210707,2021-07-17,dinner,0.0,6.0,,Red hairy hermit crab 500 g | Emperor crab 200 g | Steak 120 g,
+2074_0_20210707,2021-07-18,breakfast,0.0,10.0,,data not available,
+2074_0_20210707,2021-07-18,lunch,28.000000000000004,6.0,4.666666666666667,Mixed rice 100 g | Shredded beef with long bean 150 g | Cabbage 80 g,mixed rice 100g->28.0gC
+2074_0_20210707,2021-07-18,dinner,37.5,6.0,6.25,Yellow croaker noodles 150 g,yellow croaker noodles 150g->37.5gC
+2074_0_20210707,2021-07-19,breakfast,0.0,10.0,,data not available,
+2074_0_20210707,2021-07-19,lunch,0.0,6.0,,Vegetable salad 120 g,
+2074_0_20210707,2021-07-19,dinner,0.0,0.0,,,

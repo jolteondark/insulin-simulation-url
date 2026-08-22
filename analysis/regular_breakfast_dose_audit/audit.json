@@ -1,0 +1,657 @@
+[
+  {
+    "session": "2025_0_20210506",
+    "breakfast": "2021-05-07T06:49:00",
+    "hits": [
+      {
+        "time": "2021-05-07T06:19:00",
+        "relative_min": -30.0,
+        "sc": "",
+        "csii": "8.0",
+        "all_numeric_iu": 0
+      }
+    ]
+  },
+  {
+    "session": "2025_0_20210506",
+    "breakfast": "2021-05-08T07:04:00",
+    "hits": [
+      {
+        "time": "2021-05-08T06:34:00",
+        "relative_min": -30.0,
+        "sc": "",
+        "csii": "8.0",
+        "all_numeric_iu": 0
+      }
+    ]
+  },
+  {
+    "session": "2025_0_20210506",
+    "breakfast": "2021-05-09T07:04:00",
+    "hits": [
+      {
+        "time": "2021-05-09T06:34:00",
+        "relative_min": -30.0,
+        "sc": "",
+        "csii": "8.0",
+        "all_numeric_iu": 0
+      }
+    ]
+  },
+  {
+    "session": "2025_0_20210506",
+    "breakfast": "2021-05-10T07:04:00",
+    "hits": [
+      {
+        "time": "2021-05-10T06:34:00",
+        "relative_min": -30.0,
+        "sc": "",
+        "csii": "10.0",
+        "all_numeric_iu": 0
+      }
+    ]
+  },
+  {
+    "session": "2025_0_20210506",
+    "breakfast": "2021-05-11T07:04:00",
+    "hits": [
+      {
+        "time": "2021-05-11T06:34:00",
+        "relative_min": -30.0,
+        "sc": "",
+        "csii": "12.0",
+        "all_numeric_iu": 0
+      }
+    ]
+  },
+  {
+    "session": "2025_0_20210506",
+    "breakfast": "2021-05-12T07:04:00",
+    "hits": [
+      {
+        "time": "2021-05-12T06:34:00",
+        "relative_min": -30.0,
+        "sc": "",
+        "csii": "12.0",
+        "all_numeric_iu": 0
+      }
+    ]
+  },
+  {
+    "session": "2025_0_20210506",
+    "breakfast": "2021-05-13T07:04:00",
+    "hits": [
+      {
+        "time": "2021-05-13T06:49:00",
+        "relative_min": -15.0,
+        "sc": "Novolin R, 14 IU",
+        "csii": "",
+        "all_numeric_iu": 14.0
+      }
+    ]
+  },
+  {
+    "session": "2025_0_20210506",
+    "breakfast": "2021-05-14T07:04:00",
+    "hits": [
+      {
+        "time": "2021-05-14T06:49:00",
+        "relative_min": -15.0,
+        "sc": "Novolin R, 14 IU",
+        "csii": "",
+        "all_numeric_iu": 14.0
+      }
+    ]
+  },
+  {
+    "session": "2035_0_20210629",
+    "breakfast": "2021-06-30T07:04:00",
+    "hits": [
+      {
+        "time": "2021-06-30T06:34:00",
+        "relative_min": -30.0,
+        "sc": "",
+        "csii": "12.0",
+        "all_numeric_iu": 0
+      }
+    ]
+  },
+  {
+    "session": "2035_0_20210629",
+    "breakfast": "2021-07-01T07:04:00",
+    "hits": [
+      {
+        "time": "2021-07-01T06:49:00",
+        "relative_min": -15.0,
+        "sc": "Novolin R, 13 IU",
+        "csii": "",
+        "all_numeric_iu": 13.0
+      }
+    ]
+  },
+  {
+    "session": "2036_0_20210803",
+    "breakfast": "2021-08-04T07:11:00",
+    "hits": [
+      {
+        "time": "2021-08-04T06:41:00",
+        "relative_min": -30.0,
+        "sc": "",
+        "csii": "8.0",
+        "all_numeric_iu": 0
+      }
+    ]
+  },
+  {
+    "session": "2036_0_20210803",
+    "breakfast": "2021-08-06T06:56:00",
+    "hits": [
+      {
+        "time": "2021-08-06T06:26:00",
+        "relative_min": -30.0,
+        "sc": "",
+        "csii": "9.0",
+        "all_numeric_iu": 0
+      }
+    ]
+  },
+  {
+    "session": "2036_0_20210803",
+    "breakfast": "2021-08-07T06:56:00",
+    "hits": [
+      {
+        "time": "2021-08-07T06:26:00",
+        "relative_min": -30.0,
+        "sc": "",
+        "csii": "9.0",
+        "all_numeric_iu": 0
+      }
+    ]
+  },
+  {
+    "session": "2036_0_20210803",
+    "breakfast": "2021-08-08T07:11:00",
+    "hits": [
+      {
+        "time": "2021-08-08T06:41:00",
+        "relative_min": -30.0,
+        "sc": "",
+        "csii": "9.0",
+        "all_numeric_iu": 0
+      }
+    ]
+  },
+  {
+    "session": "2036_0_20210803",
+    "breakfast": "2021-08-09T06:56:00",
+    "hits": [
+      {
+        "time": "2021-08-09T06:41:00",
+        "relative_min": -15.0,
+        "sc": "insulin aspart 70/30, 25 IU",
+        "csii": "",
+        "all_numeric_iu": 25.0
+      }
+    ]
+  },
+  {
+    "session": "2043_0_20210513",
+    "breakfast": "2021-05-14T06:55:00",
+    "hits": [
+      {
+        "time": "2021-05-14T06:25:00",
+        "relative_min": -30.0,
+        "sc": "",
+        "csii": "12.0",
+        "all_numeric_iu": 0
+      }
+    ]
+  },
+  {
+    "session": "2043_0_20210513",
+    "breakfast": "2021-05-15T07:10:00",
+    "hits": [
+      {
+        "time": "2021-05-15T06:40:00",
+        "relative_min": -30.0,
+        "sc": "",
+        "csii": "12.0",
+        "all_numeric_iu": 0
+      }
+    ]
+  },
+  {
+    "session": "2043_0_20210513",
+    "breakfast": "2021-05-16T06:55:00",
+    "hits": [
+      {
+        "time": "2021-05-16T06:40:00",
+        "relative_min": -15.0,
+        "sc": "",
+        "csii": "13.0",
+        "all_numeric_iu": 0
+      }
+    ]
+  },
+  {
+    "session": "2043_0_20210513",
+    "breakfast": "2021-05-17T07:10:00",
+    "hits": [
+      {
+        "time": "2021-05-17T06:40:00",
+        "relative_min": -30.0,
+        "sc": "",
+        "csii": "13.0",
+        "all_numeric_iu": 0
+      }
+    ]
+  },
+  {
+    "session": "2043_0_20210513",
+    "breakfast": "2021-05-18T07:10:00",
+    "hits": [
+      {
+        "time": "2021-05-18T06:40:00",
+        "relative_min": -30.0,
+        "sc": "",
+        "csii": "13.0",
+        "all_numeric_iu": 0
+      }
+    ]
+  },
+  {
+    "session": "2043_0_20210513",
+    "breakfast": "2021-05-19T06:55:00",
+    "hits": [
+      {
+        "time": "2021-05-19T06:25:00",
+        "relative_min": -30.0,
+        "sc": "",
+        "csii": "13.0",
+        "all_numeric_iu": 0
+      }
+    ]
+  },
+  {
+    "session": "2043_0_20210513",
+    "breakfast": "2021-05-20T07:10:00",
+    "hits": [
+      {
+        "time": "2021-05-20T06:55:00",
+        "relative_min": -15.0,
+        "sc": "insulin aspart 70/30, 16 IU",
+        "csii": "",
+        "all_numeric_iu": 16.0
+      }
+    ]
+  },
+  {
+    "session": "2043_0_20210513",
+    "breakfast": "2021-05-21T07:10:00",
+    "hits": [
+      {
+        "time": "2021-05-21T06:55:00",
+        "relative_min": -15.0,
+        "sc": "insulin aspart 70/30, 16 IU",
+        "csii": "",
+        "all_numeric_iu": 16.0
+      }
+    ]
+  },
+  {
+    "session": "2043_0_20210513",
+    "breakfast": "2021-05-22T07:10:00",
+    "hits": [
+      {
+        "time": "2021-05-22T06:55:00",
+        "relative_min": -15.0,
+        "sc": "insulin aspart 70/30, 16 IU",
+        "csii": "",
+        "all_numeric_iu": 16.0
+      }
+    ]
+  },
+  {
+    "session": "2074_0_20210707",
+    "breakfast": "2021-07-08T08:16:00",
+    "hits": [
+      {
+        "time": "2021-07-08T08:01:00",
+        "relative_min": -15.0,
+        "sc": "Novolin R, 15 IU",
+        "csii": "",
+        "all_numeric_iu": 15.0
+      }
+    ]
+  },
+  {
+    "session": "2074_0_20210707",
+    "breakfast": "2021-07-09T08:31:00",
+    "hits": [
+      {
+        "time": "2021-07-09T08:16:00",
+        "relative_min": -15.0,
+        "sc": "Novolin R, 15 IU",
+        "csii": "",
+        "all_numeric_iu": 15.0
+      }
+    ]
+  },
+  {
+    "session": "2074_0_20210707",
+    "breakfast": "2021-07-10T09:01:00",
+    "hits": [
+      {
+        "time": "2021-07-10T08:46:00",
+        "relative_min": -15.0,
+        "sc": "Novolin R, 15 IU",
+        "csii": "",
+        "all_numeric_iu": 15.0
+      }
+    ]
+  },
+  {
+    "session": "2074_0_20210707",
+    "breakfast": "2021-07-11T08:46:00",
+    "hits": [
+      {
+        "time": "2021-07-11T08:31:00",
+        "relative_min": -15.0,
+        "sc": "Novolin R, 15 IU",
+        "csii": "",
+        "all_numeric_iu": 15.0
+      }
+    ]
+  },
+  {
+    "session": "2074_0_20210707",
+    "breakfast": "2021-07-12T09:46:00",
+    "hits": [
+      {
+        "time": "2021-07-12T09:31:00",
+        "relative_min": -15.0,
+        "sc": "Novolin R, 16 IU",
+        "csii": "",
+        "all_numeric_iu": 16.0
+      }
+    ]
+  },
+  {
+    "session": "2074_0_20210707",
+    "breakfast": "2021-07-13T09:16:00",
+    "hits": [
+      {
+        "time": "2021-07-13T09:01:00",
+        "relative_min": -15.0,
+        "sc": "Novolin R, 10 IU",
+        "csii": "",
+        "all_numeric_iu": 10.0
+      }
+    ]
+  },
+  {
+    "session": "2074_0_20210707",
+    "breakfast": "2021-07-14T08:31:00",
+    "hits": [
+      {
+        "time": "2021-07-14T08:16:00",
+        "relative_min": -15.0,
+        "sc": "Novolin R, 10 IU",
+        "csii": "",
+        "all_numeric_iu": 10.0
+      }
+    ]
+  },
+  {
+    "session": "2074_0_20210707",
+    "breakfast": "2021-07-15T08:01:00",
+    "hits": [
+      {
+        "time": "2021-07-15T07:46:00",
+        "relative_min": -15.0,
+        "sc": "Novolin R, 10 IU",
+        "csii": "",
+        "all_numeric_iu": 10.0
+      }
+    ]
+  },
+  {
+    "session": "2074_0_20210707",
+    "breakfast": "2021-07-16T08:31:00",
+    "hits": [
+      {
+        "time": "2021-07-16T08:16:00",
+        "relative_min": -15.0,
+        "sc": "Novolin R, 10 IU",
+        "csii": "",
+        "all_numeric_iu": 10.0
+      }
+    ]
+  },
+  {
+    "session": "2074_0_20210707",
+    "breakfast": "2021-07-17T08:31:00",
+    "hits": [
+      {
+        "time": "2021-07-17T08:16:00",
+        "relative_min": -15.0,
+        "sc": "Novolin R, 10 IU",
+        "csii": "",
+        "all_numeric_iu": 10.0
+      }
+    ]
+  },
+  {
+    "session": "2074_0_20210707",
+    "breakfast": "2021-07-18T08:31:00",
+    "hits": [
+      {
+        "time": "2021-07-18T08:16:00",
+        "relative_min": -15.0,
+        "sc": "Novolin R, 10 IU",
+        "csii": "",
+        "all_numeric_iu": 10.0
+      }
+    ]
+  },
+  {
+    "session": "2074_0_20210707",
+    "breakfast": "2021-07-19T08:31:00",
+    "hits": [
+      {
+        "time": "2021-07-19T08:16:00",
+        "relative_min": -15.0,
+        "sc": "Novolin R, 10 IU",
+        "csii": "",
+        "all_numeric_iu": 10.0
+      }
+    ]
+  },
+  {
+    "session": "2094_0_20211109",
+    "breakfast": "2020-11-10T06:52:00",
+    "hits": [
+      {
+        "time": "2020-11-10T06:52:00",
+        "relative_min": 0.0,
+        "sc": "insulin glargine, 14 IU; Humulin 70/30, 12 IU",
+        "csii": "",
+        "all_numeric_iu": 26.0
+      }
+    ]
+  },
+  {
+    "session": "2094_0_20211109",
+    "breakfast": "2020-11-11T06:22:00",
+    "hits": [
+      {
+        "time": "2020-11-11T06:22:00",
+        "relative_min": 0.0,
+        "sc": "insulin glargine, 14 IU; Humulin 70/30, 12 IU",
+        "csii": "",
+        "all_numeric_iu": 26.0
+      }
+    ]
+  },
+  {
+    "session": "2094_0_20211109",
+    "breakfast": "2020-11-12T06:22:00",
+    "hits": [
+      {
+        "time": "2020-11-12T06:22:00",
+        "relative_min": 0.0,
+        "sc": "insulin glargine, 14 IU; Humulin 70/30, 12 IU",
+        "csii": "",
+        "all_numeric_iu": 26.0
+      }
+    ]
+  },
+  {
+    "session": "2094_0_20211109",
+    "breakfast": "2020-11-13T06:22:00",
+    "hits": [
+      {
+        "time": "2020-11-13T06:22:00",
+        "relative_min": 0.0,
+        "sc": "insulin glargine, 14 IU; Humulin 70/30, 12 IU",
+        "csii": "",
+        "all_numeric_iu": 26.0
+      }
+    ]
+  },
+  {
+    "session": "2094_0_20211109",
+    "breakfast": "2020-11-14T06:22:00",
+    "hits": [
+      {
+        "time": "2020-11-14T06:22:00",
+        "relative_min": 0.0,
+        "sc": "insulin glargine, 14 IU; Humulin 70/30, 12 IU",
+        "csii": "",
+        "all_numeric_iu": 26.0
+      }
+    ]
+  },
+  {
+    "session": "2094_0_20211109",
+    "breakfast": "2020-11-15T06:22:00",
+    "hits": [
+      {
+        "time": "2020-11-15T06:22:00",
+        "relative_min": 0.0,
+        "sc": "insulin glargine, 14 IU; Humulin 70/30, 12 IU",
+        "csii": "",
+        "all_numeric_iu": 26.0
+      }
+    ]
+  },
+  {
+    "session": "2094_0_20211109",
+    "breakfast": "2020-11-16T06:22:00",
+    "hits": [
+      {
+        "time": "2020-11-16T06:22:00",
+        "relative_min": 0.0,
+        "sc": "insulin glargine, 14 IU; Humulin 70/30, 12 IU",
+        "csii": "",
+        "all_numeric_iu": 26.0
+      }
+    ]
+  },
+  {
+    "session": "2094_0_20211109",
+    "breakfast": "2020-11-17T06:22:00",
+    "hits": [
+      {
+        "time": "2020-11-17T06:22:00",
+        "relative_min": 0.0,
+        "sc": "insulin glargine, 14 IU; Humulin 70/30, 12 IU",
+        "csii": "",
+        "all_numeric_iu": 26.0
+      }
+    ]
+  },
+  {
+    "session": "2094_0_20211109",
+    "breakfast": "2020-11-17T08:52:00",
+    "hits": []
+  },
+  {
+    "session": "2094_0_20211109",
+    "breakfast": "2020-11-18T06:22:00",
+    "hits": [
+      {
+        "time": "2020-11-18T06:22:00",
+        "relative_min": 0.0,
+        "sc": "insulin glargine, 14 IU; Humulin 70/30, 12 IU",
+        "csii": "",
+        "all_numeric_iu": 26.0
+      }
+    ]
+  },
+  {
+    "session": "2094_0_20211109",
+    "breakfast": "2020-11-19T06:37:00",
+    "hits": [
+      {
+        "time": "2020-11-19T06:37:00",
+        "relative_min": 0.0,
+        "sc": "insulin glargine, 14 IU; Humulin 70/30, 12 IU",
+        "csii": "",
+        "all_numeric_iu": 26.0
+      }
+    ]
+  },
+  {
+    "session": "2094_0_20211109",
+    "breakfast": "2020-11-20T06:22:00",
+    "hits": [
+      {
+        "time": "2020-11-20T06:22:00",
+        "relative_min": 0.0,
+        "sc": "insulin glargine, 14 IU; Humulin 70/30, 12 IU",
+        "csii": "",
+        "all_numeric_iu": 26.0
+      }
+    ]
+  },
+  {
+    "session": "2094_0_20211109",
+    "breakfast": "2020-11-21T06:22:00",
+    "hits": [
+      {
+        "time": "2020-11-21T06:22:00",
+        "relative_min": 0.0,
+        "sc": "insulin glargine, 14 IU; Humulin 70/30, 12 IU",
+        "csii": "",
+        "all_numeric_iu": 26.0
+      }
+    ]
+  },
+  {
+    "session": "2094_0_20211109",
+    "breakfast": "2020-11-22T06:22:00",
+    "hits": [
+      {
+        "time": "2020-11-22T06:22:00",
+        "relative_min": 0.0,
+        "sc": "insulin glargine, 14 IU; Humulin 70/30, 12 IU",
+        "csii": "",
+        "all_numeric_iu": 26.0
+      }
+    ]
+  },
+  {
+    "session": "2094_0_20211109",
+    "breakfast": "2020-11-23T06:22:00",
+    "hits": [
+      {
+        "time": "2020-11-23T06:22:00",
+        "relative_min": 0.0,
+        "sc": "insulin glargine, 14 IU; Humulin 70/30, 12 IU",
+        "csii": "",
+        "all_numeric_iu": 26.0
+      }
+    ]
+  }
+]

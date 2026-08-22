@@ -1,0 +1,19 @@
+#!/usr/bin/env node
+'use strict';
+const fs=require('fs'),vm=require('vm');global.window=global;
+for(const f of ['t2dm_patient_phenotype_v1_shanghai_exp.js','t2dm_patient_phenotype_v2_shanghai106_exp.js','t2dm_game_model_v2_order_decomp_exp.js','t2dm_inpatient_dynamic_v1_exp.js','t2dm_inpatient_course_v1_exp.js','insulin_prandial_pk_prior_ranges_exp.js'])vm.runInThisContext(fs.readFileSync(f,'utf8'),{filename:f});
+const P=T2DMPatientPhenotypeV2Shanghai106Exp,M=T2DMGameModelV2OrderDecompExp,D=T2DMInpatientDynamicV1Exp,C=T2DMInpatientCourseV1Exp,PK=InsulinPrandialPkPriorRangesExp;
+const TARGET={mean:176.1,tir:53.5,tar:42.2,tbr:4.5,cv:32.0};
+function mean(a){return a.reduce((s,x)=>s+x,0)/a.length}function sd(a){if(a.length<2)return 0;const m=mean(a);return Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1))}
+function metrics(xs){const m=mean(xs),s=sd(xs);return{mean:m,tir:100*xs.filter(x=>x>=70&&x<=180).length/xs.length,tar:100*xs.filter(x=>x>180).length/xs.length,tbr:100*xs.filter(x=>x<70).length/xs.length,cv:100*s/m}}
+function courseMetrics(c){const xs=[];for(const r of c.records)for(let t=0;t<=1440;t+=15)xs.push(r.series[t]);return metrics(xs)}
+const gp=PK.get('glulisine'),taus=[gp.tau_range_min[0],gp.candidate.tau_min,gp.tau_range_min[1]],durs=[gp.duration_range_min[0],gp.candidate.duration_min,gp.duration_range_min[1]];
+const kernels=[{name:'regular_reference',tau:90,dur:330,source:'Shanghai frozen anchor'}];
+for(const tau of taus)for(const dur of durs)kernels.push({name:`glulisine_prior_${tau}_${dur}`,tau,dur,source:'FDA-label-constrained prior range'});
+function cfg(k){return{days:8,titrate:true,admission_glucose_offset_mg_dl:140,initial_stress_severity:.85,stress_daily_decay:.10,allow_meal_mismatch:true,partial_meal_probability:.20,meal_shift_max_min:30,bolus_delay_max_min:40,underbolus_probability:.12,allow_npo:true,npo_day_probability:.10,bolus_tau_min:k.tau,bolus_duration_min:k.dur};}
+const results=[];for(const k of kernels){const pm=[];for(let i=1;i<=700;i++){const p=P.sample(i),o=M.suggestOrder(p),c=C.simulateCourse(M,D,p,o,cfg(k),i);pm.push(courseMetrics(c));}results.push({kernel:k,n:pm.length,mean:mean(pm.map(x=>x.mean)),tir:mean(pm.map(x=>x.tir)),tar:mean(pm.map(x=>x.tar)),tbr:mean(pm.map(x=>x.tbr)),cv:mean(pm.map(x=>x.cv))});}
+const dir='analysis/emory_rapid_kernel_sweep';fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(dir+'/results.json',JSON.stringify({target:TARGET,glulisine_prior:gp,results},null,2));
+let md=['# Emory glulisine prior-range sensitivity','','This is NOT an Emory fit. The grid is fixed in advance from a literature-constrained glulisine range. Integrated bolus-kernel area is preserved, so the sweep changes timing shape rather than total unit potency.','',`Target shown only for external comparison: mean ${TARGET.mean}, TIR ${TARGET.tir}%, TAR ${TARGET.tar}%, TBR ${TARGET.tbr}%, CV ${TARGET.cv}%.`,'',`Glulisine prior range: tau ${gp.tau_range_min[0]}–${gp.tau_range_min[1]} min; duration ${gp.duration_range_min[0]}–${gp.duration_range_min[1]} min.`,'','| kernel | tau | duration | mean | TIR | TAR | TBR | CV |','|---|---:|---:|---:|---:|---:|---:|---:|'];
+for(const x of results)md.push(`| ${x.kernel.name} | ${x.kernel.tau} | ${x.kernel.dur} | ${x.mean.toFixed(1)} | ${x.tir.toFixed(1)}% | ${x.tar.toFixed(1)}% | ${x.tbr.toFixed(2)}% | ${x.cv.toFixed(1)}% |`);
+md+=['','## Guardrail','- Do not select the best row and call it calibrated. The scientific question is whether the independent external target lies near the behavior induced by the pre-specified literature range.','- Do not apply these glulisine coordinates to Shanghai strict Basal+Regular.','- Regular remains anchored at the Shanghai-frozen kernel.','- Lyumjev is not included because a single-gamma kernel cannot simultaneously represent its very early onset and dose-dependent long tail.'];
+fs.writeFileSync(dir+'/report.md',md.join('\n')+'\n');console.log(md.join('\n'));

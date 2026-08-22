@@ -1,0 +1,32 @@
+name: Strict basal regular requirements
+on:
+  push:
+    branches: [v2/state-space-minimal]
+    paths:
+      - 'scripts/analyze_strict_basal_regular_weighted_requirements.py'
+      - '.github/workflows/strict-basal-regular-requirements.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v2/state-space-minimal
+      - name: Clone mirror snapshot
+        run: |
+          git clone --quiet https://github.com/MouzKarrigan/2024_TJU_Data_Mining-Analysis.git /tmp/tju
+          cd /tmp/tju
+          git checkout --quiet cf5e7f32e8f8295e49df27ea70d9d6b21ab30598
+      - name: Analyze requirements
+        run: python3 scripts/analyze_strict_basal_regular_weighted_requirements.py
+      - name: Persist results
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898242+github-actions[bot]@users.noreply.github.com
+          git add analysis/shanghai_strict_basal_regular_requirements
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Store strict basal-regular requirement audit'
+          git push origin HEAD:v2/state-space-minimal

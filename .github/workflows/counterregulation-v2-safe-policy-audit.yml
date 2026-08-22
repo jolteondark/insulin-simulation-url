@@ -1,0 +1,26 @@
+name: counterregulation-v2-safe-policy-audit
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run counterregulation V2 after safer policy
+        run: node scripts/audit_counterregulation_v2_with_safe_policy.js
+        continue-on-error: true
+      - name: Upload audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: counterregulation-v2-safe-policy-audit
+          path: |
+            analysis/counterregulation_v2_safe_policy/results.json
+            analysis/counterregulation_v2_safe_policy/report.md
