@@ -21,7 +21,7 @@ function infectionSensitivity(severity){const s=clamp(Number(severity)||0,0,1);r
 function infectionHepaticDrive(severity){const s=clamp(Number(severity)||0,0,1);return .020*Math.pow(s,1.4)}
 function steroidShape(minute){const a=[[0,.05],[360,.05],[600,.15],[720,.45],[960,1],[1260,.95],[1440,.25]],m=((Number(minute)%1440)+1440)%1440;for(let i=1;i<a.length;i++){if(m<=a[i][0]){const [x0,y0]=a[i-1],[x1,y1]=a[i],w=(m-x0)/(x1-x0);return y0+w*(y1-y0)}}return .25}
 function steroidSensitivity(minute,prednisoneMg,response=.69){const dose=Math.max(0,Number(prednisoneMg)||0),r=clamp(Number(response),.30,1),resistance=r*dose/60*steroidShape(minute);return 1/(1+resistance)}
-function currentScaleConfig(){try{return window.CorrectionScale?.current?.()||null}catch{return null}}
+function currentScaleConfig(){try{return window.CorrectionScale?.consumeForSimulation?.()||null}catch{return null}}
 function correctionUnits(bg,cfg){if(!cfg||!cfg.enabled)return 0;if(window.CorrectionScale?.correctionUnits)return Number(window.CorrectionScale.correctionUnits(bg,cfg))||0;const g=Number(bg),start=Number(cfg.start_bg),step=Number(cfg.bg_step),units=Number(cfg.units_per_step);if(!Number.isFinite(g)||g<70||g<start||!(step>0)||!(units>0))return 0;return (Math.floor((g-start)/step)+1)*units}
 
 function simulate(p,ctx,rapidOrder,previousBasal,_seed,startG){
