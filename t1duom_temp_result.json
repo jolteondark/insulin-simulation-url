@@ -5,48 +5,51 @@
     "ref": "V1.0.3",
     "doi": "10.5281/zenodo.15806142"
   },
+  "analysis": "simulator_observable_aligned_before_meal_cgm",
   "n_nutrition_participants": 15,
+  "simulator_contract": "POC is 60 min before meal (07->08, 12->13, 18->19); external target is therefore meal timestamp minus 60 min.",
   "primary": {
     "definition": {
+      "target_minutes_before_meal": 60,
+      "target_tolerance_minutes": 15,
       "min_carbs_g": 20,
-      "prior_exclusion_minutes": 180,
-      "premeal_lookback_minutes": 15
+      "prior_exclusion_minutes_before_target": 180
     },
     "subject_equal": {
       "Breakfast": {
         "n_subjects": 15,
-        "mean": 132.09228149484423,
-        "p10": 108.91401293333334,
-        "median": 137.568957,
-        "p90": 153.12396307058825
+        "mean": 130.28868008884197,
+        "p10": 102.9204624055944,
+        "median": 135.2173508974359,
+        "p90": 148.66887020779222
       },
       "Lunch": {
         "n_subjects": 15,
-        "mean": 140.1684215067857,
-        "p10": 125.56581917828053,
-        "median": 137.81552184210528,
-        "p90": 156.38189822153845
+        "mean": 144.2107242653557,
+        "p10": 121.81744656000001,
+        "median": 144.35035227272726,
+        "p90": 166.0016766
       },
       "Dinner": {
         "n_subjects": 15,
-        "mean": 142.4412284674408,
-        "p10": 120.15374988505747,
-        "median": 131.39061105263158,
-        "p90": 173.006056
+        "mean": 154.05497703123382,
+        "p10": 116.10175080597014,
+        "median": 153.21190063492062,
+        "p90": 192.21300954285715
       }
     },
     "event_pooled": {
       "Breakfast": {
-        "n_events": 549,
-        "mean": 136.2179202003643
+        "n_events": 542,
+        "mean": 133.1767714206642
       },
       "Lunch": {
-        "n_events": 647,
-        "mean": 136.43564842349306
+        "n_events": 556,
+        "mean": 140.1952068705036
       },
       "Dinner": {
-        "n_events": 814,
-        "mean": 136.85973939803438
+        "n_events": 752,
+        "mean": 145.0908366888298
       }
     },
     "subjects": [
@@ -55,21 +58,21 @@
         "meal_type": {
           "Breakfast": {
             "n_events": 10,
-            "mean_premeal_glucose_mg_dl": 150.812334,
-            "mean_meal_clock_hour": 10.088333333333333,
-            "mean_cgm_lag_minutes": 1.6
+            "mean_glucose_mg_dl": 122.16339599999999,
+            "mean_abs_target_distance_minutes": 1.2,
+            "mean_actual_meal_lead_minutes": 59.8
           },
           "Lunch": {
-            "n_events": 26,
-            "mean_premeal_glucose_mg_dl": 137.70062846153846,
-            "mean_meal_clock_hour": 13.049358974358976,
-            "mean_cgm_lag_minutes": 1.9230769230769231
+            "n_events": 25,
+            "mean_glucose_mg_dl": 133.4788256,
+            "mean_abs_target_distance_minutes": 1.08,
+            "mean_actual_meal_lead_minutes": 59.96
           },
           "Dinner": {
-            "n_events": 73,
-            "mean_premeal_glucose_mg_dl": 136.54340054794523,
-            "mean_meal_clock_hour": 19.248401826484017,
-            "mean_cgm_lag_minutes": 1.5753424657534247
+            "n_events": 71,
+            "mean_glucose_mg_dl": 151.30212450704224,
+            "mean_abs_target_distance_minutes": 1.056338028169014,
+            "mean_actual_meal_lead_minutes": 60.15492957746479
           }
         }
       },
@@ -77,22 +80,22 @@
         "participant": "2302",
         "meal_type": {
           "Breakfast": {
-            "n_events": 20,
-            "mean_premeal_glucose_mg_dl": 137.568957,
-            "mean_meal_clock_hour": 9.391666666666667,
-            "mean_cgm_lag_minutes": 6.0
+            "n_events": 21,
+            "mean_glucose_mg_dl": 137.4531257142857,
+            "mean_abs_target_distance_minutes": 4.238095238095238,
+            "mean_actual_meal_lead_minutes": 58.61904761904762
           },
           "Lunch": {
-            "n_events": 51,
-            "mean_premeal_glucose_mg_dl": 124.7848674509804,
-            "mean_meal_clock_hour": 12.339869281045752,
-            "mean_cgm_lag_minutes": 6.313725490196078
+            "n_events": 50,
+            "mean_glucose_mg_dl": 122.5597964,
+            "mean_abs_target_distance_minutes": 3.9,
+            "mean_actual_meal_lead_minutes": 59.14
           },
           "Dinner": {
-            "n_events": 58,
-            "mean_premeal_glucose_mg_dl": 119.91422758620689,
-            "mean_meal_clock_hour": 19.21551724137931,
-            "mean_cgm_lag_minutes": 6.413793103448276
+            "n_events": 57,
+            "mean_glucose_mg_dl": 122.19184578947367,
+            "mean_abs_target_distance_minutes": 3.736842105263158,
+            "mean_actual_meal_lead_minutes": 59.666666666666664
           }
         }
       },
@@ -101,21 +104,21 @@
         "meal_type": {
           "Breakfast": {
             "n_events": 24,
-            "mean_premeal_glucose_mg_dl": 138.66506416666667,
-            "mean_meal_clock_hour": 7.427083333333333,
-            "mean_cgm_lag_minutes": 1.7916666666666667
+            "mean_glucose_mg_dl": 152.4790175,
+            "mean_abs_target_distance_minutes": 1.375,
+            "mean_actual_meal_lead_minutes": 59.708333333333336
           },
           "Lunch": {
-            "n_events": 37,
-            "mean_premeal_glucose_mg_dl": 145.50913945945948,
-            "mean_meal_clock_hour": 12.57882882882883,
-            "mean_cgm_lag_minutes": 1.3783783783783783
+            "n_events": 28,
+            "mean_glucose_mg_dl": 164.86653,
+            "mean_abs_target_distance_minutes": 1.0357142857142858,
+            "mean_actual_meal_lead_minutes": 59.892857142857146
           },
           "Dinner": {
-            "n_events": 38,
-            "mean_premeal_glucose_mg_dl": 131.39061105263158,
-            "mean_meal_clock_hour": 18.760087719298244,
-            "mean_cgm_lag_minutes": 1.4210526315789473
+            "n_events": 29,
+            "mean_glucose_mg_dl": 164.2141468965517,
+            "mean_abs_target_distance_minutes": 1.5862068965517242,
+            "mean_actual_meal_lead_minutes": 60.06896551724138
           }
         }
       },
@@ -124,21 +127,21 @@
         "meal_type": {
           "Breakfast": {
             "n_events": 21,
-            "mean_premeal_glucose_mg_dl": 113.8578638095238,
-            "mean_meal_clock_hour": 9.083333333333334,
-            "mean_cgm_lag_minutes": 5.190476190476191
+            "mean_glucose_mg_dl": 133.42048095238096,
+            "mean_abs_target_distance_minutes": 3.761904761904762,
+            "mean_actual_meal_lead_minutes": 59.666666666666664
           },
           "Lunch": {
-            "n_events": 25,
-            "mean_premeal_glucose_mg_dl": 155.7132844,
-            "mean_meal_clock_hour": 13.115333333333332,
-            "mean_cgm_lag_minutes": 5.44
+            "n_events": 20,
+            "mean_glucose_mg_dl": 166.758441,
+            "mean_abs_target_distance_minutes": 3.25,
+            "mean_actual_meal_lead_minutes": 60.05
           },
           "Dinner": {
-            "n_events": 23,
-            "mean_premeal_glucose_mg_dl": 170.82037,
-            "mean_meal_clock_hour": 19.128985507246377,
-            "mean_cgm_lag_minutes": 7.130434782608695
+            "n_events": 21,
+            "mean_glucose_mg_dl": 201.0745319047619,
+            "mean_abs_target_distance_minutes": 3.5714285714285716,
+            "mean_actual_meal_lead_minutes": 60.523809523809526
           }
         }
       },
@@ -147,21 +150,21 @@
         "meal_type": {
           "Breakfast": {
             "n_events": 84,
-            "mean_premeal_glucose_mg_dl": 146.397875,
-            "mean_meal_clock_hour": 8.651190476190477,
-            "mean_cgm_lag_minutes": 0.03571428571428571
+            "mean_glucose_mg_dl": 145.62566642857144,
+            "mean_abs_target_distance_minutes": 3.2976190476190474,
+            "mean_actual_meal_lead_minutes": 60.392857142857146
           },
           "Lunch": {
-            "n_events": 77,
-            "mean_premeal_glucose_mg_dl": 112.95305376623377,
-            "mean_meal_clock_hour": 15.369696969696971,
-            "mean_cgm_lag_minutes": 0.0
+            "n_events": 72,
+            "mean_glucose_mg_dl": 107.50859333333334,
+            "mean_abs_target_distance_minutes": 3.4166666666666665,
+            "mean_actual_meal_lead_minutes": 60.166666666666664
           },
           "Dinner": {
-            "n_events": 83,
-            "mean_premeal_glucose_mg_dl": 109.78076795180722,
-            "mean_meal_clock_hour": 20.816265060240966,
-            "mean_cgm_lag_minutes": 0.0963855421686747
+            "n_events": 77,
+            "mean_glucose_mg_dl": 106.37758077922078,
+            "mean_abs_target_distance_minutes": 3.25974025974026,
+            "mean_actual_meal_lead_minutes": 60.03896103896104
           }
         }
       },
@@ -169,22 +172,22 @@
         "participant": "2307",
         "meal_type": {
           "Breakfast": {
-            "n_events": 25,
-            "mean_premeal_glucose_mg_dl": 173.9116664,
-            "mean_meal_clock_hour": 9.28,
-            "mean_cgm_lag_minutes": 1.88
+            "n_events": 26,
+            "mean_glucose_mg_dl": 128.41432538461538,
+            "mean_abs_target_distance_minutes": 1.0384615384615385,
+            "mean_actual_meal_lead_minutes": 60.26923076923077
           },
           "Lunch": {
-            "n_events": 17,
-            "mean_premeal_glucose_mg_dl": 181.8778305882353,
-            "mean_meal_clock_hour": 13.283333333333333,
-            "mean_cgm_lag_minutes": 2.0588235294117645
+            "n_events": 10,
+            "mean_glucose_mg_dl": 193.335286,
+            "mean_abs_target_distance_minutes": 1.4,
+            "mean_actual_meal_lead_minutes": 60.0
           },
           "Dinner": {
-            "n_events": 23,
-            "mean_premeal_glucose_mg_dl": 174.46318,
-            "mean_meal_clock_hour": 18.992753623188406,
-            "mean_cgm_lag_minutes": 1.7826086956521738
+            "n_events": 20,
+            "mean_glucose_mg_dl": 178.920726,
+            "mean_abs_target_distance_minutes": 0.95,
+            "mean_actual_meal_lead_minutes": 59.85
           }
         }
       },
@@ -193,21 +196,21 @@
         "meal_type": {
           "Breakfast": {
             "n_events": 78,
-            "mean_premeal_glucose_mg_dl": 109.98032076923076,
-            "mean_meal_clock_hour": 9.318376068376068,
-            "mean_cgm_lag_minutes": 2.217948717948718
+            "mean_glucose_mg_dl": 98.91529794871795,
+            "mean_abs_target_distance_minutes": 1.4102564102564104,
+            "mean_actual_meal_lead_minutes": 59.84615384615385
           },
           "Lunch": {
-            "n_events": 65,
-            "mean_premeal_glucose_mg_dl": 126.73724676923075,
-            "mean_meal_clock_hour": 14.172051282051282,
-            "mean_cgm_lag_minutes": 1.9538461538461538
+            "n_events": 54,
+            "mean_glucose_mg_dl": 127.42871444444445,
+            "mean_abs_target_distance_minutes": 1.2407407407407407,
+            "mean_actual_meal_lead_minutes": 60.166666666666664
           },
           "Dinner": {
-            "n_events": 69,
-            "mean_premeal_glucose_mg_dl": 120.51303333333335,
-            "mean_meal_clock_hour": 19.76159420289855,
-            "mean_cgm_lag_minutes": 2.0579710144927534
+            "n_events": 67,
+            "mean_glucose_mg_dl": 115.20890865671642,
+            "mean_abs_target_distance_minutes": 1.2238805970149254,
+            "mean_actual_meal_lead_minutes": 60.149253731343286
           }
         }
       },
@@ -216,21 +219,21 @@
         "meal_type": {
           "Breakfast": {
             "n_events": 11,
-            "mean_premeal_glucose_mg_dl": 108.27300181818183,
-            "mean_meal_clock_hour": 10.371212121212121,
-            "mean_cgm_lag_minutes": 1.2727272727272727
+            "mean_glucose_mg_dl": 94.18604545454545,
+            "mean_abs_target_distance_minutes": 1.2727272727272727,
+            "mean_actual_meal_lead_minutes": 61.27272727272727
           },
           "Lunch": {
-            "n_events": 12,
-            "mean_premeal_glucose_mg_dl": 144.74620666666667,
-            "mean_meal_clock_hour": 13.487499999999999,
-            "mean_cgm_lag_minutes": 1.9166666666666667
+            "n_events": 11,
+            "mean_glucose_mg_dl": 131.04145454545457,
+            "mean_abs_target_distance_minutes": 1.2727272727272727,
+            "mean_actual_meal_lead_minutes": 60.54545454545455
           },
           "Dinner": {
-            "n_events": 31,
-            "mean_premeal_glucose_mg_dl": 197.09585870967743,
-            "mean_meal_clock_hour": 18.80483870967742,
-            "mean_cgm_lag_minutes": 1.7741935483870968
+            "n_events": 26,
+            "mean_glucose_mg_dl": 223.49498076923075,
+            "mean_abs_target_distance_minutes": 1.4615384615384615,
+            "mean_actual_meal_lead_minutes": 60.53846153846154
           }
         }
       },
@@ -239,21 +242,21 @@
         "meal_type": {
           "Breakfast": {
             "n_events": 11,
-            "mean_premeal_glucose_mg_dl": 110.89383090909091,
-            "mean_meal_clock_hour": 10.431818181818182,
-            "mean_cgm_lag_minutes": 1.8181818181818181
+            "mean_glucose_mg_dl": 108.92820909090909,
+            "mean_abs_target_distance_minutes": 1.1818181818181819,
+            "mean_actual_meal_lead_minutes": 59.90909090909091
           },
           "Lunch": {
-            "n_events": 46,
-            "mean_premeal_glucose_mg_dl": 145.57530500000001,
-            "mean_meal_clock_hour": 14.246376811594203,
-            "mean_cgm_lag_minutes": 1.8478260869565217
+            "n_events": 44,
+            "mean_glucose_mg_dl": 144.35035227272726,
+            "mean_abs_target_distance_minutes": 0.9772727272727273,
+            "mean_actual_meal_lead_minutes": 59.79545454545455
           },
           "Dinner": {
-            "n_events": 53,
-            "mean_premeal_glucose_mg_dl": 150.6899462264151,
-            "mean_meal_clock_hour": 19.74056603773585,
-            "mean_cgm_lag_minutes": 1.6226415094339623
+            "n_events": 46,
+            "mean_glucose_mg_dl": 163.906865,
+            "mean_abs_target_distance_minutes": 1.0,
+            "mean_actual_meal_lead_minutes": 59.869565217391305
           }
         }
       },
@@ -261,22 +264,22 @@
         "participant": "2314",
         "meal_type": {
           "Breakfast": {
-            "n_events": 86,
-            "mean_premeal_glucose_mg_dl": 146.29311802325583,
-            "mean_meal_clock_hour": 8.072480620155039,
-            "mean_cgm_lag_minutes": 3.546511627906977
+            "n_events": 78,
+            "mean_glucose_mg_dl": 135.2173508974359,
+            "mean_abs_target_distance_minutes": 3.5256410256410255,
+            "mean_actual_meal_lead_minutes": 59.42307692307692
           },
           "Lunch": {
-            "n_events": 38,
-            "mean_premeal_glucose_mg_dl": 137.81552184210528,
-            "mean_meal_clock_hour": 12.682456140350878,
-            "mean_cgm_lag_minutes": 3.8947368421052633
+            "n_events": 21,
+            "mean_glucose_mg_dl": 152.72569523809523,
+            "mean_abs_target_distance_minutes": 2.619047619047619,
+            "mean_actual_meal_lead_minutes": 58.80952380952381
           },
           "Dinner": {
-            "n_events": 58,
-            "mean_premeal_glucose_mg_dl": 161.6978120689655,
-            "mean_meal_clock_hour": 18.77126436781609,
-            "mean_cgm_lag_minutes": 3.689655172413793
+            "n_events": 50,
+            "mean_glucose_mg_dl": 158.8484512,
+            "mean_abs_target_distance_minutes": 3.26,
+            "mean_actual_meal_lead_minutes": 60.78
           }
         }
       },
@@ -285,21 +288,21 @@
         "meal_type": {
           "Breakfast": {
             "n_events": 3,
-            "mean_premeal_glucose_mg_dl": 109.31041333333333,
-            "mean_meal_clock_hour": 6.805555555555556,
-            "mean_cgm_lag_minutes": 4.0
+            "mean_glucose_mg_dl": 117.11829999999999,
+            "mean_abs_target_distance_minutes": 1.0,
+            "mean_actual_meal_lead_minutes": 59.0
           },
           "Lunch": {
             "n_events": 68,
-            "mean_premeal_glucose_mg_dl": 136.99131470588236,
-            "mean_meal_clock_hour": 12.568627450980392,
-            "mean_cgm_lag_minutes": 1.838235294117647
+            "mean_glucose_mg_dl": 144.35757882352942,
+            "mean_abs_target_distance_minutes": 1.1029411764705883,
+            "mean_actual_meal_lead_minutes": 59.779411764705884
           },
           "Dinner": {
             "n_events": 67,
-            "mean_premeal_glucose_mg_dl": 124.2986871641791,
-            "mean_meal_clock_hour": 18.31094527363184,
-            "mean_cgm_lag_minutes": 1.7611940298507462
+            "mean_glucose_mg_dl": 117.44101402985075,
+            "mean_abs_target_distance_minutes": 1.0,
+            "mean_actual_meal_lead_minutes": 59.8955223880597
           }
         }
       },
@@ -308,21 +311,21 @@
         "meal_type": {
           "Breakfast": {
             "n_events": 10,
-            "mean_premeal_glucose_mg_dl": 108.64974600000001,
-            "mean_meal_clock_hour": 8.796666666666667,
-            "mean_cgm_lag_minutes": 0.0
+            "mean_glucose_mg_dl": 145.58705600000002,
+            "mean_abs_target_distance_minutes": 2.2,
+            "mean_actual_meal_lead_minutes": 59.8
           },
           "Lunch": {
-            "n_events": 16,
-            "mean_premeal_glucose_mg_dl": 127.36615125,
-            "mean_meal_clock_hour": 13.83125,
-            "mean_cgm_lag_minutes": 0.125
+            "n_events": 15,
+            "mean_glucose_mg_dl": 121.32254666666668,
+            "mean_abs_target_distance_minutes": 3.2666666666666666,
+            "mean_actual_meal_lead_minutes": 61.13333333333333
           },
           "Dinner": {
-            "n_events": 33,
-            "mean_premeal_glucose_mg_dl": 129.45803696969696,
-            "mean_meal_clock_hour": 18.7979797979798,
-            "mean_cgm_lag_minutes": 0.18181818181818182
+            "n_events": 30,
+            "mean_glucose_mg_dl": 149.13063533333334,
+            "mean_abs_target_distance_minutes": 2.9,
+            "mean_actual_meal_lead_minutes": 59.56666666666667
           }
         }
       },
@@ -330,22 +333,22 @@
         "participant": "2403",
         "meal_type": {
           "Breakfast": {
-            "n_events": 34,
-            "mean_premeal_glucose_mg_dl": 154.66504911764707,
-            "mean_meal_clock_hour": 9.862745098039214,
-            "mean_cgm_lag_minutes": 0.6176470588235294
+            "n_events": 33,
+            "mean_glucose_mg_dl": 150.69767272727273,
+            "mean_abs_target_distance_minutes": 3.484848484848485,
+            "mean_actual_meal_lead_minutes": 57.84848484848485
           },
           "Lunch": {
-            "n_events": 52,
-            "mean_premeal_glucose_mg_dl": 156.82764076923078,
-            "mean_meal_clock_hour": 14.040064102564104,
-            "mean_cgm_lag_minutes": 0.8269230769230769
+            "n_events": 48,
+            "mean_glucose_mg_dl": 162.31395166666667,
+            "mean_abs_target_distance_minutes": 3.8333333333333335,
+            "mean_actual_meal_lead_minutes": 61.416666666666664
           },
           "Dinner": {
-            "n_events": 68,
-            "mean_premeal_glucose_mg_dl": 149.96176897058822,
-            "mean_meal_clock_hour": 20.323529411764707,
-            "mean_cgm_lag_minutes": 0.8235294117647058
+            "n_events": 63,
+            "mean_glucose_mg_dl": 153.21190063492062,
+            "mean_abs_target_distance_minutes": 3.8412698412698414,
+            "mean_actual_meal_lead_minutes": 59.904761904761905
           }
         }
       },
@@ -354,21 +357,21 @@
         "meal_type": {
           "Breakfast": {
             "n_events": 71,
-            "mean_premeal_glucose_mg_dl": 131.79932633802815,
-            "mean_meal_clock_hour": 7.860328638497653,
-            "mean_cgm_lag_minutes": 5.690140845070423
+            "mean_glucose_mg_dl": 143.25737887323945,
+            "mean_abs_target_distance_minutes": 3.619718309859155,
+            "mean_actual_meal_lead_minutes": 60.29577464788732
           },
           "Lunch": {
-            "n_events": 45,
-            "mean_premeal_glucose_mg_dl": 127.54883577777778,
-            "mean_meal_clock_hour": 12.094444444444445,
-            "mean_cgm_lag_minutes": 6.688888888888889
+            "n_events": 27,
+            "mean_glucose_mg_dl": 133.0677437037037,
+            "mean_abs_target_distance_minutes": 3.7777777777777777,
+            "mean_actual_meal_lead_minutes": 59.925925925925924
           },
           "Dinner": {
-            "n_events": 54,
-            "mean_premeal_glucose_mg_dl": 128.69666185185184,
-            "mean_meal_clock_hour": 17.930555555555557,
-            "mean_cgm_lag_minutes": 6.703703703703703
+            "n_events": 51,
+            "mean_glucose_mg_dl": 149.37441098039216,
+            "mean_abs_target_distance_minutes": 3.3529411764705883,
+            "mean_actual_meal_lead_minutes": 59.509803921568626
           }
         }
       },
@@ -377,335 +380,387 @@
         "meal_type": {
           "Breakfast": {
             "n_events": 61,
-            "mean_premeal_glucose_mg_dl": 140.30565573770494,
-            "mean_meal_clock_hour": 7.672131147540983,
-            "mean_cgm_lag_minutes": 6.032786885245901
+            "mean_glucose_mg_dl": 140.86687836065576,
+            "mean_abs_target_distance_minutes": 3.377049180327869,
+            "mean_actual_meal_lead_minutes": 60.09836065573771
           },
           "Lunch": {
-            "n_events": 72,
-            "mean_premeal_glucose_mg_dl": 140.37929569444444,
-            "mean_meal_clock_hour": 12.58449074074074,
-            "mean_cgm_lag_minutes": 5.083333333333333
+            "n_events": 63,
+            "mean_glucose_mg_dl": 158.0453542857143,
+            "mean_abs_target_distance_minutes": 3.3492063492063493,
+            "mean_actual_meal_lead_minutes": 60.3968253968254
           },
           "Dinner": {
-            "n_events": 83,
-            "mean_premeal_glucose_mg_dl": 131.29406457831325,
-            "mean_meal_clock_hour": 18.71546184738956,
-            "mean_cgm_lag_minutes": 5.0120481927710845
+            "n_events": 77,
+            "mean_glucose_mg_dl": 156.12653298701298,
+            "mean_abs_target_distance_minutes": 3.688311688311688,
+            "mean_actual_meal_lead_minutes": 59.01298701298701
           }
         }
       }
     ]
   },
   "sensitivity": {
-    "carbs_10": {
+    "lead_45_tol15": {
       "definition": {
-        "min_carbs_g": 10,
-        "prior_exclusion_minutes": 180,
-        "premeal_lookback_minutes": 15
+        "target_minutes_before_meal": 45,
+        "target_tolerance_minutes": 15,
+        "min_carbs_g": 20,
+        "prior_exclusion_minutes_before_target": 180
       },
       "subject_equal": {
         "Breakfast": {
           "n_subjects": 15,
-          "mean": 132.22895051649104,
-          "p10": 109.55587866666667,
-          "median": 133.94546644067796,
-          "p90": 153.06063095584415
+          "mean": 129.33821804692153,
+          "p10": 103.07544412587413,
+          "median": 133.965317,
+          "p90": 148.17180969047618
         },
         "Lunch": {
           "n_subjects": 15,
-          "mean": 140.4898609863854,
-          "p10": 123.25643884693879,
-          "median": 139.71718323943662,
-          "p90": 159.7152518802139
+          "mean": 142.8475840210891,
+          "p10": 123.08055770980391,
+          "median": 143.64215029411767,
+          "p90": 165.012927875
         },
         "Dinner": {
           "n_subjects": 15,
-          "mean": 143.66138503962324,
-          "p10": 120.72157451926978,
-          "median": 135.39390285714288,
-          "p90": 172.22123163636365
+          "mean": 150.03004182860468,
+          "p10": 116.24697211940298,
+          "median": 149.7067728395062,
+          "p90": 182.74185276190474
         }
       },
       "event_pooled": {
         "Breakfast": {
-          "n_events": 613,
-          "mean": 136.5077055954323
+          "n_events": 545,
+          "mean": 132.81397055045872
         },
         "Lunch": {
-          "n_events": 688,
-          "mean": 136.61619229651163
+          "n_events": 596,
+          "mean": 139.6455847818792
         },
         "Dinner": {
-          "n_events": 791,
-          "mean": 137.95881982300887
+          "n_events": 772,
+          "mean": 142.21774595854924
+        }
+      }
+    },
+    "lead_75_tol15": {
+      "definition": {
+        "target_minutes_before_meal": 75,
+        "target_tolerance_minutes": 15,
+        "min_carbs_g": 20,
+        "prior_exclusion_minutes_before_target": 180
+      },
+      "subject_equal": {
+        "Breakfast": {
+          "n_subjects": 15,
+          "mean": 130.9908335525983,
+          "p10": 103.48998872727273,
+          "median": 136.51157315789473,
+          "p90": 147.5788861090909
+        },
+        "Lunch": {
+          "n_subjects": 15,
+          "mean": 144.78992308777427,
+          "p10": 119.85412465306123,
+          "median": 141.64456626865672,
+          "p90": 163.4437564654378
+        },
+        "Dinner": {
+          "n_subjects": 15,
+          "mean": 155.46796395464528,
+          "p10": 117.80079879954076,
+          "median": 158.10255492063493,
+          "p90": 192.91132835294115
+        }
+      },
+      "event_pooled": {
+        "Breakfast": {
+          "n_events": 541,
+          "mean": 133.41794340110906
+        },
+        "Lunch": {
+          "n_events": 533,
+          "mean": 140.23433219512194
+        },
+        "Dinner": {
+          "n_events": 736,
+          "mean": 147.169034375
+        }
+      }
+    },
+    "tolerance_7_5": {
+      "definition": {
+        "target_minutes_before_meal": 60,
+        "target_tolerance_minutes": 7.5,
+        "min_carbs_g": 20,
+        "prior_exclusion_minutes_before_target": 180
+      },
+      "subject_equal": {
+        "Breakfast": {
+          "n_subjects": 15,
+          "mean": 130.31839041862332,
+          "p10": 102.9204624055944,
+          "median": 135.66300584415586,
+          "p90": 148.66887020779222
+        },
+        "Lunch": {
+          "n_subjects": 15,
+          "mean": 144.32924951304605,
+          "p10": 121.81744656000001,
+          "median": 144.09181432835823,
+          "p90": 167.2278625263158
+        },
+        "Dinner": {
+          "n_subjects": 15,
+          "mean": 154.28211338182294,
+          "p10": 116.10175080597014,
+          "median": 153.21190063492062,
+          "p90": 193.24803997894736
+        }
+      },
+      "event_pooled": {
+        "Breakfast": {
+          "n_events": 541,
+          "mean": 133.2364291866913
+        },
+        "Lunch": {
+          "n_events": 554,
+          "mean": 140.17769314079422
+        },
+        "Dinner": {
+          "n_events": 749,
+          "mean": 145.02245365821094
+        }
+      }
+    },
+    "carbs_10": {
+      "definition": {
+        "target_minutes_before_meal": 60,
+        "target_tolerance_minutes": 15,
+        "min_carbs_g": 10,
+        "prior_exclusion_minutes_before_target": 180
+      },
+      "subject_equal": {
+        "Breakfast": {
+          "n_subjects": 15,
+          "mean": 130.57128047334763,
+          "p10": 102.9204624055944,
+          "median": 131.41273866666668,
+          "p90": 152.06118165517242
+        },
+        "Lunch": {
+          "n_subjects": 15,
+          "mean": 145.74191917725744,
+          "p10": 120.69040815,
+          "median": 144.4635682352941,
+          "p90": 164.5829618369453
+        },
+        "Dinner": {
+          "n_subjects": 15,
+          "mean": 155.41828045078057,
+          "p10": 116.48854500979022,
+          "median": 153.00939193548388,
+          "p90": 191.95310039473682
+        }
+      },
+      "event_pooled": {
+        "Breakfast": {
+          "n_events": 606,
+          "mean": 133.60376367986797
+        },
+        "Lunch": {
+          "n_events": 565,
+          "mean": 141.69002230088495
+        },
+        "Dinner": {
+          "n_events": 715,
+          "mean": 145.79495830769233
         }
       }
     },
     "carbs_30": {
       "definition": {
+        "target_minutes_before_meal": 60,
+        "target_tolerance_minutes": 15,
         "min_carbs_g": 30,
-        "prior_exclusion_minutes": 180,
-        "premeal_lookback_minutes": 15
+        "prior_exclusion_minutes_before_target": 180
       },
       "subject_equal": {
         "Breakfast": {
           "n_subjects": 15,
-          "mean": 128.85515387948251,
-          "p10": 103.61770666666666,
-          "median": 131.03534253731343,
-          "p90": 161.51951284848485
+          "mean": 130.28988112099412,
+          "p10": 101.39546200000001,
+          "median": 133.13883,
+          "p90": 149.81062096036587
         },
         "Lunch": {
           "n_subjects": 15,
-          "mean": 137.74516162644602,
-          "p10": 123.73355342857144,
-          "median": 135.45825357142857,
-          "p90": 155.78986175
+          "mean": 140.92106365567324,
+          "p10": 120.12595338461539,
+          "median": 139.90602352941175,
+          "p90": 160.65682327272725
         },
         "Dinner": {
           "n_subjects": 15,
-          "mean": 142.7942128224141,
-          "p10": 121.39557270477249,
-          "median": 136.21291194805195,
-          "p90": 168.9860534074074
+          "mean": 154.48591816984126,
+          "p10": 115.79150527272728,
+          "median": 152.20948295081968,
+          "p90": 191.6879077142857
         }
       },
       "event_pooled": {
         "Breakfast": {
-          "n_events": 450,
-          "mean": 137.72711675555556
+          "n_events": 444,
+          "mean": 135.3536111936937
         },
         "Lunch": {
-          "n_events": 630,
-          "mean": 134.50300296825395
+          "n_events": 569,
+          "mean": 138.81613943760985
         },
         "Dinner": {
-          "n_events": 826,
-          "mean": 137.5720109322034
+          "n_events": 782,
+          "mean": 146.31377470588237
         }
       }
     },
     "carbs_40": {
       "definition": {
+        "target_minutes_before_meal": 60,
+        "target_tolerance_minutes": 15,
         "min_carbs_g": 40,
-        "prior_exclusion_minutes": 180,
-        "premeal_lookback_minutes": 15
+        "prior_exclusion_minutes_before_target": 180
       },
       "subject_equal": {
         "Breakfast": {
           "n_subjects": 15,
-          "mean": 128.66342242447593,
-          "p10": 106.63067580487805,
-          "median": 121.893123,
-          "p90": 172.43417400000004
+          "mean": 131.28402138661812,
+          "p10": 98.8087953031359,
+          "median": 128.00129280000002,
+          "p90": 167.44913866666667
         },
         "Lunch": {
           "n_subjects": 15,
-          "mean": 137.6054498132756,
-          "p10": 121.22699560606061,
-          "median": 134.8121724,
-          "p90": 156.41206295636363
+          "mean": 140.95694932866624,
+          "p10": 117.81954886486487,
+          "median": 142.92293642857143,
+          "p90": 165.35752595
         },
         "Dinner": {
           "n_subjects": 15,
-          "mean": 143.57076601881465,
-          "p10": 122.08795328024132,
-          "median": 136.1193109090909,
-          "p90": 174.98194748000003
+          "mean": 153.99016696660948,
+          "p10": 117.36513095408162,
+          "median": 151.05257666666665,
+          "p90": 192.57688358181818
         }
       },
       "event_pooled": {
         "Breakfast": {
           "n_events": 276,
-          "mean": 134.89168750000002
+          "mean": 128.38293916666666
         },
         "Lunch": {
-          "n_events": 561,
-          "mean": 134.96788048128343
+          "n_events": 518,
+          "mean": 140.17672621621622
         },
         "Dinner": {
-          "n_events": 774,
-          "mean": 138.80997798449613
+          "n_events": 746,
+          "mean": 147.25410179624666
         }
       }
     },
     "prior_120": {
       "definition": {
+        "target_minutes_before_meal": 60,
+        "target_tolerance_minutes": 15,
         "min_carbs_g": 20,
-        "prior_exclusion_minutes": 120,
-        "premeal_lookback_minutes": 15
+        "prior_exclusion_minutes_before_target": 120
       },
       "subject_equal": {
         "Breakfast": {
           "n_subjects": 15,
-          "mean": 132.06440249252756,
-          "p10": 108.91401293333334,
-          "median": 137.568957,
-          "p90": 153.12396307058825
+          "mean": 130.2677725517091,
+          "p10": 102.9204624055944,
+          "median": 135.83837174418605,
+          "p90": 148.10808986554622
         },
         "Lunch": {
           "n_subjects": 15,
-          "mean": 139.60658123200483,
-          "p10": 124.13820641074022,
-          "median": 136.99131470588236,
-          "p90": 153.97651712207795
+          "mean": 143.31873683532746,
+          "p10": 119.90866397272728,
+          "median": 144.02547866666666,
+          "p90": 170.41012953333336
         },
         "Dinner": {
           "n_subjects": 15,
-          "mean": 142.4360331310548,
-          "p10": 120.17553586600985,
-          "median": 131.32334604651163,
-          "p90": 172.83314842857146
-        }
-      },
-      "event_pooled": {
-        "Breakfast": {
-          "n_events": 550,
-          "mean": 136.17008947272726
-        },
-        "Lunch": {
-          "n_events": 704,
-          "mean": 136.13978613636365
-        },
-        "Dinner": {
-          "n_events": 860,
-          "mean": 137.5563861627907
-        }
-      }
-    },
-    "prior_240": {
-      "definition": {
-        "min_carbs_g": 20,
-        "prior_exclusion_minutes": 240,
-        "premeal_lookback_minutes": 15
-      },
-      "subject_equal": {
-        "Breakfast": {
-          "n_subjects": 15,
-          "mean": 132.06143604986406,
-          "p10": 108.91401293333334,
-          "median": 137.568957,
-          "p90": 154.0031934181818
-        },
-        "Lunch": {
-          "n_subjects": 15,
-          "mean": 140.4548980317366,
-          "p10": 123.22185644444444,
-          "median": 137.66762809523811,
-          "p90": 157.7313228
-        },
-        "Dinner": {
-          "n_subjects": 15,
-          "mean": 143.15293457736098,
-          "p10": 120.55713017062936,
-          "median": 133.72507433333334,
-          "p90": 179.25815774545455
-        }
-      },
-      "event_pooled": {
-        "Breakfast": {
-          "n_events": 540,
-          "mean": 135.84554953703704
-        },
-        "Lunch": {
-          "n_events": 554,
-          "mean": 135.99350283393503
-        },
-        "Dinner": {
-          "n_events": 751,
-          "mean": 136.95751382157124
-        }
-      }
-    },
-    "lookback_5": {
-      "definition": {
-        "min_carbs_g": 20,
-        "prior_exclusion_minutes": 180,
-        "premeal_lookback_minutes": 5
-      },
-      "subject_equal": {
-        "Breakfast": {
-          "n_subjects": 15,
-          "mean": 131.92164258237855,
-          "p10": 108.91401293333334,
-          "median": 127.3770493548387,
-          "p90": 154.2279090375
-        },
-        "Lunch": {
-          "n_subjects": 15,
-          "mean": 140.85067652069327,
-          "p10": 124.61021533333331,
-          "median": 137.70062846153846,
-          "p90": 165.1922436153846
-        },
-        "Dinner": {
-          "n_subjects": 15,
-          "mean": 142.22011986161445,
-          "p10": 120.09783133333335,
-          "median": 136.45032708333335,
-          "p90": 171.90674539534882
-        }
-      },
-      "event_pooled": {
-        "Breakfast": {
-          "n_events": 440,
-          "mean": 135.51733922727274
-        },
-        "Lunch": {
-          "n_events": 530,
-          "mean": 136.81423239622643
-        },
-        "Dinner": {
-          "n_events": 684,
-          "mean": 137.64297913742692
-        }
-      }
-    },
-    "lookback_30": {
-      "definition": {
-        "min_carbs_g": 20,
-        "prior_exclusion_minutes": 180,
-        "premeal_lookback_minutes": 30
-      },
-      "subject_equal": {
-        "Breakfast": {
-          "n_subjects": 15,
-          "mean": 131.96907572727403,
-          "p10": 108.91401293333334,
-          "median": 137.2815238095238,
-          "p90": 153.12396307058825
-        },
-        "Lunch": {
-          "n_subjects": 15,
-          "mean": 140.2448195312658,
-          "p10": 126.25340139860138,
-          "median": 137.81552184210528,
-          "p90": 156.38189822153845
-        },
-        "Dinner": {
-          "n_subjects": 15,
-          "mean": 142.411601814801,
-          "p10": 119.88711001129943,
-          "median": 131.39061105263158,
-          "p90": 173.006056
+          "mean": 153.73074628152455,
+          "p10": 117.59615917847381,
+          "median": 151.64870119402985,
+          "p90": 188.75132772727272
         }
       },
       "event_pooled": {
         "Breakfast": {
           "n_events": 551,
-          "mean": 136.2041846279492
+          "mean": 133.27745341197823
         },
         "Lunch": {
-          "n_events": 651,
-          "mean": 136.46087921658986
+          "n_events": 649,
+          "mean": 140.95007639445302
         },
         "Dinner": {
           "n_events": 815,
-          "mean": 136.80677608588957
+          "mean": 145.96179034355828
+        }
+      }
+    },
+    "prior_240": {
+      "definition": {
+        "target_minutes_before_meal": 60,
+        "target_tolerance_minutes": 15,
+        "min_carbs_g": 20,
+        "prior_exclusion_minutes_before_target": 240
+      },
+      "subject_equal": {
+        "Breakfast": {
+          "n_subjects": 15,
+          "mean": 130.24626633038278,
+          "p10": 102.9204624055944,
+          "median": 134.58114452054795,
+          "p90": 148.66887020779222
+        },
+        "Lunch": {
+          "n_subjects": 15,
+          "mean": 145.46646220901403,
+          "p10": 119.4246296,
+          "median": 144.35035227272726,
+          "p90": 163.35823497872343
+        },
+        "Dinner": {
+          "n_subjects": 15,
+          "mean": 152.34835069685877,
+          "p10": 114.6685528080808,
+          "median": 154.49843016949154,
+          "p90": 189.26933692105263
+        }
+      },
+      "event_pooled": {
+        "Breakfast": {
+          "n_events": 537,
+          "mean": 133.07128545623837
+        },
+        "Lunch": {
+          "n_events": 458,
+          "mean": 139.43647655021834
+        },
+        "Dinner": {
+          "n_events": 654,
+          "mean": 144.15248769113148
         }
       }
     }
   },
-  "guardrail": "Outpatient real-world teacher; use cross-cohort direction before changing simulator physiology."
+  "guardrail": "Outpatient context differs from ward context; use cross-cohort direction and fixed observable timing before changing production physiology."
 }
