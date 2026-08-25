@@ -1,0 +1,148 @@
+name: Temporary T1D-UOM external validation
+
+on:
+  push:
+    paths:
+      - '.github/workflows/t1duom-temp-validation.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compute meal-aligned T1D-UOM baseline
+        run: |
+          python - <<'PY'
+          import csv, json, math, tempfile, urllib.parse, urllib.request
+          from bisect import bisect_right
+          from datetime import datetime, timedelta
+          from pathlib import Path
+
+          REPO='sharpic/ManchesterCSCoordinatedDiabetesStudy'
+          REF='V1.0.3'
+          IDS=['2301','2302','2304','2305','2306','2307','2308','2309','2313','2314','2320','2401','2403','2404','2405']
+          TYPES=['Breakfast','Lunch','Dinner']
+          MMOL=18.0182
+
+          def dt(s):
+              s=s.strip()
+              for f in ('%d/%m/%Y %H:%M:%S','%d/%m/%Y %H:%M'):
+                  try: return datetime.strptime(s,f)
+                  except ValueError: pass
+              raise ValueError(s)
+
+          def dl(pid, kind, root):
+              rel=(f'Glucose Data/UoMGlucose{pid}.csv' if kind=='g' else f'Nutrition Data/UoMNutrition{pid}.csv')
+              quoted='/'.join(urllib.parse.quote(x) for x in rel.split('/'))
+              url=f'https://raw.githubusercontent.com/{REPO}/{REF}/{quoted}'
+              out=root/Path(rel).name
+              urllib.request.urlretrieve(url,out)
+              return out
+
+          def read_g(p):
+              out=[]
+              with p.open(newline='',encoding='utf-8-sig') as f:
+                  for r in csv.DictReader(f):
+                      try: t=dt(r['bg_ts']); v=float(r['value'])*MMOL
+                      except Exception: continue
+                      if math.isfinite(v): out.append((t,v))
+              out.sort(); return out
+
+          def read_n(p):
+              out=[]
+              with p.open(newline='',encoding='utf-8-sig') as f:
+                  for r in csv.DictReader(f):
+                      try: t=dt(r['meal_ts'])
+                      except Exception: continue
+                      try: c=float(r.get('carbs_g',''))
+                      except Exception: c=float('nan')
+                      out.append((t,(r.get('meal_type') or '').strip().title(),c))
+              out.sort(); return out
+
+          def q(vals,p):
+              x=sorted(vals); n=len(x)
+              if not n: return None
+              if n==1: return x[0]
+              z=(n-1)*p; lo=int(math.floor(z)); hi=int(math.ceil(z))
+              return x[lo] if lo==hi else x[lo]*(hi-z)+x[hi]*(z-lo)
+
+          def summarize(vals):
+              x=[v for v in vals if v is not None and math.isfinite(v)]
+              if not x: return {'n_subjects':0,'mean':None,'p10':None,'median':None,'p90':None}
+              return {'n_subjects':len(x),'mean':sum(x)/len(x),'p10':q(x,.1),'median':q(x,.5),'p90':q(x,.9)}
+
+          with tempfile.TemporaryDirectory() as td:
+              root=Path(td); data={}
+              for pid in IDS:
+                  g=read_g(dl(pid,'g',root)); n=read_n(dl(pid,'n',root)); data[pid]=(g,n)
+
+              def run(min_carbs=20.0, prior=180.0, lookback=15.0):
+                  subjects=[]
+                  for pid,(g,nut) in data.items():
+                      gt=[x[0] for x in g]
+                      substantial=[x for x in nut if math.isfinite(x[2]) and x[2]>=min_carbs]
+                      vals={t:[] for t in TYPES}; hours={t:[] for t in TYPES}; lags={t:[] for t in TYPES}
+                      for meal_ts,typ,carbs in substantial:
+                          if typ not in TYPES: continue
+                          cutoff=meal_ts-timedelta(minutes=prior)
+                          if any(cutoff <= ot < meal_ts for ot,_,_ in substantial): continue
+                          j=bisect_right(gt,meal_ts)-1
+                          if j<0: continue
+                          lag=(meal_ts-g[j][0]).total_seconds()/60
+                          if lag<0 or lag>lookback: continue
+                          vals[typ].append(g[j][1]); hours[typ].append(meal_ts.hour+meal_ts.minute/60); lags[typ].append(lag)
+                      s={'participant':pid,'meal_type':{}}
+                      for typ in TYPES:
+                          a=vals[typ]
+                          s['meal_type'][typ]={
+                              'n_events':len(a),
+                              'mean_premeal_glucose_mg_dl':sum(a)/len(a) if a else None,
+                              'mean_meal_clock_hour':sum(hours[typ])/len(hours[typ]) if hours[typ] else None,
+                              'mean_cgm_lag_minutes':sum(lags[typ])/len(lags[typ]) if lags[typ] else None,
+                          }
+                      subjects.append(s)
+                  pop={}
+                  pooled={}
+                  for typ in TYPES:
+                      sm=[s['meal_type'][typ]['mean_premeal_glucose_mg_dl'] for s in subjects if s['meal_type'][typ]['mean_premeal_glucose_mg_dl'] is not None]
+                      pop[typ]=summarize(sm)
+                      total=sum(s['meal_type'][typ]['n_events'] for s in subjects)
+                      num=sum(s['meal_type'][typ]['n_events']*s['meal_type'][typ]['mean_premeal_glucose_mg_dl'] for s in subjects if s['meal_type'][typ]['mean_premeal_glucose_mg_dl'] is not None)
+                      pooled[typ]={'n_events':total,'mean':num/total if total else None}
+                  return {'definition':{'min_carbs_g':min_carbs,'prior_exclusion_minutes':prior,'premeal_lookback_minutes':lookback},'subject_equal':pop,'event_pooled':pooled,'subjects':subjects}
+
+              primary=run(20,180,15)
+              sens={
+                  'carbs_10':run(10,180,15),
+                  'carbs_30':run(30,180,15),
+                  'carbs_40':run(40,180,15),
+                  'prior_120':run(20,120,15),
+                  'prior_240':run(20,240,15),
+                  'lookback_5':run(20,180,5),
+                  'lookback_30':run(20,180,30),
+              }
+              result={
+                  'dataset':'T1D-UOM',
+                  'source':{'repository':REPO,'ref':REF,'doi':'10.5281/zenodo.15806142'},
+                  'n_nutrition_participants':len(IDS),
+                  'primary':primary,
+                  'sensitivity':{k:{'definition':v['definition'],'subject_equal':v['subject_equal'],'event_pooled':v['event_pooled']} for k,v in sens.items()},
+                  'guardrail':'Outpatient real-world teacher; use cross-cohort direction before changing simulator physiology.'
+              }
+              Path('t1duom_temp_result.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')
+              print(json.dumps({'primary':primary['subject_equal'],'event_pooled':primary['event_pooled']},indent=2))
+          PY
+      - name: Persist result on temporary branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add t1duom_temp_result.json
+          git commit -m 'Temporary T1D-UOM meal-aligned result'
+          git push origin HEAD:tmp/t1duom-external-validation
