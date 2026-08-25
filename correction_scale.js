@@ -1,6 +1,7 @@
 (function(){
   const DEFAULTS={enabled:false,start_bg:121,bg_step:50,units_per_step:1};
   let cfg={...DEFAULTS};
+  let armed=false;
 
   function positiveNumber(value,fallback){
     const n=Number(value);
@@ -29,6 +30,12 @@
     return rows;
   }
   function current(){return normalize(cfg)}
+  function armNextSimulation(){armed=true}
+  function consumeForSimulation(){
+    if(!armed)return null;
+    armed=false;
+    return current();
+  }
   function readFromInputs(){
     const enabled=document.querySelector('#scaleEnabled');
     const start=document.querySelector('#scaleStartBg');
@@ -74,6 +81,7 @@
       <div id="scalePreview" style="font-size:9px;line-height:1.5;color:#747b84;margin-top:9px"></div>
       <div style="font-size:9px;color:#9a5e38;margin-top:5px">起点未満および低血糖では補正0U。補正量は定時rapidへ追加されます。</div>`;
     submit.parentNode.insertBefore(box,submit);
+    submit.addEventListener('click',armNextSimulation,true);
     for(const id of ['scaleEnabled','scaleStartBg','scaleBgStep','scaleUnitsStep']){
       document.querySelector('#'+id)?.addEventListener('input',readFromInputs);
       document.querySelector('#'+id)?.addEventListener('change',readFromInputs);
@@ -81,6 +89,8 @@
     readFromInputs();
   }
 
-  window.CorrectionScale={current,correctionUnits,rangeRows,readFromInputs,version:'1.0.0'};
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
+  window.CorrectionScale={current,correctionUnits,rangeRows,readFromInputs,consumeForSimulation,version:'1.1.0'};
+  if(document.querySelector('#submitBtn'))mount();
+  else if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);
+  else mount();
 })();
