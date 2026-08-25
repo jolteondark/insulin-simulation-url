@@ -17,19 +17,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Compute meal-aligned T1D-UOM baseline
+      - name: Compute simulator-observable-aligned T1D-UOM baseline
         run: |
           python - <<'PY'
           import csv, json, math, tempfile, urllib.parse, urllib.request
-          from bisect import bisect_right
+          from bisect import bisect_left
           from datetime import datetime, timedelta
           from pathlib import Path
 
-          REPO='sharpic/ManchesterCSCoordinatedDiabetesStudy'
-          REF='V1.0.3'
+          REPO='sharpic/ManchesterCSCoordinatedDiabetesStudy'; REF='V1.0.3'
           IDS=['2301','2302','2304','2305','2306','2307','2308','2309','2313','2314','2320','2401','2403','2404','2405']
-          TYPES=['Breakfast','Lunch','Dinner']
-          MMOL=18.0182
+          TYPES=['Breakfast','Lunch','Dinner']; MMOL=18.0182
 
           def dt(s):
               s=s.strip()
@@ -37,15 +35,10 @@ jobs:
                   try: return datetime.strptime(s,f)
                   except ValueError: pass
               raise ValueError(s)
-
-          def dl(pid, kind, root):
-              rel=(f'Glucose Data/UoMGlucose{pid}.csv' if kind=='g' else f'Nutrition Data/UoMNutrition{pid}.csv')
-              quoted='/'.join(urllib.parse.quote(x) for x in rel.split('/'))
-              url=f'https://raw.githubusercontent.com/{REPO}/{REF}/{quoted}'
-              out=root/Path(rel).name
-              urllib.request.urlretrieve(url,out)
-              return out
-
+          def dl(pid,kind,root):
+              rel=f'Glucose Data/UoMGlucose{pid}.csv' if kind=='g' else f'Nutrition Data/UoMNutrition{pid}.csv'
+              url='https://raw.githubusercontent.com/'+REPO+'/'+REF+'/'+'/'.join(urllib.parse.quote(x) for x in rel.split('/'))
+              out=root/Path(rel).name; urllib.request.urlretrieve(url,out); return out
           def read_g(p):
               out=[]
               with p.open(newline='',encoding='utf-8-sig') as f:
@@ -54,7 +47,6 @@ jobs:
                       except Exception: continue
                       if math.isfinite(v): out.append((t,v))
               out.sort(); return out
-
           def read_n(p):
               out=[]
               with p.open(newline='',encoding='utf-8-sig') as f:
@@ -65,76 +57,80 @@ jobs:
                       except Exception: c=float('nan')
                       out.append((t,(r.get('meal_type') or '').strip().title(),c))
               out.sort(); return out
-
-          def q(vals,p):
-              x=sorted(vals); n=len(x)
-              if not n: return None
-              if n==1: return x[0]
+          def q(x,p):
+              x=sorted(x); n=len(x)
+              if not n:return None
+              if n==1:return x[0]
               z=(n-1)*p; lo=int(math.floor(z)); hi=int(math.ceil(z))
               return x[lo] if lo==hi else x[lo]*(hi-z)+x[hi]*(z-lo)
-
-          def summarize(vals):
+          def summary(vals):
               x=[v for v in vals if v is not None and math.isfinite(v)]
-              if not x: return {'n_subjects':0,'mean':None,'p10':None,'median':None,'p90':None}
-              return {'n_subjects':len(x),'mean':sum(x)/len(x),'p10':q(x,.1),'median':q(x,.5),'p90':q(x,.9)}
+              return {'n_subjects':len(x),'mean':sum(x)/len(x) if x else None,'p10':q(x,.1),'median':q(x,.5),'p90':q(x,.9)}
+          def nearest(g,gt,target,tol):
+              j=bisect_left(gt,target); cand=[]
+              for i in (j-1,j):
+                  if 0<=i<len(g):
+                      dist=abs((g[i][0]-target).total_seconds()/60)
+                      if dist<=tol:cand.append((dist,g[i][1],g[i][0]))
+              if not cand:return None
+              cand.sort(key=lambda x:x[0]); return cand[0]
 
           with tempfile.TemporaryDirectory() as td:
-              root=Path(td); data={}
-              for pid in IDS:
-                  g=read_g(dl(pid,'g',root)); n=read_n(dl(pid,'n',root)); data[pid]=(g,n)
+              root=Path(td); data={pid:(read_g(dl(pid,'g',root)),read_n(dl(pid,'n',root))) for pid in IDS}
 
-              def run(min_carbs=20.0, prior=180.0, lookback=15.0):
+              def run_lead(lead=60,tol=15,min_carbs=20,prior=180):
                   subjects=[]
                   for pid,(g,nut) in data.items():
-                      gt=[x[0] for x in g]
-                      substantial=[x for x in nut if math.isfinite(x[2]) and x[2]>=min_carbs]
-                      vals={t:[] for t in TYPES}; hours={t:[] for t in TYPES}; lags={t:[] for t in TYPES}
+                      gt=[x[0] for x in g]; substantial=[x for x in nut if math.isfinite(x[2]) and x[2]>=min_carbs]
+                      vals={t:[] for t in TYPES}; dists={t:[] for t in TYPES}; actual_leads={t:[] for t in TYPES}
                       for meal_ts,typ,carbs in substantial:
-                          if typ not in TYPES: continue
-                          cutoff=meal_ts-timedelta(minutes=prior)
-                          if any(cutoff <= ot < meal_ts for ot,_,_ in substantial): continue
-                          j=bisect_right(gt,meal_ts)-1
-                          if j<0: continue
-                          lag=(meal_ts-g[j][0]).total_seconds()/60
-                          if lag<0 or lag>lookback: continue
-                          vals[typ].append(g[j][1]); hours[typ].append(meal_ts.hour+meal_ts.minute/60); lags[typ].append(lag)
+                          if typ not in TYPES:continue
+                          target=meal_ts-timedelta(minutes=lead); cutoff=target-timedelta(minutes=prior)
+                          # Match AZT1D clock-point contract: no substantial meal in the prior window,
+                          # and the indexed labelled meal must be the next substantial meal after the target.
+                          if any(cutoff<=ot<=target for ot,_,_ in substantial):continue
+                          if any(target<ot<meal_ts for ot,_,_ in substantial):continue
+                          m=nearest(g,gt,target,tol)
+                          if m is None:continue
+                          dist,value,gts=m
+                          vals[typ].append(value); dists[typ].append(dist); actual_leads[typ].append((meal_ts-gts).total_seconds()/60)
                       s={'participant':pid,'meal_type':{}}
                       for typ in TYPES:
                           a=vals[typ]
                           s['meal_type'][typ]={
                               'n_events':len(a),
-                              'mean_premeal_glucose_mg_dl':sum(a)/len(a) if a else None,
-                              'mean_meal_clock_hour':sum(hours[typ])/len(hours[typ]) if hours[typ] else None,
-                              'mean_cgm_lag_minutes':sum(lags[typ])/len(lags[typ]) if lags[typ] else None,
+                              'mean_glucose_mg_dl':sum(a)/len(a) if a else None,
+                              'mean_abs_target_distance_minutes':sum(dists[typ])/len(dists[typ]) if dists[typ] else None,
+                              'mean_actual_meal_lead_minutes':sum(actual_leads[typ])/len(actual_leads[typ]) if actual_leads[typ] else None,
                           }
                       subjects.append(s)
-                  pop={}
-                  pooled={}
+                  pop={}; pooled={}
                   for typ in TYPES:
-                      sm=[s['meal_type'][typ]['mean_premeal_glucose_mg_dl'] for s in subjects if s['meal_type'][typ]['mean_premeal_glucose_mg_dl'] is not None]
-                      pop[typ]=summarize(sm)
+                      sm=[s['meal_type'][typ]['mean_glucose_mg_dl'] for s in subjects if s['meal_type'][typ]['mean_glucose_mg_dl'] is not None]
+                      pop[typ]=summary(sm)
                       total=sum(s['meal_type'][typ]['n_events'] for s in subjects)
-                      num=sum(s['meal_type'][typ]['n_events']*s['meal_type'][typ]['mean_premeal_glucose_mg_dl'] for s in subjects if s['meal_type'][typ]['mean_premeal_glucose_mg_dl'] is not None)
+                      num=sum(s['meal_type'][typ]['n_events']*s['meal_type'][typ]['mean_glucose_mg_dl'] for s in subjects if s['meal_type'][typ]['mean_glucose_mg_dl'] is not None)
                       pooled[typ]={'n_events':total,'mean':num/total if total else None}
-                  return {'definition':{'min_carbs_g':min_carbs,'prior_exclusion_minutes':prior,'premeal_lookback_minutes':lookback},'subject_equal':pop,'event_pooled':pooled,'subjects':subjects}
+                  return {'definition':{'target_minutes_before_meal':lead,'target_tolerance_minutes':tol,'min_carbs_g':min_carbs,'prior_exclusion_minutes_before_target':prior},'subject_equal':pop,'event_pooled':pooled,'subjects':subjects}
 
-              primary=run(20,180,15)
-              sens={
-                  'carbs_10':run(10,180,15),
-                  'carbs_30':run(30,180,15),
-                  'carbs_40':run(40,180,15),
-                  'prior_120':run(20,120,15),
-                  'prior_240':run(20,240,15),
-                  'lookback_5':run(20,180,5),
-                  'lookback_30':run(20,180,30),
+              primary=run_lead(60,15,20,180)
+              sensitivity={
+                  'lead_45_tol15':run_lead(45,15,20,180),
+                  'lead_75_tol15':run_lead(75,15,20,180),
+                  'tolerance_7_5':run_lead(60,7.5,20,180),
+                  'carbs_10':run_lead(60,15,10,180),
+                  'carbs_30':run_lead(60,15,30,180),
+                  'carbs_40':run_lead(60,15,40,180),
+                  'prior_120':run_lead(60,15,20,120),
+                  'prior_240':run_lead(60,15,20,240),
               }
               result={
-                  'dataset':'T1D-UOM',
-                  'source':{'repository':REPO,'ref':REF,'doi':'10.5281/zenodo.15806142'},
-                  'n_nutrition_participants':len(IDS),
+                  'dataset':'T1D-UOM','source':{'repository':REPO,'ref':REF,'doi':'10.5281/zenodo.15806142'},
+                  'analysis':'simulator_observable_aligned_before_meal_cgm','n_nutrition_participants':len(IDS),
+                  'simulator_contract':'POC is 60 min before meal (07->08, 12->13, 18->19); external target is therefore meal timestamp minus 60 min.',
                   'primary':primary,
-                  'sensitivity':{k:{'definition':v['definition'],'subject_equal':v['subject_equal'],'event_pooled':v['event_pooled']} for k,v in sens.items()},
-                  'guardrail':'Outpatient real-world teacher; use cross-cohort direction before changing simulator physiology.'
+                  'sensitivity':{k:{'definition':v['definition'],'subject_equal':v['subject_equal'],'event_pooled':v['event_pooled']} for k,v in sensitivity.items()},
+                  'guardrail':'Outpatient context differs from ward context; use cross-cohort direction and fixed observable timing before changing production physiology.'
               }
               Path('t1duom_temp_result.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')
               print(json.dumps({'primary':primary['subject_equal'],'event_pooled':primary['event_pooled']},indent=2))
@@ -144,5 +140,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add t1duom_temp_result.json
-          git commit -m 'Temporary T1D-UOM meal-aligned result'
+          git commit -m 'Temporary T1D-UOM simulator-aligned result'
           git push origin HEAD:tmp/t1duom-external-validation
