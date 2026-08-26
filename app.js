@@ -11,6 +11,13 @@ function fmt(x){return Number(x).toFixed(Number(x)%1?1:0)}
 function mealClass(v){return v<=.5?'low':v<.9?'reduced':''}
 function bgStyle(v){return v<70?'color:#c53a3a':v>180?'color:#b86b15':''}
 function clock(minute){const m=((Math.round(minute)%1440)+1440)%1440;return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`}
+function correctionFor(rec,key){const k=key.replace('_u','');return Number(rec?.result?.correction_doses_u?.[k])||0}
+function effectiveRapid(rec,key){return Number(rec?.order?.[key]||0)+correctionFor(rec,key)}
+function correctionText(rec){
+  if(!rec?.result?.correction_scale)return '';
+  const c=rec.result.correction_doses_u||{};
+  return `スケール追加：朝 +${fmt(c.breakfast||0)} / 昼 +${fmt(c.lunch||0)} / 夕 +${fmt(c.dinner||0)} U`;
+}
 
 function sampleVisibleIntake(day){
   const r=rng((state.seed+day*7919+71)>>>0),out={};
@@ -54,18 +61,25 @@ function historyCell(label,value,sub='',style=''){
   return `<div style="min-width:0;text-align:center;padding:8px 4px"><div style="font-size:9px;color:#8b919a;margin-bottom:3px">${label}</div><div style="font-size:15px;font-weight:760;${style}">${value}</div>${sub?`<div style="font-size:8px;color:#a0a5ad;margin-top:1px">${sub}</div>`:''}</div>`;
 }
 
+function rapidHistoryCell(rec,key,label){
+  const scheduled=Number(rec.order[key])||0,extra=correctionFor(rec,key),total=scheduled+extra;
+  const sub=extra>0?`定時 ${fmt(scheduled)} + scale ${fmt(extra)} = ${fmt(total)} U`:'U';
+  return historyCell(label,fmt(total),sub);
+}
+
 function renderHistory(){
   const body=$('#runHistoryBody');
   if(!body)return;
   if(!state.history.length){body.innerHTML='<div style="font-size:11px;color:#8b919a;padding:2px 0 4px">まだあなたの処方記録はありません。</div>';return}
   body.innerHTML=state.history.map(rec=>{
     const o=rec.order,i=rec.intake,b=rec.result.bg;
+    const scaleLine=rec.result.correction_scale?`<div style="font-size:8px;color:#7f6b42;margin-top:5px">${correctionText(rec)}</div>`:'';
     return `<div style="background:#fff;border:1px solid #e6e8ed;border-radius:17px;padding:12px;margin-bottom:10px;box-shadow:0 5px 18px rgba(25,30,40,.035)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px"><div style="font-size:11px;font-weight:800;letter-spacing:.06em">DAY ${rec.day}</div><div style="font-size:9px;color:#8b919a">食事確認 → 処方 → 結果</div></div>
       <div style="font-size:9px;font-weight:750;color:#6c727c;margin:5px 0 2px">食事量</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:#f6f7f9;border-radius:11px">${historyCell('朝食',Math.round(i.breakfast*10)+'割')}${historyCell('昼食',Math.round(i.lunch*10)+'割')}${historyCell('夕食',Math.round(i.dinner*10)+'割')}</div>
-      <div style="font-size:9px;font-weight:750;color:#6c727c;margin:9px 0 2px">処方</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:#f6f7f9;border-radius:11px">${historyCell('朝',fmt(o.breakfast_u),'U')}${historyCell('昼',fmt(o.lunch_u),'U')}${historyCell('夕',fmt(o.dinner_u),'U')}${historyCell('眠前',fmt(o.basal_u),'U basal')}</div>
+      <div style="font-size:9px;font-weight:750;color:#6c727c;margin:9px 0 2px">実投与</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:#f6f7f9;border-radius:11px">${rapidHistoryCell(rec,'breakfast_u','朝')}${rapidHistoryCell(rec,'lunch_u','昼')}${rapidHistoryCell(rec,'dinner_u','夕')}${historyCell('眠前',fmt(o.basal_u),'U basal')}</div>${scaleLine}
       <div style="font-size:9px;font-weight:750;color:#6c727c;margin:9px 0 2px">結果4検</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:#f6f7f9;border-radius:11px">${historyCell('朝前',Math.round(b.pre_breakfast),'mg/dL',bgStyle(b.pre_breakfast))}${historyCell('昼前',Math.round(b.pre_lunch),'mg/dL',bgStyle(b.pre_lunch))}${historyCell('夕前',Math.round(b.pre_dinner),'mg/dL',bgStyle(b.pre_dinner))}${historyCell('眠前',Math.round(b.bedtime),'mg/dL',bgStyle(b.bedtime))}</div>
     </div>`;
@@ -118,12 +132,16 @@ function gameOverFeedback(kind,rec){
 
   pts.push(`${kind==='low'?'最低':'最高'}血糖は ${Math.round(eventValue)} mg/dL（約 ${clock(eventI)}）でした。`);
   pts.push(`時刻対応からは、まず ${focusName} を見直す場面です。`);
+  if(focus!=='basal'){
+    const extra=correctionFor(rec,focus),effective=effectiveRapid(rec,focus);
+    if(extra>0)pts.push(`${focusName}は定時 ${fmt(rec.order[focus])} U にスケール +${fmt(extra)} U が加わり、実投与 ${fmt(effective)} Uでした。`);
+  }
   if(kind==='low'){
     if(focus==='basal'&&activeBasalDelta>1)pts.push(`実効中の前夜basalは患者基準より ${fmt(activeBasalDelta)} U多い設定でした。`);
-    if(focus!=='basal'&&rec.order[focus]>expected[focus]+1)pts.push(`${focusName}は当日の食事量からみた基準量より多めでした。`);
+    if(focus!=='basal'&&effectiveRapid(rec,focus)>expected[focus]+1)pts.push(`${focusName}の実投与量は当日の食事量からみた基準量より多めでした。`);
   }else{
     if(focus==='basal'&&activeBasalDelta<-1)pts.push(`実効中の前夜basalは患者基準より ${fmt(-activeBasalDelta)} U少ない設定でした。`);
-    if(focus!=='basal'&&rec.order[focus]<Math.max(0,expected[focus]-1))pts.push(`${focusName}は当日の食事量からみた基準量より少なめでした。`);
+    if(focus!=='basal'&&effectiveRapid(rec,focus)<Math.max(0,expected[focus]-1))pts.push(`${focusName}の実投与量は当日の食事量からみた基準量より少なめでした。`);
     if(c.infection_severity>0)pts.push('感染によるインスリン抵抗性上昇も高血糖方向に作用しています。');
     if(c.prednisone_mg>0)pts.push('ステロイドも日中〜夕方の高血糖方向に作用しています。');
   }
@@ -151,16 +169,17 @@ $('#submitBtn').onclick=()=>{
 
   const panel=$('#resultPanel');
   panel.className='result-panel '+((fatalLow||fatalHigh)?'fail':'ok');
+  const scaleResult=r.correction_scale?`<div class="result-text" style="margin-top:7px">${correctionText(rec)}</div>`:'';
   if(fatalLow||fatalHigh){
     const kind=fatalLow?'low':'high';
     const title=fatalLow?'低血糖で終了':'400超で終了';
     const text=fatalLow?`hidden glucose が ${Math.round(r.min)} mg/dL まで低下しました。`:`hidden glucose が ${Math.round(r.max)} mg/dL まで上昇しました。`;
-    panel.innerHTML=`<div class="result-kicker">GAME OVER</div><div class="result-title">${title}</div><div class="result-text">${text}</div><div class="result-text" style="margin-top:7px">本日の食事：${intakeText(intake)}</div>${gameOverFeedback(kind,rec)}<button class="next-btn" id="restartBtn">新しい患者へ</button>`;
+    panel.innerHTML=`<div class="result-kicker">GAME OVER</div><div class="result-title">${title}</div><div class="result-text">${text}</div><div class="result-text" style="margin-top:7px">本日の食事：${intakeText(intake)}</div>${scaleResult}${gameOverFeedback(kind,rec)}<button class="next-btn" id="restartBtn">新しい患者へ</button>`;
     state.over=true;
     $('#submitBtn').disabled=true;
     $('#restartBtn').onclick=()=>startGenerated();
   }else{
-    panel.innerHTML=`<div class="result-kicker">DAY ${state.day} RESULT</div><div class="result-title">本日の4検結果</div><div class="result-text">朝前 ${Math.round(r.bg.pre_breakfast)} / 昼前 ${Math.round(r.bg.pre_lunch)} / 夕前 ${Math.round(r.bg.pre_dinner)} / 眠前 ${Math.round(r.bg.bedtime)} mg/dL</div><button class="next-btn" id="nextDayBtn">翌日の処方へ</button>`;
+    panel.innerHTML=`<div class="result-kicker">DAY ${state.day} RESULT</div><div class="result-title">本日の4検結果</div><div class="result-text">朝前 ${Math.round(r.bg.pre_breakfast)} / 昼前 ${Math.round(r.bg.pre_lunch)} / 夕前 ${Math.round(r.bg.pre_dinner)} / 眠前 ${Math.round(r.bg.bedtime)} mg/dL</div>${scaleResult}<button class="next-btn" id="nextDayBtn">翌日の処方へ</button>`;
     $('#submitBtn').disabled=true;
     $('#nextDayBtn').onclick=()=>{
       state.previousBasal=o.basal_u;
