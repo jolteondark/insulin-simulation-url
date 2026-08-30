@@ -18,6 +18,15 @@
     hidden_high_excursion:'hidden高血糖見逃し'
   };
 
+  const domainDefs=[
+    {id:'basal',label:'basal',tags:['basal_excess','basal_deficit']},
+    {id:'breakfast_rapid',label:'朝rapid',tags:['breakfast_rapid_excess','breakfast_rapid_deficit']},
+    {id:'lunch_rapid',label:'昼rapid',tags:['lunch_rapid_excess','lunch_rapid_deficit']},
+    {id:'dinner_rapid',label:'夕rapid',tags:['dinner_rapid_excess','dinner_rapid_deficit']},
+    {id:'scale_dependence',label:'scale依存',tags:['scale_dependence']},
+    {id:'hidden_awareness',label:'hidden excursion',tags:['hidden_low_near_miss','hidden_high_excursion']}
+  ];
+
   function load(){
     try{
       const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
@@ -141,6 +150,57 @@
     return [...byTag.values()].map(x=>({tag:x.tag,days:x.days,cases:x.cases.size})).sort((a,b)=>b.cases-a.cases||b.days-a.days||a.tag.localeCompare(b.tag));
   }
 
+  function caseDomainSummary(days,caseId){
+    const caseDays=days.filter(d=>d.case_id===caseId);
+    const n=caseDays.length;
+    const domains={};
+    for(const def of domainDefs){
+      const issueDays=caseDays.filter(d=>{
+        const tags=new Set(Array.isArray(d.feedback_tags)?d.feedback_tags:[]);
+        return def.tags.some(tag=>tags.has(tag));
+      }).length;
+      domains[def.id]={days:issueDays,total_days:n,rate:n?issueDays/n:null};
+    }
+    return {case_id:caseId,recorded_days:n,domains};
+  }
+
+  function completedCaseSummaries(data){
+    return data.cases.map(c=>({
+      ...c,
+      learning:caseDomainSummary(data.days,c.case_id)
+    })).filter(c=>c.learning.recorded_days>0);
+  }
+
+  function pooledDomainRate(cases,domainId){
+    let issueDays=0,totalDays=0;
+    for(const c of cases){
+      const d=c.learning?.domains?.[domainId];
+      if(!d)continue;
+      issueDays+=Number(d.days)||0;
+      totalDays+=Number(d.total_days)||0;
+    }
+    return totalDays?issueDays/totalDays:null;
+  }
+
+  function caseDomainTrend(data){
+    const cases=completedCaseSummaries(data);
+    if(cases.length<4)return {ready:false,n:cases.length,domains:[]};
+    const groupN=Math.min(3,Math.floor(cases.length/2));
+    const early=cases.slice(0,groupN),recent=cases.slice(-groupN);
+    const domains=domainDefs.map(def=>{
+      const earlyRate=pooledDomainRate(early,def.id);
+      const recentRate=pooledDomainRate(recent,def.id);
+      return {
+        id:def.id,
+        label:def.label,
+        early_rate:earlyRate,
+        recent_rate:recentRate,
+        delta_pp:earlyRate==null||recentRate==null?null:100*(recentRate-earlyRate)
+      };
+    });
+    return {ready:true,n:cases.length,group_n:groupN,domains};
+  }
+
   function trendText(days){
     if(days.length<10)return '10日分たまると、直近5日とその前5日の変化を表示します。';
     const prev=windowStats(days.slice(-10,-5)),recent=windowStats(days.slice(-5));
@@ -170,6 +230,22 @@
     return `症例横断で反復：${repeated.map(x=>`${feedbackLabels[x.tag]||x.tag} ${x.cases}症例/${x.days}日`).join(' ／ ')}`;
   }
 
+  function caseTrendHtml(data){
+    const trend=caseDomainTrend(data);
+    if(!trend.ready)return `<div class="micro-note">4症例完了すると、初期症例群と最近症例群で調整課題の発生率を比較します（現在 ${trend.n}症例）。</div>`;
+    const fmtRate=x=>x==null?'—':`${Math.round(100*x)}%`;
+    const fmtDelta=x=>x==null?'—':`${x>0?'+':''}${Math.round(x)}pt`;
+    const cards=trend.domains.map(d=>`
+      <div class="prev-dose">
+        <div class="name">${d.label}</div>
+        <div class="value" style="font-size:15px">${fmtRate(d.early_rate)} → ${fmtRate(d.recent_rate)}</div>
+        <div class="micro-note">${fmtDelta(d.delta_pp)}</div>
+      </div>`).join('');
+    return `
+      <div class="micro-note" style="margin-top:9px">症例単位の学習変化（初期${trend.group_n}症例 → 最近${trend.group_n}症例、課題が出た日率）</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px">${cards}</div>`;
+  }
+
   function render(){
     const el=document.querySelector('#learningCurveBody');
     if(!el)return;
@@ -186,6 +262,7 @@
       <div class="micro-note" style="margin-top:9px">${trendText(days)}</div>
       <div class="micro-note">${prescribingText(days)}</div>
       <div class="micro-note">${recurrenceText(days)}</div>
+      ${caseTrendHtml(data)}
       ${completedDays.length?`<div class="micro-note">完了症例の平均日数：${mean(completedDays).toFixed(1)}日（${completed}症例）</div>`:''}`;
   }
 
@@ -208,7 +285,9 @@
     render();
   }
 
-  window.LearningCurve={load,render,recurrenceStats,version:'1.2.0'};
+  const api={load,render,recurrenceStats,caseDomainSummary,completedCaseSummaries,caseDomainTrend,version:'1.3.0'};
+  if(typeof module!=='undefined'&&module.exports)module.exports=api;
+  if(typeof window!=='undefined')window.LearningCurve=api;
   if(typeof document!=='undefined'){
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);
     else mount();
