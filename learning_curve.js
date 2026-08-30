@@ -4,6 +4,20 @@
   const RAPID_ERROR_U=1.5;
   const BASAL_ERROR_U=1.5;
 
+  const feedbackLabels={
+    basal_excess:'basal過量方向',
+    basal_deficit:'basal不足方向',
+    breakfast_rapid_excess:'朝rapid過量方向',
+    breakfast_rapid_deficit:'朝rapid不足方向',
+    lunch_rapid_excess:'昼rapid過量方向',
+    lunch_rapid_deficit:'昼rapid不足方向',
+    dinner_rapid_excess:'夕rapid過量方向',
+    dinner_rapid_deficit:'夕rapid不足方向',
+    scale_dependence:'scale依存',
+    hidden_low_near_miss:'hidden低血糖見逃し',
+    hidden_high_excursion:'hidden高血糖見逃し'
+  };
+
   function load(){
     try{
       const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
@@ -53,6 +67,7 @@
     const mn=Number(rec?.result?.min),mx=Number(rec?.result?.max);
     const safe=Number.isFinite(mn)&&Number.isFinite(mx)&&mn>=70&&mx<=400;
     const dischargeGrade=safe&&!rec?.result?.correction_scale&&poc.every(v=>Number.isFinite(v)&&v>=80&&v<=180)&&mn>=70&&mx<=250;
+    const feedbackTags=Array.isArray(rec?.education_feedback?.tags)?[...new Set(rec.education_feedback.tags.filter(x=>typeof x==='string'))]:[];
     return {
       key:`${caseId}:${rec.day}`,
       case_id:caseId,
@@ -63,6 +78,7 @@
       min:mn,
       max:mx,
       prescribing:prescribingPattern(rec,p),
+      feedback_tags:feedbackTags,
       recorded_at:new Date().toISOString()
     };
   }
@@ -113,6 +129,18 @@
     };
   }
 
+  function recurrenceStats(days){
+    const byTag=new Map();
+    for(const d of days){
+      const tags=Array.isArray(d.feedback_tags)?new Set(d.feedback_tags):new Set();
+      for(const tag of tags){
+        if(!byTag.has(tag))byTag.set(tag,{tag,days:0,cases:new Set()});
+        const x=byTag.get(tag);x.days++;x.cases.add(d.case_id);
+      }
+    }
+    return [...byTag.values()].map(x=>({tag:x.tag,days:x.days,cases:x.cases.size})).sort((a,b)=>b.cases-a.cases||b.days-a.days||a.tag.localeCompare(b.tag));
+  }
+
   function trendText(days){
     if(days.length<10)return '10日分たまると、直近5日とその前5日の変化を表示します。';
     const prev=windowStats(days.slice(-10,-5)),recent=windowStats(days.slice(-5));
@@ -135,6 +163,13 @@
     return problems.length?`直近${s.n}日の処方傾向：${problems.join(' ／ ')}`:`直近${s.n}日：rapid・basalとも大きな過不足は目立ちません。`;
   }
 
+  function recurrenceText(days){
+    const recent=days.slice(-30),repeated=recurrenceStats(recent).filter(x=>x.cases>=2).slice(0,3);
+    if(!recent.length)return '症例横断の反復課題は、feedbackが蓄積すると表示されます。';
+    if(!repeated.length)return `直近${recent.length}日：同じ調整課題が2症例以上にまたがって反復した記録はまだありません。`;
+    return `症例横断で反復：${repeated.map(x=>`${feedbackLabels[x.tag]||x.tag} ${x.cases}症例/${x.days}日`).join(' ／ ')}`;
+  }
+
   function render(){
     const el=document.querySelector('#learningCurveBody');
     if(!el)return;
@@ -150,6 +185,7 @@
       </div>
       <div class="micro-note" style="margin-top:9px">${trendText(days)}</div>
       <div class="micro-note">${prescribingText(days)}</div>
+      <div class="micro-note">${recurrenceText(days)}</div>
       ${completedDays.length?`<div class="micro-note">完了症例の平均日数：${mean(completedDays).toFixed(1)}日（${completed}症例）</div>`:''}`;
   }
 
@@ -172,7 +208,7 @@
     render();
   }
 
-  window.LearningCurve={load,render,version:'1.1.0'};
+  window.LearningCurve={load,render,recurrenceStats,version:'1.2.0'};
   if(typeof document!=='undefined'){
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);
     else mount();
