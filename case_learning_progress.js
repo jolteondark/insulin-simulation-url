@@ -97,7 +97,14 @@
     const attention=domains.filter(x=>x.repeated_unmet).sort((a,b)=>b.unresolved_streak-a.unresolved_streak||b.n-a.n||a.label.localeCompare(b.label,'ja'));
     const improved=scored.filter(x=>x.objective_status==='resolved'||x.objective_status==='improved').length;
     const fallback=(Array.isArray(data?.cases)?data.cases:[]).filter(c=>c.adaptive_practice?.practice_opportunity==='standard_case').length;
-    return {ready:scored.length>0,n:scored.length,improved,rate:scored.length?improved/scored.length:null,domains,attention,fallback,repeated_unmet_n:REPEATED_UNMET_N};
+    const lifecycleRows=rows.filter(x=>x.routing_lifecycle&&x.routing_lifecycle.state!=='not_persistent');
+    const persistent={
+      n:lifecycleRows.length,
+      released:lifecycleRows.filter(x=>x.routing_lifecycle.state==='released').length,
+      continued:lifecycleRows.filter(x=>x.routing_lifecycle.state==='continued').length,
+      active:lifecycleRows.filter(x=>x.routing_lifecycle.state==='active').length
+    };
+    return {ready:scored.length>0,n:scored.length,improved,rate:scored.length?improved/scored.length:null,domains,attention,fallback,persistent,repeated_unmet_n:REPEATED_UNMET_N};
   }
 
   function pct(x){return x==null?'—':`${Math.round(100*x)}%`}
@@ -116,7 +123,9 @@
     const attention=summary.attention?.length
       ? `<div class="micro-note" style="margin-top:7px"><b>反復未達：</b>${summary.attention.map(x=>`${x.label}（直近${x.unresolved_streak}回未達）`).join(' ／ ')}。次の重点練習で継続確認します。</div>`
       : '';
-    return `<div id="adaptivePracticeProgress" style="margin-top:10px"><div class="micro-note"><b>重点練習後の改善：</b>${summary.improved}/${summary.n}症例（${pct(summary.rate)}）${fallback}</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px">${rows}</div>${attention}</div>`;
+    const p=summary.persistent||{n:0,released:0,continued:0,active:0};
+    const lifecycle=p.n?`<div class="micro-note" style="margin-top:7px"><b>persistent routing：</b>${p.n}症例中、解除 ${p.released}／継続 ${p.continued}${p.active?`／評価中 ${p.active}`:''}</div>`:'';
+    return `<div id="adaptivePracticeProgress" style="margin-top:10px"><div class="micro-note"><b>重点練習後の改善：</b>${summary.improved}/${summary.n}症例（${pct(summary.rate)}）${fallback}</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px">${rows}</div>${attention}${lifecycle}</div>`;
   }
 
   function renderHtml(summary,adaptiveSummary){
@@ -155,5 +164,5 @@
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);
     else mount();
   }
-  return {caseMetric,summarize,summarizeAdaptivePractice,renderAdaptiveHtml,renderHtml,refresh,METRICS,DOMAIN_LABELS,REPEATED_UNMET_N,version:'1.2.0'};
+  return {caseMetric,summarize,summarizeAdaptivePractice,renderAdaptiveHtml,renderHtml,refresh,METRICS,DOMAIN_LABELS,REPEATED_UNMET_N,version:'1.3.0'};
 });
