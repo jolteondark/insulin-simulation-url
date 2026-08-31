@@ -124,6 +124,8 @@
       const terminal=Boolean(state.over)||Number(rec.result.min)<70||Number(rec.result.max)>400;
       const analysis=emphasizeForObjective(analyze(rec,state.case||{}),loadObjective());
       rec.education_feedback={tags:[...analysis.tags],stable:analysis.stable,items:analysis.items.map(x=>x.text)};
+      // Terminal days still need feedback tags for case-level learning/debrief.
+      // The dedicated GAME OVER / DISCHARGE panel owns terminal-day rendering.
       if(terminal)return;
       const panel=document.querySelector('#resultPanel');
       if(!panel||panel.querySelector('.daily-feedback'))return;
