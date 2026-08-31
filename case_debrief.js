@@ -123,8 +123,20 @@
       ...(data||{}),
       days:Array.isArray(data?.days)?data.days:[],
       cases:Array.isArray(data?.cases)?data.cases:[],
-      objectives:Array.isArray(data?.objectives)?[...data.objectives]:[]
+      objectives:Array.isArray(data?.objectives)?[...data.objectives]:[],
+      completion_records:{...(data?.completion_records||{})}
     };
+    const priorCompletion=next.completion_records[currentCaseId];
+    if(priorCompletion){
+      return {
+        data:next,
+        scored:priorCompletion.scored||null,
+        persistent:priorCompletion.persistent||null,
+        active_objective:priorCompletion.active_objective||next.active_objective||null,
+        reused:true
+      };
+    }
+
     let scored=null;
     if(next.active_objective&&next.active_objective.source_case_id!==currentCaseId){
       scored=scoreObjective(next,next.active_objective,currentCaseId);
@@ -159,7 +171,13 @@
         emphasis:'normal'
       };
     }
-    return {data:next,scored,persistent,active_objective:next.active_objective||null};
+    next.completion_records[currentCaseId]={
+      scored:scored||null,
+      persistent:persistent||null,
+      active_objective:next.active_objective||null,
+      completed_at:new Date().toISOString()
+    };
+    return {data:next,scored,persistent,active_objective:next.active_objective||null,reused:false};
   }
 
   function pct(x){return x==null?'—':`${Math.round(100*x)}%`}
@@ -194,9 +212,10 @@
         ...x,
         days:Array.isArray(x.days)?x.days:[],
         cases:Array.isArray(x.cases)?x.cases:[],
-        objectives:Array.isArray(x.objectives)?x.objectives:[]
+        objectives:Array.isArray(x.objectives)?x.objectives:[],
+        completion_records:x.completion_records&&typeof x.completion_records==='object'?x.completion_records:{}
       };
-    }catch{return {days:[],cases:[],objectives:[]}}
+    }catch{return {days:[],cases:[],objectives:[],completion_records:{}}}
   }
 
   function save(data){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}catch{}}
