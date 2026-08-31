@@ -10,6 +10,10 @@
   const captured=new Map();
 
   function clone(x){try{return JSON.parse(JSON.stringify(x))}catch{return null}}
+  function currentState(root){
+    try{if(typeof state!=='undefined')return state}catch{}
+    return root?.state||null;
+  }
   function load(root){
     try{
       const x=JSON.parse(root.localStorage.getItem(STORAGE_KEY)||'{}');
@@ -20,9 +24,10 @@
 
   function capture(root){
     try{
-      if(typeof root.state==='undefined'||!root.state?.case?.case_id||!root.PatientGenerator?.generate)return null;
-      const caseId=root.state.case.case_id;
-      const bundle=root.PatientGenerator.generate(root.state.seed);
+      const s=currentState(root);
+      if(!s?.case?.case_id||!root.PatientGenerator?.generate)return null;
+      const caseId=s.case.case_id;
+      const bundle=root.PatientGenerator.generate(s.seed);
       if(bundle?.case?.case_id!==caseId)return null;
       const selection=clone(bundle.adaptive_selection);
       captured.set(caseId,selection);
@@ -60,8 +65,9 @@
 
   function persist(root){
     try{
-      if(typeof root.state==='undefined'||!root.state?.over)return null;
-      const caseId=root.state.case?.case_id;
+      const s=currentState(root);
+      if(!s?.over)return null;
+      const caseId=s.case?.case_id;
       if(!caseId)return null;
       const selection=captured.has(caseId)?captured.get(caseId):null;
       if(!selection)return null;
@@ -108,5 +114,5 @@
     root.document.querySelector('#resultPanel')?.addEventListener('click',e=>{if(e.target?.closest?.('#restartBtn'))captureAfterStart(root)});
   }
 
-  return {practiceRecord,scoredObjective,statusLabel,domainLabel,mount,version:'1.0.0'};
+  return {practiceRecord,scoredObjective,statusLabel,domainLabel,currentState,mount,version:'1.0.1'};
 });
