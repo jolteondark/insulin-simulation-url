@@ -39,6 +39,15 @@
     {id:'scale_independence',label:'scale非依存'}
   ];
 
+  const DOMAIN_LABELS={
+    basal:'basal',
+    breakfast_rapid:'朝rapid',
+    lunch_rapid:'昼rapid',
+    dinner_rapid:'夕rapid',
+    scale_dependence:'scale依存',
+    hidden_awareness:'hidden excursion'
+  };
+
   function pooled(data,cases,metric){
     const xs=cases.map(c=>caseMetric(data,c.case_id,metric)).filter(v=>v!=null);
     return xs.length?mean(xs):null;
@@ -56,6 +65,21 @@
     return {ready:true,n:completed.length,group_n:groupN,metrics};
   }
 
+  function summarizeAdaptivePractice(data){
+    const rows=(Array.isArray(data?.cases)?data.cases:[])
+      .map(c=>({case_id:c.case_id,...(c.adaptive_practice||{})}))
+      .filter(x=>x.domain_id&&x.practice_opportunity&&x.practice_opportunity!=='standard_case');
+    const scored=rows.filter(x=>['resolved','improved','not_resolved'].includes(x.objective_status));
+    const domains=[...new Set(scored.map(x=>x.domain_id))].map(domainId=>{
+      const xs=scored.filter(x=>x.domain_id===domainId);
+      const improved=xs.filter(x=>x.objective_status==='resolved'||x.objective_status==='improved').length;
+      return {domain_id:domainId,label:DOMAIN_LABELS[domainId]||domainId,n:xs.length,improved,rate:xs.length?improved/xs.length:null};
+    }).sort((a,b)=>b.n-a.n||a.label.localeCompare(b.label,'ja'));
+    const improved=scored.filter(x=>x.objective_status==='resolved'||x.objective_status==='improved').length;
+    const fallback=(Array.isArray(data?.cases)?data.cases:[]).filter(c=>c.adaptive_practice?.practice_opportunity==='standard_case').length;
+    return {ready:scored.length>0,n:scored.length,improved,rate:scored.length?improved/scored.length:null,domains,fallback};
+  }
+
   function pct(x){return x==null?'—':`${Math.round(100*x)}%`}
   function deltaText(x){
     if(x==null)return '—';
@@ -65,10 +89,18 @@
     return `ほぼ維持 ${n>0?'+':''}${n}pt`;
   }
 
-  function renderHtml(summary){
-    if(!summary.ready)return `<div id="caseLearningProgress" class="micro-note" style="margin-top:8px"><b>症例横断の学習変化：</b>${summary.n}/4症例。4症例完了後から、最近の症例で何が改善したかを表示します。</div>`;
+  function renderAdaptiveHtml(summary){
+    if(!summary.ready)return '';
+    const rows=summary.domains.map(x=>`<div class="prev-dose"><div class="name">${x.label}</div><div class="value" style="font-size:15px">${x.improved}/${x.n}症例</div><div class="micro-note">改善 ${pct(x.rate)}</div></div>`).join('');
+    const fallback=summary.fallback?` ／ drift guardで標準症例 ${summary.fallback}件`:'';
+    return `<div id="adaptivePracticeProgress" style="margin-top:10px"><div class="micro-note"><b>重点練習後の改善：</b>${summary.improved}/${summary.n}症例（${pct(summary.rate)}）${fallback}</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px">${rows}</div></div>`;
+  }
+
+  function renderHtml(summary,adaptiveSummary){
+    const adaptive=renderAdaptiveHtml(adaptiveSummary||{ready:false});
+    if(!summary.ready)return `<div id="caseLearningProgress" class="micro-note" style="margin-top:8px"><b>症例横断の学習変化：</b>${summary.n}/4症例。4症例完了後から、最近の症例で何が改善したかを表示します。${adaptive}</div>`;
     const cards=summary.metrics.map(m=>`<div class="prev-dose"><div class="name">${m.label}</div><div class="value" style="font-size:15px">${pct(m.early_rate)} → ${pct(m.recent_rate)}</div><div class="micro-note">${deltaText(m.delta_pp)}</div></div>`).join('');
-    return `<div id="caseLearningProgress" style="margin-top:10px"><div class="micro-note"><b>症例横断の学習変化：</b>初期${summary.group_n}症例 → 最近${summary.group_n}症例</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px">${cards}</div></div>`;
+    return `<div id="caseLearningProgress" style="margin-top:10px"><div class="micro-note"><b>症例横断の学習変化：</b>初期${summary.group_n}症例 → 最近${summary.group_n}症例</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px">${cards}</div>${adaptive}</div>`;
   }
 
   function refresh(){
@@ -78,7 +110,8 @@
     const old=body.querySelector('#caseLearningProgress');
     if(old)old.remove();
     if(typeof state==='undefined'||!state?.over)return;
-    body.insertAdjacentHTML('beforeend',renderHtml(summarize(load())));
+    const data=load();
+    body.insertAdjacentHTML('beforeend',renderHtml(summarize(data),summarizeAdaptivePractice(data)));
   }
 
   function mount(){
@@ -99,5 +132,5 @@
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);
     else mount();
   }
-  return {caseMetric,summarize,renderHtml,refresh,METRICS,version:'1.0.0'};
+  return {caseMetric,summarize,summarizeAdaptivePractice,renderAdaptiveHtml,renderHtml,refresh,METRICS,DOMAIN_LABELS,version:'1.1.0'};
 });
