@@ -44,8 +44,19 @@
     return xs.length?xs[xs.length-1]:null;
   }
 
+  function lifecycle(selection,scored){
+    const before=Math.max(0,Number(selection?.persistent_streak)||0);
+    const status=scored?.status||null;
+    const persistent=before>=2;
+    if(!persistent)return {state:'not_persistent',persistent_before:before,persistent_after:before,released:false,continued:false};
+    if(status==='resolved'||status==='improved')return {state:'released',persistent_before:before,persistent_after:0,released:true,continued:false};
+    if(status==='not_resolved')return {state:'continued',persistent_before:before,persistent_after:before+1,released:false,continued:true};
+    return {state:'active',persistent_before:before,persistent_after:before,released:false,continued:false};
+  }
+
   function practiceRecord(selection,scored){
     if(!selection)return null;
+    const routing=lifecycle(selection,scored);
     return {
       domain_id:selection.domain_id||null,
       persistent_streak:Number(selection.persistent_streak)||0,
@@ -59,6 +70,7 @@
       objective_status:scored?.status||null,
       source_rate:Number.isFinite(Number(scored?.source_rate))?Number(scored.source_rate):null,
       target_rate:Number.isFinite(Number(scored?.target_rate))?Number(scored.target_rate):null,
+      routing_lifecycle:routing,
       recorded_at:new Date().toISOString()
     };
   }
@@ -87,6 +99,12 @@
   function statusLabel(x){return x==='resolved'?'達成':x==='improved'?'改善':x==='not_resolved'?'未達':'評価待ち'}
   function domainLabel(id){return ({basal:'basal',breakfast_rapid:'朝rapid',lunch_rapid:'昼rapid',dinner_rapid:'夕rapid',scale_dependence:'scale依存',hidden_awareness:'hidden excursion'})[id]||id||'重点領域'}
   function pct(x){return Number.isFinite(Number(x))?`${Math.round(100*Number(x))}%`:'—'}
+  function lifecycleLabel(x){
+    if(x?.state==='released')return `persistent解除（${x.persistent_before}回未達後に改善）`;
+    if(x?.state==='continued')return `persistent継続（未達streak ${x.persistent_after}）`;
+    if(x?.state==='active')return `persistent評価中（streak ${x.persistent_before}）`;
+    return '';
+  }
 
   function render(root,record){
     if(!record||!root.document)return;
@@ -95,7 +113,8 @@
     body.querySelector('#adaptivePracticeOutcome')?.remove();
     const aligned=record.practice_opportunity==='domain_aligned'?'通常generator候補から重点領域を練習しやすい症例を選択':record.practice_opportunity==='standard_case'?'drift guardにより標準症例を維持':'安全範囲内の候補を使用';
     const score=record.objective_status?`${pct(record.source_rate)} → ${pct(record.target_rate)}（${statusLabel(record.objective_status)}）`:'症例目標の採点記録を待機';
-    body.insertAdjacentHTML('beforeend',`<div id="adaptivePracticeOutcome" class="micro-note" style="margin-top:8px"><b>重点練習の追跡：</b>${domainLabel(record.domain_id)} ／ ${aligned}<br><b>結果：</b>${score}</div>`);
+    const route=lifecycleLabel(record.routing_lifecycle);
+    body.insertAdjacentHTML('beforeend',`<div id="adaptivePracticeOutcome" class="micro-note" style="margin-top:8px"><b>重点練習の追跡：</b>${domainLabel(record.domain_id)} ／ ${aligned}<br><b>結果：</b>${score}${route?`<br><b>routing：</b>${route}`:''}</div>`);
   }
 
   function captureAfterStart(root){setTimeout(()=>capture(root),0)}
@@ -115,5 +134,5 @@
     root.document.querySelector('#resultPanel')?.addEventListener('click',e=>{if(e.target?.closest?.('#restartBtn'))captureAfterStart(root)});
   }
 
-  return {practiceRecord,scoredObjective,statusLabel,domainLabel,currentState,mount,version:'1.0.2'};
+  return {practiceRecord,lifecycle,scoredObjective,statusLabel,domainLabel,lifecycleLabel,currentState,mount,version:'1.1.0'};
 });
