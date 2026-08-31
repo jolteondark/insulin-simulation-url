@@ -55,27 +55,14 @@
     const current=caseRates(days,currentCaseId);
     const reference=priorReference(days,cases,currentCaseId);
     const domains=DOMAIN_DEFS.map(def=>{
-      const now=current[def.id];
-      const before=reference.rates[def.id];
-      return {
-        id:def.id,label:def.label,current_rate:now,prior_rate:before,
-        delta_pp:now==null||before==null?null:100*(now-before),
-        prior_cases_with_issue:recurrenceCount(days,cases,currentCaseId,def)
-      };
+      const now=current[def.id],before=reference.rates[def.id];
+      return {id:def.id,label:def.label,current_rate:now,prior_rate:before,delta_pp:now==null||before==null?null:100*(now-before),prior_cases_with_issue:recurrenceCount(days,cases,currentCaseId,def)};
     });
     const measurable=domains.filter(d=>d.current_rate!=null);
     const improved=measurable.filter(d=>d.delta_pp!=null&&d.delta_pp<=-20).sort((a,b)=>a.delta_pp-b.delta_pp);
     const recurred=measurable.filter(d=>d.current_rate>0&&d.prior_cases_with_issue>=1).sort((a,b)=>b.prior_cases_with_issue-a.prior_cases_with_issue||b.current_rate-a.current_rate);
     const priorityPool=measurable.filter(d=>d.current_rate>0).sort((a,b)=>b.current_rate-a.current_rate||b.prior_cases_with_issue-a.prior_cases_with_issue);
-    return {
-      case_id:currentCaseId,
-      outcome:currentCase?.outcome||null,
-      reference_cases:reference.n,
-      domains,
-      improved:improved.slice(0,2),
-      recurred:recurred.slice(0,2),
-      priority:priorityPool[0]||null
-    };
+    return {case_id:currentCaseId,outcome:currentCase?.outcome||null,reference_cases:reference.n,domains,improved:improved.slice(0,2),recurred:recurred.slice(0,2),priority:priorityPool[0]||null};
   }
 
   function domainById(id){return DOMAIN_DEFS.find(d=>d.id===id)||null}
@@ -90,13 +77,7 @@
     let status='not_resolved';
     if(currentRate===0)status='resolved';
     else if(Number.isFinite(baseline)&&currentRate<baseline)status='improved';
-    return {
-      ...objective,
-      target_case_id:completedCaseId,
-      target_rate:currentRate,
-      status,
-      scored_at:new Date().toISOString()
-    };
+    return {...objective,target_case_id:completedCaseId,target_rate:currentRate,status,scored_at:new Date().toISOString()};
   }
 
   function failedObjectiveStreak(data,domainId){
@@ -104,8 +85,7 @@
     let n=0;
     for(let i=xs.length-1;i>=0;i--){
       const x=xs[i];
-      if(x?.domain_id!==domainId)break;
-      if(x?.status!=='not_resolved')break;
+      if(x?.domain_id!==domainId||x?.status!=='not_resolved')break;
       n++;
     }
     return n;
@@ -119,23 +99,9 @@
   }
 
   function applyCompletion(data,currentCaseId,model){
-    const next={
-      ...(data||{}),
-      days:Array.isArray(data?.days)?data.days:[],
-      cases:Array.isArray(data?.cases)?data.cases:[],
-      objectives:Array.isArray(data?.objectives)?[...data.objectives]:[],
-      completion_records:{...(data?.completion_records||{})}
-    };
+    const next={...(data||{}),days:Array.isArray(data?.days)?data.days:[],cases:Array.isArray(data?.cases)?data.cases:[],objectives:Array.isArray(data?.objectives)?[...data.objectives]:[],completion_records:{...(data?.completion_records||{})}};
     const priorCompletion=next.completion_records[currentCaseId];
-    if(priorCompletion){
-      return {
-        data:next,
-        scored:priorCompletion.scored||null,
-        persistent:priorCompletion.persistent||null,
-        active_objective:priorCompletion.active_objective||next.active_objective||null,
-        reused:true
-      };
-    }
+    if(priorCompletion)return {data:next,scored:priorCompletion.scored||null,persistent:priorCompletion.persistent||null,active_objective:priorCompletion.active_objective||next.active_objective||null,reused:true};
 
     let scored=null;
     if(next.active_objective&&next.active_objective.source_case_id!==currentCaseId){
@@ -151,32 +117,11 @@
     if(persistent){
       scored.persistent_streak=persistent.streak;
       next.objectives[next.objectives.length-1]=scored;
-      next.active_objective={
-        domain_id:persistent.domain_id,
-        label:persistent.label,
-        source_case_id:currentCaseId,
-        source_rate:scored.target_rate,
-        created_at:new Date().toISOString(),
-        persistent_streak:persistent.streak,
-        emphasis:'high'
-      };
+      next.active_objective={domain_id:persistent.domain_id,label:persistent.label,source_case_id:currentCaseId,source_rate:scored.target_rate,created_at:new Date().toISOString(),persistent_streak:persistent.streak,emphasis:'high'};
     }else if(model?.priority){
-      next.active_objective={
-        domain_id:model.priority.id,
-        label:model.priority.label,
-        source_case_id:currentCaseId,
-        source_rate:model.priority.current_rate,
-        created_at:new Date().toISOString(),
-        persistent_streak:0,
-        emphasis:'normal'
-      };
+      next.active_objective={domain_id:model.priority.id,label:model.priority.label,source_case_id:currentCaseId,source_rate:model.priority.current_rate,created_at:new Date().toISOString(),persistent_streak:0,emphasis:'normal'};
     }
-    next.completion_records[currentCaseId]={
-      scored:scored||null,
-      persistent:persistent||null,
-      active_objective:next.active_objective||null,
-      completed_at:new Date().toISOString()
-    };
+    next.completion_records[currentCaseId]={scored:scored||null,persistent:persistent||null,active_objective:next.active_objective||null,completed_at:new Date().toISOString()};
     return {data:next,scored,persistent,active_objective:next.active_objective||null,reused:false};
   }
 
@@ -191,39 +136,24 @@
 
   function renderModel(model,scored){
     if(!model)return '';
-    const improved=model.improved.length
-      ?model.improved.map(d=>`${d.label} ${pct(d.prior_rate)}→${pct(d.current_rate)}`).join(' ／ ')
-      :'比較可能な明確な改善はまだありません。';
-    const recurred=model.recurred.length
-      ?model.recurred.map(d=>`${d.label}（今回${pct(d.current_rate)}、過去${d.prior_cases_with_issue}症例でも出現）`).join(' ／ ')
-      :'過去症例から繰り返した調整課題は目立ちません。';
-    const priority=scored?.persistent_streak>=PERSISTENT_FAILURE_THRESHOLD
-      ?`「${scored.label}」が${scored.persistent_streak}症例連続未達のため、次症例も同じ領域を重点継続します。正解単位ではなく、対応する血糖と実投与量の方向を毎日確認します。`
-      :model.priority
-        ?`次症例では「${model.priority.label}」を最優先で確認してください。正解単位を当てに行くのではなく、対応する血糖と実投与量の方向を毎日確認します。`
-        :'次症例では現在の安全な処方判断を維持し、hidden excursionとscale救済の有無を確認してください。';
+    const improved=model.improved.length?model.improved.map(d=>`${d.label} ${pct(d.prior_rate)}→${pct(d.current_rate)}`).join(' ／ '):'比較可能な明確な改善はまだありません。';
+    const recurred=model.recurred.length?model.recurred.map(d=>`${d.label}（今回${pct(d.current_rate)}、過去${d.prior_cases_with_issue}症例でも出現）`).join(' ／ '):'過去症例から繰り返した調整課題は目立ちません。';
+    const priority=scored?.persistent_streak>=PERSISTENT_FAILURE_THRESHOLD?`「${scored.label}」が${scored.persistent_streak}症例連続未達のため、次症例も同じ領域を重点継続します。正解単位ではなく、対応する血糖と実投与量の方向を毎日確認します。`:model.priority?`次症例では「${model.priority.label}」を最優先で確認してください。正解単位を当てに行くのではなく、対応する血糖と実投与量の方向を毎日確認します。`:'次症例では現在の安全な処方判断を維持し、hidden excursionとscale救済の有無を確認してください。';
     return `${objectiveScoreText(scored)}<div class="micro-note"><b>改善：</b>${improved}</div><div class="micro-note"><b>反復：</b>${recurred}</div><div class="micro-note" style="margin-top:5px"><b>次症例：</b>${priority}</div>`;
   }
 
   function load(){
     try{
       const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
-      return {
-        ...x,
-        days:Array.isArray(x.days)?x.days:[],
-        cases:Array.isArray(x.cases)?x.cases:[],
-        objectives:Array.isArray(x.objectives)?x.objectives:[],
-        completion_records:x.completion_records&&typeof x.completion_records==='object'?x.completion_records:{}
-      };
+      return {...x,days:Array.isArray(x.days)?x.days:[],cases:Array.isArray(x.cases)?x.cases:[],objectives:Array.isArray(x.objectives)?x.objectives:[],completion_records:x.completion_records&&typeof x.completion_records==='object'?x.completion_records:{}};
     }catch{return {days:[],cases:[],objectives:[],completion_records:{}}}
   }
 
   function save(data){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}catch{}}
 
   function rerenderLearningCurve(){
-    try{
-      if(typeof window!=='undefined'&&window.LearningCurve?.render)window.LearningCurve.render();
-    }catch(e){console.error('learning curve rerender',e)}
+    try{if(typeof window!=='undefined'&&window.LearningCurve?.render)window.LearningCurve.render();}
+    catch(e){console.error('learning curve rerender',e)}
   }
 
   function ensurePanel(){
@@ -236,9 +166,30 @@
     el.id='caseDebrief';
     el.className='section-block hidden';
     el.style.marginTop='14px';
-    el.innerHTML='<div class="section-title"><span>D</span> 学習目標 / 症例終了debrief</div><div id="caseDebriefBody"></div>';
+    el.innerHTML='<div class="section-title"><span>D</span> 症例終了debrief</div><div id="caseDebriefBody"></div>';
     result.parentNode.insertBefore(el,result.nextSibling);
     return el;
+  }
+
+  function renderActiveFocus(data,caseId){
+    if(typeof document==='undefined')return;
+    const el=document.querySelector('#learningFocus');
+    if(!el)return;
+    const objective=data?.active_objective;
+    if(!objective||objective.source_case_id===caseId){
+      el.classList.add('hidden');
+      el.classList.remove('persistent');
+      return;
+    }
+    const streak=Number(objective.persistent_streak)||0;
+    const title=el.querySelector('#learningFocusTitle');
+    const body=el.querySelector('#learningFocusBody');
+    const status=el.querySelector('#learningFocusStatus');
+    if(title)title.textContent=objective.label||objective.domain_id||'今回の学習目標';
+    if(body)body.textContent='対応する血糖と実投与量の方向を確認してから処方します。症例終了時にこの1領域の改善を判定します。';
+    if(status)status.textContent=streak>=PERSISTENT_FAILURE_THRESHOLD?`${streak}症例連続未達`:'今回の1目標';
+    el.classList.toggle('persistent',streak>=PERSISTENT_FAILURE_THRESHOLD);
+    el.classList.remove('hidden');
   }
 
   function refresh(){
@@ -248,20 +199,18 @@
       const body=el.querySelector('#caseDebriefBody');
       const data=load();
       const caseId=state.case?.case_id||'unknown';
+      renderActiveFocus(data,caseId);
       if(!state?.over){
-        const objective=data.active_objective;
-        if(objective&&objective.source_case_id!==caseId){
-          const streak=Number(objective.persistent_streak)||0;
-          const prefix=streak>=PERSISTENT_FAILURE_THRESHOLD?`<b>重点課題：</b>${objective.label}（${streak}症例連続未達）。`:`<b>今回の学習目標：</b>${objective.label}。`;
-          if(body)body.innerHTML=`<div class="micro-note">${prefix} 対応する血糖と実投与量の方向を毎日確認し、この症例終了時に改善を判定します。</div>`;
-          el.classList.remove('hidden');
-        }else el.classList.add('hidden');
+        // During an active case the one prospective target lives beside the order form.
+        // Keep the debrief area terminal-only so the same instruction is not scattered twice.
+        el.classList.add('hidden');
         return;
       }
       const model=analyze(data,caseId);
       const applied=applyCompletion(data,caseId,model);
       save(applied.data);
       rerenderLearningCurve();
+      renderActiveFocus(applied.data,caseId);
       if(body)body.innerHTML=renderModel(model,applied.scored);
       el.classList.remove('hidden');
     }catch(e){console.error('case debrief',e)}
@@ -289,5 +238,5 @@
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);
     else mount();
   }
-  return {analyze,renderModel,caseRates,scoreObjective,applyCompletion,failedObjectiveStreak,persistentFailure,refresh,DOMAIN_DEFS};
+  return {analyze,renderModel,caseRates,scoreObjective,applyCompletion,failedObjectiveStreak,persistentFailure,renderActiveFocus,refresh,DOMAIN_DEFS};
 });
