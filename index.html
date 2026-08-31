@@ -50,6 +50,17 @@
       <div class="micro-note">この食事量を見て、朝・昼・夕のrapidを決めてください。</div>
     </section>
 
+    <section id="previousFeedback" class="learning-focus hidden" aria-live="polite">
+      <div class="learning-focus-kicker">YESTERDAY → TODAY</div>
+      <div class="learning-focus-row">
+        <div>
+          <div class="learning-focus-title">前日の1点</div>
+          <div id="previousFeedbackBody" class="learning-focus-body"></div>
+        </div>
+        <div class="learning-focus-status">処方前に再確認</div>
+      </div>
+    </section>
+
     <section id="learningFocus" class="learning-focus hidden" aria-live="polite">
       <div class="learning-focus-kicker">LEARNING FOCUS</div>
       <div class="learning-focus-row">
@@ -85,6 +96,7 @@
 <script src="latest_insulin_summary.js?v=public-summary"></script>
 <script src="discharge_rule.js?v=20260831-discharge2"></script>
 <script src="daily_feedback.js?v=20260831-feedback5"></script>
+<script src="feedback_carryover.js?v=20260831-carry1"></script>
 <script src="learning_curve.js?v=20260831-learning4"></script>
 <script src="case_debrief.js?v=20260831-debrief6"></script>
 </body>
