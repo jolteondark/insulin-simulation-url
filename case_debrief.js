@@ -179,9 +179,11 @@
     const recurred=model.recurred.length
       ?model.recurred.map(d=>`${d.label}（今回${pct(d.current_rate)}、過去${d.prior_cases_with_issue}症例でも出現）`).join(' ／ ')
       :'過去症例から繰り返した調整課題は目立ちません。';
-    const priority=model.priority
-      ?`次症例では「${model.priority.label}」を最優先で確認してください。正解単位を当てに行くのではなく、対応する血糖と実投与量の方向を毎日確認します。`
-      :'次症例では現在の安全な処方判断を維持し、hidden excursionとscale救済の有無を確認してください。';
+    const priority=scored?.persistent_streak>=PERSISTENT_FAILURE_THRESHOLD
+      ?`「${scored.label}」が${scored.persistent_streak}症例連続未達のため、次症例も同じ領域を重点継続します。正解単位ではなく、対応する血糖と実投与量の方向を毎日確認します。`
+      :model.priority
+        ?`次症例では「${model.priority.label}」を最優先で確認してください。正解単位を当てに行くのではなく、対応する血糖と実投与量の方向を毎日確認します。`
+        :'次症例では現在の安全な処方判断を維持し、hidden excursionとscale救済の有無を確認してください。';
     return `${objectiveScoreText(scored)}<div class="micro-note"><b>改善：</b>${improved}</div><div class="micro-note"><b>反復：</b>${recurred}</div><div class="micro-note" style="margin-top:5px"><b>次症例：</b>${priority}</div>`;
   }
 
