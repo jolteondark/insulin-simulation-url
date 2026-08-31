@@ -252,15 +252,15 @@
     if(typeof document==='undefined')return;
     ensurePanel();
     const submit=document.querySelector('#submitBtn');
-    if(submit)submit.addEventListener('click',()=>setTimeout(refresh,45));
+    if(submit)submit.addEventListener('click',refresh);
     const next=document.querySelector('#newCaseBtn');
-    if(next)next.addEventListener('click',()=>setTimeout(refresh,0));
+    if(next)next.addEventListener('click',refresh);
     const result=document.querySelector('#resultPanel');
     if(result&&!result.dataset.caseDebriefTransitionMounted){
       result.dataset.caseDebriefTransitionMounted='1';
       result.addEventListener('click',event=>{
         const restart=event.target?.closest?.('#restartBtn');
-        if(restart)setTimeout(refresh,0);
+        if(restart)refresh();
       });
     }
     refresh();
@@ -270,5 +270,5 @@
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);
     else mount();
   }
-  return {analyze,renderModel,caseRates,scoreObjective,applyCompletion,failedObjectiveStreak,persistentFailure,DOMAIN_DEFS};
+  return {analyze,renderModel,caseRates,scoreObjective,applyCompletion,failedObjectiveStreak,persistentFailure,refresh,DOMAIN_DEFS};
 });
