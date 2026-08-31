@@ -140,10 +140,12 @@
     const submit=document.querySelector('#submitBtn');
     if(!submit||submit.dataset.dailyFeedbackMounted)return;
     submit.dataset.dailyFeedbackMounted='1';
-    submit.addEventListener('click',()=>setTimeout(annotateLatest,5));
+    // discharge_rule.js mounts first; app.js onclick commits the simulated day before
+    // both listeners. Feedback therefore runs after terminal status is known.
+    submit.addEventListener('click',annotateLatest);
   }
 
-  const api={analyze,emphasizeForObjective,renderHtml,annotateLatest,version:'1.2.0'};
+  const api={analyze,emphasizeForObjective,renderHtml,annotateLatest,version:'1.3.0'};
   if(root)root.DailyFeedback=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
