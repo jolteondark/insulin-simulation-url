@@ -23,6 +23,16 @@
     fasting_setpoint_mg_dl:12,
     previous_day_bg_mg_dl:30
   };
+  // A persistent weakness should get a clearer practice opportunity, not a
+  // custom patient. We therefore prefer a moderate visible prior-day signal in
+  // the POC slot that corresponds to that objective, while selecting only from
+  // otherwise normal generator outputs that also pass the drift guard below.
+  const DOMAIN_FOCUS={
+    basal:{point:'pre_breakfast',target:120,desired_deviation:25},
+    breakfast_rapid:{point:'pre_lunch',target:140,desired_deviation:35},
+    lunch_rapid:{point:'pre_dinner',target:140,desired_deviation:35},
+    dinner_rapid:{point:'bedtime',target:160,desired_deviation:35}
+  };
 
   function loadObjective(){
     try{
@@ -32,12 +42,39 @@
     }catch{return null}
   }
 
+  function finiteNumber(x){const n=Number(x);return Number.isFinite(n)?n:null}
+
+  function focusMeasure(bundle,domain){
+    const p=bundle.patient||{},bg=bundle.case?.previous_day_4point_bg_mg_dl||{};
+    const spec=DOMAIN_FOCUS[domain];
+    if(spec){
+      const value=finiteNumber(bg[spec.point]);
+      if(value==null)return {kind:'poc_signal',point:spec.point,value:null,target:spec.target,deviation:null,desired_deviation:spec.desired_deviation};
+      return {kind:'poc_signal',point:spec.point,value,target:spec.target,deviation:Math.abs(value-spec.target),desired_deviation:spec.desired_deviation};
+    }
+    if(domain==='scale_dependence'){
+      const refs=[['pre_breakfast',120],['pre_lunch',140],['pre_dinner',140]];
+      const deviations=refs.map(([point,target])=>{const value=finiteNumber(bg[point]);return value==null?null:{point,value,target,deviation:Math.abs(value-target)}}).filter(Boolean);
+      const strongest=deviations.sort((a,b)=>b.deviation-a.deviation)[0]||null;
+      return {kind:'correction_signal',strongest,desired_deviation:35,cf_mg_dl_u:finiteNumber(p.cf_mg_dl_u)};
+    }
+    if(domain==='hidden_awareness')return {kind:'pk_signal',peak_min:finiteNumber(p.insulin_action_peak_min),half_life_min:finiteNumber(p.insulin_action_half_life_min)};
+    return {kind:'sensitivity_signal',cf_mg_dl_u:finiteNumber(p.cf_mg_dl_u)};
+  }
+
   function score(bundle,domain){
-    const p=bundle.patient||{};
-    const cf=Number(p.cf_mg_dl_u)||50,peak=Number(p.insulin_action_peak_min)||80,half=Number(p.insulin_action_half_life_min)||160,bf=Number(p.basal_fraction_tdd)||.5;
-    if(domain==='hidden_awareness')return Math.abs(peak-78)/30+Math.abs(half-160)/80;
-    if(domain==='basal')return Math.abs(cf-45)/25+Math.abs(bf-.5)/.2;
-    if(domain==='scale_dependence')return Math.abs(cf-45)/25;
+    const p=bundle.patient||{},measure=focusMeasure(bundle,domain);
+    if(measure.kind==='poc_signal'&&measure.deviation!=null)return Math.abs(measure.deviation-measure.desired_deviation)/Math.max(measure.desired_deviation,1);
+    if(measure.kind==='correction_signal'&&measure.strongest){
+      const signal=Math.abs(measure.strongest.deviation-measure.desired_deviation)/measure.desired_deviation;
+      const cf=Number(p.cf_mg_dl_u)||50;
+      return signal+.20*Math.abs(cf-45)/25;
+    }
+    if(domain==='hidden_awareness'){
+      const peak=Number(p.insulin_action_peak_min)||80,half=Number(p.insulin_action_half_life_min)||160;
+      return Math.abs(peak-78)/30+Math.abs(half-160)/80;
+    }
+    const cf=Number(p.cf_mg_dl_u)||50;
     return Math.abs(cf-45)/25;
   }
 
@@ -69,7 +106,7 @@
     const xs=[];
     for(let i=0;i<POOL;i++){
       const s=(seed+i*0x9E3779B9)>>>0;
-      try{const b=generate(s);xs.push({b,s,v:score(b,objective.domain_id)})}catch{}
+      try{const b=generate(s);xs.push({b,s,v:score(b,objective.domain_id),focus:focusMeasure(b,objective.domain_id)})}catch{}
     }
     if(!xs.length)throw new Error('No safe generated candidate available');
     const standard=xs[0];
@@ -85,12 +122,16 @@
       selected_seed:pick.s,
       standard_seed:standard.s,
       fallback_to_standard:pick.s===standard.s&&eligible.length===1,
+      selected_score:pick.v,
+      standard_score:standard.v,
+      selected_focus:pick.focus,
+      standard_focus:standard.focus,
       selected_drift:pick.drift,
       drift_limits:{...MAX_DRIFT},
-      policy:'standard generator outputs only; every candidate retains the normal physiology and prior-day safety gates; target-aware selection is additionally bounded to the standard same-seed case on core response traits and prior-day four-point difficulty, otherwise it falls back to standard generation without altering physiology, orders, context, or hidden answers'
+      policy:'standard generator outputs only; every candidate retains the normal physiology and prior-day safety gates; persistent objectives may bias selection toward a moderate visible prior-day signal in the matching POC domain, but selection is bounded to the standard same-seed case on core response traits and prior-day four-point difficulty and otherwise falls back to standard generation without altering physiology, orders, context, or hidden answers'
     }};
   }
 
   function selectStored(generate,seed){return select(generate,seed,loadObjective())}
-  return {select,selectStored,loadObjective,score,driftFromStandard,MAX_DRIFT,MIN_STREAK,POOL};
+  return {select,selectStored,loadObjective,score,focusMeasure,driftFromStandard,MAX_DRIFT,DOMAIN_FOCUS,MIN_STREAK,POOL};
 });
