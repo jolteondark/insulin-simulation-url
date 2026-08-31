@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="theme-color" content="#f2f4f7" />
 <title>WARD GLUCOSE — Inpatient Insulin Simulation</title>
-<link rel="stylesheet" href="style.css?v=20260825-scale2" />
+<link rel="stylesheet" href="style.css?v=20260831-focus1" />
 </head>
 <body>
 <div class="app-shell">
@@ -50,6 +50,17 @@
       <div class="micro-note">この食事量を見て、朝・昼・夕のrapidを決めてください。</div>
     </section>
 
+    <section id="learningFocus" class="learning-focus hidden" aria-live="polite">
+      <div class="learning-focus-kicker">LEARNING FOCUS</div>
+      <div class="learning-focus-row">
+        <div>
+          <div id="learningFocusTitle" class="learning-focus-title">今回見る1点</div>
+          <div id="learningFocusBody" class="learning-focus-body"></div>
+        </div>
+        <div id="learningFocusStatus" class="learning-focus-status"></div>
+      </div>
+    </section>
+
     <section class="order-card">
       <div class="order-head"><div><div class="section-kicker">ORDER</div><h2>今日の処方</h2></div><div class="order-note">当院：整数 U</div></div>
       <div id="doseGrid" class="dose-grid"></div>
@@ -73,6 +84,6 @@
 <script src="discharge_rule.js?v=20260831-discharge2"></script>
 <script src="daily_feedback.js?v=20260831-feedback4"></script>
 <script src="learning_curve.js?v=20260831-learning4"></script>
-<script src="case_debrief.js?v=20260831-debrief5"></script>
+<script src="case_debrief.js?v=20260831-debrief6"></script>
 </body>
 </html>
