@@ -94,26 +94,42 @@
       hit[0].priority=true;
       return {...analysis,items:[...hit,...rest],objective_emphasis:true};
     }
-    const reminder={
-      kind:'objective',
-      tag:null,
-      priority:true,
-      text:`【今回の学習目標：${label}${streak>=2?`／${streak}症例連続未達`:''}】 この日は明確な同領域エラーは出ていません。対応する血糖と実投与量が安定しているかを維持して確認します。`
-    };
+    const reminder={kind:'objective',tag:null,priority:true,text:`【今回の学習目標：${label}${streak>=2?`／${streak}症例連続未達`:''}】 この日は明確な同領域エラーは出ていません。対応する血糖と実投与量が安定しているかを維持して確認します。`};
     return {...analysis,items:[reminder,...items],objective_emphasis:true};
   }
 
+  function priorityScore(item){
+    if(item?.tag==='hidden_low_near_miss')return 100;
+    if(item?.tag==='hidden_high_excursion')return 95;
+    if(item?.priority)return 90;
+    if(item?.kind==='low')return 80;
+    if(item?.kind==='high')return 70;
+    if(item?.kind==='scale')return 60;
+    if(item?.kind==='stable')return 50;
+    return 40;
+  }
+
+  function selectPrimary(analysis){
+    const items=(analysis?.items||[]).map((x,i)=>({...x,_i:i}));
+    if(!items.length)return {primary:null,secondary:[]};
+    items.sort((a,b)=>priorityScore(b)-priorityScore(a)||a._i-b._i);
+    const primary=items[0];
+    const secondary=items.slice(1).sort((a,b)=>a._i-b._i);
+    delete primary._i;
+    secondary.forEach(x=>delete x._i);
+    return {primary,secondary};
+  }
+
   function renderHtml(analysis){
-    const heading=analysis.objective_emphasis?'今回の学習目標を優先':'次の処方で見直す点';
-    const stableHeading=analysis.stable&&!analysis.objective_emphasis?'次の処方：維持して再現性を確認':heading;
-    return `<div class="feedback-box daily-feedback"><div class="feedback-title">${stableHeading}</div><ul class="feedback-list">${analysis.items.slice(0,4).map(x=>`<li>${x.text}</li>`).join('')}</ul></div>`;
+    const {primary,secondary}=selectPrimary(analysis);
+    if(!primary)return '';
+    const heading=analysis.stable&&!analysis.objective_emphasis?'次の処方：維持して再現性を確認':'次に変える1点';
+    const extras=secondary.length?`<details class="feedback-details"><summary>補足 ${secondary.length}点</summary><ul class="feedback-list">${secondary.slice(0,4).map(x=>`<li>${x.text}</li>`).join('')}</ul></details>`:'';
+    return `<div class="feedback-box daily-feedback"><div class="feedback-title">${heading}</div><div class="feedback-primary">${primary.text}</div>${extras}</div>`;
   }
 
   function loadObjective(){
-    try{
-      const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
-      return x?.active_objective||null;
-    }catch{return null}
+    try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');return x?.active_objective||null;}catch{return null}
   }
 
   function annotateLatest(){
@@ -123,9 +139,8 @@
       if(!rec?.result)return;
       const terminal=Boolean(state.over)||Number(rec.result.min)<70||Number(rec.result.max)>400;
       const analysis=emphasizeForObjective(analyze(rec,state.case||{}),loadObjective());
-      rec.education_feedback={tags:[...analysis.tags],stable:analysis.stable,items:analysis.items.map(x=>x.text)};
-      // Terminal days still need feedback tags for case-level learning/debrief.
-      // The dedicated GAME OVER / DISCHARGE panel owns terminal-day rendering.
+      const chosen=selectPrimary(analysis);
+      rec.education_feedback={tags:[...analysis.tags],stable:analysis.stable,primary_tag:chosen.primary?.tag||null,primary_text:chosen.primary?.text||null,items:analysis.items.map(x=>x.text)};
       if(terminal)return;
       const panel=document.querySelector('#resultPanel');
       if(!panel||panel.querySelector('.daily-feedback'))return;
@@ -140,12 +155,10 @@
     const submit=document.querySelector('#submitBtn');
     if(!submit||submit.dataset.dailyFeedbackMounted)return;
     submit.dataset.dailyFeedbackMounted='1';
-    // discharge_rule.js mounts first; app.js onclick commits the simulated day before
-    // both listeners. Feedback therefore runs after terminal status is known.
     submit.addEventListener('click',annotateLatest);
   }
 
-  const api={analyze,emphasizeForObjective,renderHtml,annotateLatest,version:'1.3.0'};
+  const api={analyze,emphasizeForObjective,selectPrimary,renderHtml,annotateLatest,version:'1.4.0'};
   if(root)root.DailyFeedback=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
