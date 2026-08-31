@@ -79,6 +79,7 @@
       data.cases[idx]={...data.cases[idx],adaptive_practice:record};
       save(root,data);
       render(root,record);
+      root.CaseLearningProgress?.refresh?.();
       return record;
     }catch{return null}
   }
@@ -114,5 +115,5 @@
     root.document.querySelector('#resultPanel')?.addEventListener('click',e=>{if(e.target?.closest?.('#restartBtn'))captureAfterStart(root)});
   }
 
-  return {practiceRecord,scoredObjective,statusLabel,domainLabel,currentState,mount,version:'1.0.1'};
+  return {practiceRecord,scoredObjective,statusLabel,domainLabel,currentState,mount,version:'1.0.2'};
 });
