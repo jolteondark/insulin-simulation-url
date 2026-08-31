@@ -30,8 +30,13 @@
   function load(){
     try{
       const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
-      return {days:Array.isArray(x.days)?x.days:[],cases:Array.isArray(x.cases)?x.cases:[]};
-    }catch{return {days:[],cases:[]}}
+      return {
+        ...x,
+        days:Array.isArray(x.days)?x.days:[],
+        cases:Array.isArray(x.cases)?x.cases:[],
+        objectives:Array.isArray(x.objectives)?x.objectives:[]
+      };
+    }catch{return {days:[],cases:[],objectives:[]}}
   }
 
   function save(data){
@@ -230,6 +235,20 @@
     return `症例横断で反復：${repeated.map(x=>`${feedbackLabels[x.tag]||x.tag} ${x.cases}症例/${x.days}日`).join(' ／ ')}`;
   }
 
+  function objectiveText(data){
+    const xs=Array.isArray(data.objectives)?data.objectives:[];
+    if(!xs.length){
+      const active=data.active_objective;
+      return active?`今回の学習目標：${active.label}（症例終了時に改善を判定）`:'prospectiveな症例目標は次のdebriefから記録されます。';
+    }
+    const resolved=xs.filter(x=>x.status==='resolved').length;
+    const improved=xs.filter(x=>x.status==='improved').length;
+    const unresolved=xs.filter(x=>x.status==='not_resolved').length;
+    const latest=xs[xs.length-1];
+    const label=latest.status==='resolved'?'達成':latest.status==='improved'?'改善':'未達';
+    return `症例目標の成績：達成 ${resolved}/${xs.length} ／ 改善 ${improved}/${xs.length} ／ 未達 ${unresolved}/${xs.length}。直近：${latest.label}（${label}）`;
+  }
+
   function caseTrendHtml(data){
     const trend=caseDomainTrend(data);
     if(!trend.ready)return `<div class="micro-note">4症例完了すると、初期症例群と最近症例群で調整課題の発生率を比較します（現在 ${trend.n}症例）。</div>`;
@@ -262,6 +281,7 @@
       <div class="micro-note" style="margin-top:9px">${trendText(days)}</div>
       <div class="micro-note">${prescribingText(days)}</div>
       <div class="micro-note">${recurrenceText(days)}</div>
+      <div class="micro-note">${objectiveText(data)}</div>
       ${caseTrendHtml(data)}
       ${completedDays.length?`<div class="micro-note">完了症例の平均日数：${mean(completedDays).toFixed(1)}日（${completed}症例）</div>`:''}`;
   }
@@ -285,7 +305,7 @@
     render();
   }
 
-  const api={load,render,recurrenceStats,caseDomainSummary,completedCaseSummaries,caseDomainTrend,version:'1.3.0'};
+  const api={load,render,recurrenceStats,caseDomainSummary,completedCaseSummaries,caseDomainTrend,objectiveText,version:'1.4.0'};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof window!=='undefined')window.LearningCurve=api;
   if(typeof document!=='undefined'){
