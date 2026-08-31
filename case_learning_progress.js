@@ -5,6 +5,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   const STORAGE_KEY='ward_glucose_learning_curve_v1';
   const GROUP_N=3;
+  const REPEATED_UNMET_N=2;
 
   function load(){
     try{
@@ -65,6 +66,15 @@
     return {ready:true,n:completed.length,group_n:groupN,metrics};
   }
 
+  function trailingUnresolved(xs){
+    let n=0;
+    for(let i=xs.length-1;i>=0;i--){
+      if(xs[i].objective_status!=='not_resolved')break;
+      n++;
+    }
+    return n;
+  }
+
   function summarizeAdaptivePractice(data){
     const rows=(Array.isArray(data?.cases)?data.cases:[])
       .map(c=>({case_id:c.case_id,...(c.adaptive_practice||{})}))
@@ -73,11 +83,21 @@
     const domains=[...new Set(scored.map(x=>x.domain_id))].map(domainId=>{
       const xs=scored.filter(x=>x.domain_id===domainId);
       const improved=xs.filter(x=>x.objective_status==='resolved'||x.objective_status==='improved').length;
-      return {domain_id:domainId,label:DOMAIN_LABELS[domainId]||domainId,n:xs.length,improved,rate:xs.length?improved/xs.length:null};
+      const unresolved_streak=trailingUnresolved(xs);
+      return {
+        domain_id:domainId,
+        label:DOMAIN_LABELS[domainId]||domainId,
+        n:xs.length,
+        improved,
+        rate:xs.length?improved/xs.length:null,
+        unresolved_streak,
+        repeated_unmet:unresolved_streak>=REPEATED_UNMET_N
+      };
     }).sort((a,b)=>b.n-a.n||a.label.localeCompare(b.label,'ja'));
+    const attention=domains.filter(x=>x.repeated_unmet).sort((a,b)=>b.unresolved_streak-a.unresolved_streak||b.n-a.n||a.label.localeCompare(b.label,'ja'));
     const improved=scored.filter(x=>x.objective_status==='resolved'||x.objective_status==='improved').length;
     const fallback=(Array.isArray(data?.cases)?data.cases:[]).filter(c=>c.adaptive_practice?.practice_opportunity==='standard_case').length;
-    return {ready:scored.length>0,n:scored.length,improved,rate:scored.length?improved/scored.length:null,domains,fallback};
+    return {ready:scored.length>0,n:scored.length,improved,rate:scored.length?improved/scored.length:null,domains,attention,fallback,repeated_unmet_n:REPEATED_UNMET_N};
   }
 
   function pct(x){return x==null?'—':`${Math.round(100*x)}%`}
@@ -93,7 +113,10 @@
     if(!summary.ready)return '';
     const rows=summary.domains.map(x=>`<div class="prev-dose"><div class="name">${x.label}</div><div class="value" style="font-size:15px">${x.improved}/${x.n}症例</div><div class="micro-note">改善 ${pct(x.rate)}</div></div>`).join('');
     const fallback=summary.fallback?` ／ drift guardで標準症例 ${summary.fallback}件`:'';
-    return `<div id="adaptivePracticeProgress" style="margin-top:10px"><div class="micro-note"><b>重点練習後の改善：</b>${summary.improved}/${summary.n}症例（${pct(summary.rate)}）${fallback}</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px">${rows}</div></div>`;
+    const attention=summary.attention?.length
+      ? `<div class="micro-note" style="margin-top:7px"><b>反復未達：</b>${summary.attention.map(x=>`${x.label}（直近${x.unresolved_streak}回未達）`).join(' ／ ')}。次の重点練習で継続確認します。</div>`
+      : '';
+    return `<div id="adaptivePracticeProgress" style="margin-top:10px"><div class="micro-note"><b>重点練習後の改善：</b>${summary.improved}/${summary.n}症例（${pct(summary.rate)}）${fallback}</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px">${rows}</div>${attention}</div>`;
   }
 
   function renderHtml(summary,adaptiveSummary){
@@ -132,5 +155,5 @@
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);
     else mount();
   }
-  return {caseMetric,summarize,summarizeAdaptivePractice,renderAdaptiveHtml,renderHtml,refresh,METRICS,DOMAIN_LABELS,version:'1.1.0'};
+  return {caseMetric,summarize,summarizeAdaptivePractice,renderAdaptiveHtml,renderHtml,refresh,METRICS,DOMAIN_LABELS,REPEATED_UNMET_N,version:'1.2.0'};
 });
