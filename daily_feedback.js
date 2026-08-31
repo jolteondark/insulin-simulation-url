@@ -118,11 +118,13 @@
 
   function annotateLatest(){
     try{
-      if(typeof state==='undefined'||!state?.history?.length||state.over)return;
+      if(typeof state==='undefined'||!state?.history?.length)return;
       const rec=state.history[state.history.length-1];
-      if(!rec?.result||Number(rec.result.min)<70||Number(rec.result.max)>400)return;
+      if(!rec?.result)return;
+      const terminal=Boolean(state.over)||Number(rec.result.min)<70||Number(rec.result.max)>400;
       const analysis=emphasizeForObjective(analyze(rec,state.case||{}),loadObjective());
       rec.education_feedback={tags:[...analysis.tags],stable:analysis.stable,items:analysis.items.map(x=>x.text)};
+      if(terminal)return;
       const panel=document.querySelector('#resultPanel');
       if(!panel||panel.querySelector('.daily-feedback'))return;
       const button=panel.querySelector('.next-btn');
@@ -139,7 +141,7 @@
     submit.addEventListener('click',()=>setTimeout(annotateLatest,5));
   }
 
-  const api={analyze,emphasizeForObjective,renderHtml,version:'1.1.0'};
+  const api={analyze,emphasizeForObjective,renderHtml,annotateLatest,version:'1.2.0'};
   if(root)root.DailyFeedback=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
