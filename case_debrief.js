@@ -201,6 +201,12 @@
 
   function save(data){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}catch{}}
 
+  function rerenderLearningCurve(){
+    try{
+      if(typeof window!=='undefined'&&window.LearningCurve?.render)window.LearningCurve.render();
+    }catch(e){console.error('learning curve rerender',e)}
+  }
+
   function ensurePanel(){
     if(typeof document==='undefined')return null;
     let el=document.querySelector('#caseDebrief');
@@ -236,6 +242,7 @@
       const model=analyze(data,caseId);
       const applied=applyCompletion(data,caseId,model);
       save(applied.data);
+      rerenderLearningCurve();
       if(body)body.innerHTML=renderModel(model,applied.scored);
       el.classList.remove('hidden');
     }catch(e){console.error('case debrief',e)}
@@ -248,6 +255,14 @@
     if(submit)submit.addEventListener('click',()=>setTimeout(refresh,45));
     const next=document.querySelector('#newCaseBtn');
     if(next)next.addEventListener('click',()=>setTimeout(refresh,0));
+    const result=document.querySelector('#resultPanel');
+    if(result&&!result.dataset.caseDebriefTransitionMounted){
+      result.dataset.caseDebriefTransitionMounted='1';
+      result.addEventListener('click',event=>{
+        const restart=event.target?.closest?.('#restartBtn');
+        if(restart)setTimeout(refresh,0);
+      });
+    }
     refresh();
   }
 
