@@ -3,12 +3,22 @@
   const POC_MAX=180;
   const HIDDEN_TARGET_MIN=70;
   const HIDDEN_TARGET_MAX=250;
+  const STORAGE_KEY='ward_glucose_learning_curve_v1';
 
   const slotSpec={
     pre_breakfast:{name:'朝前',focus:'前夜から効いていた basal',tagLow:'basal_excess',tagHigh:'basal_deficit'},
     pre_lunch:{name:'昼前',focus:'朝 rapid',doseKey:'breakfast_u',tagLow:'breakfast_rapid_excess',tagHigh:'breakfast_rapid_deficit'},
     pre_dinner:{name:'夕前',focus:'昼 rapid',doseKey:'lunch_u',tagLow:'lunch_rapid_excess',tagHigh:'lunch_rapid_deficit'},
     bedtime:{name:'眠前',focus:'夕 rapid',doseKey:'dinner_u',tagLow:'dinner_rapid_excess',tagHigh:'dinner_rapid_deficit'}
+  };
+
+  const objectiveTags={
+    basal:['basal_excess','basal_deficit'],
+    breakfast_rapid:['breakfast_rapid_excess','breakfast_rapid_deficit'],
+    lunch_rapid:['lunch_rapid_excess','lunch_rapid_deficit'],
+    dinner_rapid:['dinner_rapid_excess','dinner_rapid_deficit'],
+    scale_dependence:['scale_dependence'],
+    hidden_awareness:['hidden_low_near_miss','hidden_high_excursion']
   };
 
   function finite(x){return Number.isFinite(Number(x))}
@@ -70,9 +80,40 @@
     return {tags,items,stable};
   }
 
+  function emphasizeForObjective(analysis,objective){
+    if(!analysis||!objective?.domain_id)return analysis;
+    const wanted=new Set(objectiveTags[objective.domain_id]||[]);
+    if(!wanted.size)return analysis;
+    const items=(analysis.items||[]).map(x=>({...x}));
+    const hit=items.filter(x=>wanted.has(x.tag));
+    const rest=items.filter(x=>!wanted.has(x.tag));
+    const streak=Number(objective.persistent_streak)||0;
+    const label=objective.label||objective.domain_id;
+    if(hit.length){
+      hit[0].text=`【今回の学習目標：${label}${streak>=2?`／${streak}症例連続未達`:''}】 ${hit[0].text}`;
+      hit[0].priority=true;
+      return {...analysis,items:[...hit,...rest],objective_emphasis:true};
+    }
+    const reminder={
+      kind:'objective',
+      tag:null,
+      priority:true,
+      text:`【今回の学習目標：${label}${streak>=2?`／${streak}症例連続未達`:''}】 この日は明確な同領域エラーは出ていません。対応する血糖と実投与量が安定しているかを維持して確認します。`
+    };
+    return {...analysis,items:[reminder,...items],objective_emphasis:true};
+  }
+
   function renderHtml(analysis){
-    const heading=analysis.stable?'次の処方：維持して再現性を確認':'次の処方で見直す点';
-    return `<div class="feedback-box daily-feedback"><div class="feedback-title">${heading}</div><ul class="feedback-list">${analysis.items.slice(0,4).map(x=>`<li>${x.text}</li>`).join('')}</ul></div>`;
+    const heading=analysis.objective_emphasis?'今回の学習目標を優先':'次の処方で見直す点';
+    const stableHeading=analysis.stable&&!analysis.objective_emphasis?'次の処方：維持して再現性を確認':heading;
+    return `<div class="feedback-box daily-feedback"><div class="feedback-title">${stableHeading}</div><ul class="feedback-list">${analysis.items.slice(0,4).map(x=>`<li>${x.text}</li>`).join('')}</ul></div>`;
+  }
+
+  function loadObjective(){
+    try{
+      const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+      return x?.active_objective||null;
+    }catch{return null}
   }
 
   function annotateLatest(){
@@ -80,7 +121,7 @@
       if(typeof state==='undefined'||!state?.history?.length||state.over)return;
       const rec=state.history[state.history.length-1];
       if(!rec?.result||Number(rec.result.min)<70||Number(rec.result.max)>400)return;
-      const analysis=analyze(rec,state.case||{});
+      const analysis=emphasizeForObjective(analyze(rec,state.case||{}),loadObjective());
       rec.education_feedback={tags:[...analysis.tags],stable:analysis.stable,items:analysis.items.map(x=>x.text)};
       const panel=document.querySelector('#resultPanel');
       if(!panel||panel.querySelector('.daily-feedback'))return;
@@ -98,7 +139,7 @@
     submit.addEventListener('click',()=>setTimeout(annotateLatest,5));
   }
 
-  const api={analyze,renderHtml,version:'1.0.0'};
+  const api={analyze,emphasizeForObjective,renderHtml,version:'1.1.0'};
   if(root)root.DailyFeedback=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
