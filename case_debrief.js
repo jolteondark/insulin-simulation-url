@@ -5,6 +5,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   const STORAGE_KEY='ward_glucose_learning_curve_v1';
   const MAX_OBJECTIVES=100;
+  const PERSISTENT_FAILURE_THRESHOLD=2;
   const DOMAIN_DEFS=[
     {id:'basal',label:'basal',tags:['basal_excess','basal_deficit']},
     {id:'breakfast_rapid',label:'朝rapid',tags:['breakfast_rapid_excess','breakfast_rapid_deficit']},
@@ -98,6 +99,25 @@
     };
   }
 
+  function failedObjectiveStreak(data,domainId){
+    const xs=Array.isArray(data?.objectives)?data.objectives:[];
+    let n=0;
+    for(let i=xs.length-1;i>=0;i--){
+      const x=xs[i];
+      if(x?.domain_id!==domainId)break;
+      if(x?.status!=='not_resolved')break;
+      n++;
+    }
+    return n;
+  }
+
+  function persistentFailure(data,domainId,threshold=PERSISTENT_FAILURE_THRESHOLD){
+    const streak=failedObjectiveStreak(data,domainId);
+    if(streak<threshold)return null;
+    const def=domainById(domainId);
+    return def?{domain_id:def.id,label:def.label,streak}:null;
+  }
+
   function applyCompletion(data,currentCaseId,model){
     const next={
       ...(data||{}),
@@ -114,16 +134,32 @@
         next.active_objective=null;
       }
     }
-    if(model?.priority){
+
+    const persistent=scored?.status==='not_resolved'?persistentFailure(next,scored.domain_id):null;
+    if(persistent){
+      scored.persistent_streak=persistent.streak;
+      next.objectives[next.objectives.length-1]=scored;
+      next.active_objective={
+        domain_id:persistent.domain_id,
+        label:persistent.label,
+        source_case_id:currentCaseId,
+        source_rate:scored.target_rate,
+        created_at:new Date().toISOString(),
+        persistent_streak:persistent.streak,
+        emphasis:'high'
+      };
+    }else if(model?.priority){
       next.active_objective={
         domain_id:model.priority.id,
         label:model.priority.label,
         source_case_id:currentCaseId,
         source_rate:model.priority.current_rate,
-        created_at:new Date().toISOString()
+        created_at:new Date().toISOString(),
+        persistent_streak:0,
+        emphasis:'normal'
       };
     }
-    return {data:next,scored,active_objective:next.active_objective||null};
+    return {data:next,scored,persistent,active_objective:next.active_objective||null};
   }
 
   function pct(x){return x==null?'—':`${Math.round(100*x)}%`}
@@ -131,7 +167,8 @@
   function objectiveScoreText(scored){
     if(!scored)return '';
     const status=scored.status==='resolved'?'達成':scored.status==='improved'?'改善':'未達';
-    return `<div class="micro-note"><b>前症例の目標：</b>${scored.label} ${pct(scored.source_rate)}→${pct(scored.target_rate)}（${status}）</div>`;
+    const persistent=scored.persistent_streak>=PERSISTENT_FAILURE_THRESHOLD?` ／ ${scored.persistent_streak}症例連続未達のため重点継続`:'';
+    return `<div class="micro-note"><b>前症例の目標：</b>${scored.label} ${pct(scored.source_rate)}→${pct(scored.target_rate)}（${status}${persistent}）</div>`;
   }
 
   function renderModel(model,scored){
@@ -187,7 +224,9 @@
       if(!state?.over){
         const objective=data.active_objective;
         if(objective&&objective.source_case_id!==caseId){
-          if(body)body.innerHTML=`<div class="micro-note"><b>今回の学習目標：</b>${objective.label}。対応する血糖と実投与量の方向を毎日確認し、この症例終了時に改善を判定します。</div>`;
+          const streak=Number(objective.persistent_streak)||0;
+          const prefix=streak>=PERSISTENT_FAILURE_THRESHOLD?`<b>重点課題：</b>${objective.label}（${streak}症例連続未達）。`:`<b>今回の学習目標：</b>${objective.label}。`;
+          if(body)body.innerHTML=`<div class="micro-note">${prefix} 対応する血糖と実投与量の方向を毎日確認し、この症例終了時に改善を判定します。</div>`;
           el.classList.remove('hidden');
         }else el.classList.add('hidden');
         return;
@@ -214,5 +253,5 @@
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);
     else mount();
   }
-  return {analyze,renderModel,caseRates,scoreObjective,applyCompletion,DOMAIN_DEFS};
+  return {analyze,renderModel,caseRates,scoreObjective,applyCompletion,failedObjectiveStreak,persistentFailure,DOMAIN_DEFS};
 });
