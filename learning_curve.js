@@ -300,12 +300,14 @@
     const submit=document.querySelector('#submitBtn');
     if(submit&&!submit.dataset.learningCurveMounted){
       submit.dataset.learningCurveMounted='1';
-      submit.addEventListener('click',()=>setTimeout(recordLatest,30));
+      // daily_feedback.js mounts before this module, so feedback tags are attached
+      // before recordLatest snapshots the completed day.
+      submit.addEventListener('click',recordLatest);
     }
     render();
   }
 
-  const api={load,render,recurrenceStats,caseDomainSummary,completedCaseSummaries,caseDomainTrend,objectiveText,version:'1.4.0'};
+  const api={load,render,recordLatest,recurrenceStats,caseDomainSummary,completedCaseSummaries,caseDomainTrend,objectiveText,version:'1.5.0'};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof window!=='undefined')window.LearningCurve=api;
   if(typeof document!=='undefined'){
