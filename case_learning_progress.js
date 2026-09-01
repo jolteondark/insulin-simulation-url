@@ -66,9 +66,9 @@
     hidden_awareness:'hidden excursion'
   };
 
-  function pooled(data,cases,metric){
+  function pooledStats(data,cases,metric){
     const xs=cases.map(c=>caseMetric(data,c.case_id,metric)).filter(v=>v!=null);
-    return xs.length?mean(xs):null;
+    return {rate:xs.length?mean(xs):null,n:xs.length};
   }
 
   function summarize(data){
@@ -77,8 +77,8 @@
     const groupN=Math.min(GROUP_N,Math.floor(completed.length/2));
     const early=completed.slice(0,groupN),recent=completed.slice(-groupN);
     const metrics=METRICS.map(m=>{
-      const before=pooled(data,early,m.id),now=pooled(data,recent,m.id);
-      return {...m,early_rate:before,recent_rate:now,delta_pp:before==null||now==null?null:100*(now-before)};
+      const before=pooledStats(data,early,m.id),now=pooledStats(data,recent,m.id);
+      return {...m,early_rate:before.rate,recent_rate:now.rate,early_n:before.n,recent_n:now.n,delta_pp:before.rate==null||now.rate==null?null:100*(now.rate-before.rate)};
     });
     return {ready:true,n:completed.length,group_n:groupN,metrics};
   }
@@ -148,7 +148,7 @@
   function renderHtml(summary,adaptiveSummary){
     const adaptive=renderAdaptiveHtml(adaptiveSummary||{ready:false});
     if(!summary.ready)return `<div id="caseLearningProgress" class="micro-note" style="margin-top:8px"><b>症例横断の学習変化：</b>${summary.n}/4症例。4症例完了後から、最近の症例で何が改善したかを表示します。${adaptive}</div>`;
-    const cards=summary.metrics.map(m=>`<div class="prev-dose"><div class="name">${m.label}</div><div class="value" style="font-size:15px">${pct(m.early_rate)} → ${pct(m.recent_rate)}</div><div class="micro-note">${deltaText(m.delta_pp)}</div></div>`).join('');
+    const cards=summary.metrics.map(m=>`<div class="prev-dose"><div class="name">${m.label}</div><div class="value" style="font-size:15px">${pct(m.early_rate)} → ${pct(m.recent_rate)}</div><div class="micro-note">${deltaText(m.delta_pp)}</div><div class="micro-note">評価 ${m.early_n}/${summary.group_n} → ${m.recent_n}/${summary.group_n}症例</div></div>`).join('');
     return `<div id="caseLearningProgress" style="margin-top:10px"><div class="micro-note"><b>症例横断の学習変化：</b>初期${summary.group_n}症例 → 最近${summary.group_n}症例</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px">${cards}</div>${adaptive}</div>`;
   }
 
@@ -181,5 +181,5 @@
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);
     else mount();
   }
-  return {caseMetric,objectiveForCase,summarize,summarizeAdaptivePractice,renderAdaptiveHtml,renderHtml,refresh,METRICS,DOMAIN_LABELS,REPEATED_UNMET_N,version:'1.4.0'};
+  return {caseMetric,objectiveForCase,summarize,summarizeAdaptivePractice,renderAdaptiveHtml,renderHtml,refresh,METRICS,DOMAIN_LABELS,REPEATED_UNMET_N,version:'1.5.0'};
 });
