@@ -25,6 +25,10 @@
   function fmt(x){const n=Number(x);return Number.isInteger(n)?String(n):n.toFixed(1)}
   function correctionFor(rec,key){const k=key.replace('_u','');return Number(rec?.result?.correction_doses_u?.[k])||0}
   function actualRapid(rec,key){return Number(rec?.order?.[key]||0)+correctionFor(rec,key)}
+  function usedCorrectionDose(rec){
+    const doses=rec?.result?.correction_doses_u||{};
+    return ['breakfast','lunch','dinner'].some(k=>Number(doses[k])>0);
+  }
   function rapidDetail(rec,spec,direction){
     const scheduled=Number(rec?.order?.[spec.doseKey]||0),extra=correctionFor(rec,spec.doseKey),actual=scheduled+extra;
     if(extra<=0)return `次処方では ${spec.focus} を${direction==='low'?'減らす':'増やす'}方向にまず再検討します。`;
@@ -57,9 +61,10 @@
       }
     }
 
-    if(rec?.result?.correction_scale){
+    const scaleUsed=usedCorrectionDose(rec);
+    if(scaleUsed){
       addTag('scale_dependence');
-      items.push({kind:'scale',tag:'scale_dependence',text:'補正スケールが発動しています。結果が良くても、scaleで救済された分を定時処方そのものの成功とは数えず、次日は定時量だけで安定するかを見直します。'});
+      items.push({kind:'scale',tag:'scale_dependence',text:'補正スケールによる追加投与が発生しています。結果が良くても、scaleで救済された分を定時処方そのものの成功とは数えず、次日は定時量だけで安定するかを見直します。'});
     }
 
     const min=Number(rec?.result?.min),max=Number(rec?.result?.max);
@@ -73,9 +78,9 @@
       items.push({kind:'hidden',tag:'hidden_high_excursion',text:`4検は目標域でも、hidden glucose は ${Math.round(max)} mg/dL まで上昇しました。点の血糖だけで良好と判定せず、食後高血糖を残していないか確認します。`});
     }
 
-    const stable=pocValues.length===4&&pocValues.every(v=>v>=POC_MIN&&v<=POC_MAX)&&finite(min)&&finite(max)&&min>=HIDDEN_TARGET_MIN&&max<=HIDDEN_TARGET_MAX&&!rec?.result?.correction_scale;
-    if(!items.length&&stable)items.push({kind:'stable',tag:null,text:'4検とhidden glucoseが目標域で、補正スケールも不要でした。大きく処方を動かさず、同じ方針が翌日も再現するか確認する場面です。'});
-    else if(!items.length)items.push({kind:'observe',tag:null,text:'致命的な逸脱はありません。4検だけでなくhidden glucoseと補正スケールの有無を確認してから次の処方を決めます。'});
+    const stable=pocValues.length===4&&pocValues.every(v=>v>=POC_MIN&&v<=POC_MAX)&&finite(min)&&finite(max)&&min>=HIDDEN_TARGET_MIN&&max<=HIDDEN_TARGET_MAX&&!scaleUsed;
+    if(!items.length&&stable)items.push({kind:'stable',tag:null,text:'4検とhidden glucoseが目標域で、補正スケールによる追加投与も不要でした。大きく処方を動かさず、同じ方針が翌日も再現するか確認する場面です。'});
+    else if(!items.length)items.push({kind:'observe',tag:null,text:'致命的な逸脱はありません。4検だけでなくhidden glucoseと補正スケールによる追加投与の有無を確認してから次の処方を決めます。'});
 
     return {tags,items,stable};
   }
@@ -158,7 +163,7 @@
     submit.addEventListener('click',annotateLatest);
   }
 
-  const api={analyze,emphasizeForObjective,selectPrimary,renderHtml,annotateLatest,version:'1.5.0'};
+  const api={analyze,emphasizeForObjective,selectPrimary,renderHtml,annotateLatest,usedCorrectionDose,version:'1.6.0'};
   if(root)root.DailyFeedback=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
