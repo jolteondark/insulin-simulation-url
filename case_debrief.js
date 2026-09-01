@@ -8,9 +8,9 @@
   const MAX_OBJECTIVES=100;
   const DOMAIN_DEFS=[
     {id:'basal',label:'basal',tags:['basal_excess','basal_deficit']},
-    {id:'breakfast_rapid',label:'朝rapid',tags:['breakfast_rapid_excess','breakfast_rapid_deficit']},
-    {id:'lunch_rapid',label:'昼rapid',tags:['lunch_rapid_excess','lunch_rapid_deficit']},
-    {id:'dinner_rapid',label:'夕rapid',tags:['dinner_rapid_excess','dinner_rapid_deficit']},
+    {id:'breakfast_rapid',label:'朝rapid（実投与）',tags:['breakfast_rapid_excess','breakfast_rapid_deficit']},
+    {id:'lunch_rapid',label:'昼rapid（実投与）',tags:['lunch_rapid_excess','lunch_rapid_deficit']},
+    {id:'dinner_rapid',label:'夕rapid（実投与）',tags:['dinner_rapid_excess','dinner_rapid_deficit']},
     {id:'scale_dependence',label:'scale依存',tags:['scale_dependence']},
     {id:'hidden_awareness',label:'hidden excursion',tags:['hidden_low_near_miss','hidden_high_excursion']}
   ];
@@ -121,5 +121,5 @@
     const result=document.querySelector('#resultPanel');if(result&&!result.dataset.caseDebriefTransitionMounted){result.dataset.caseDebriefTransitionMounted='1';result.addEventListener('click',event=>{const restart=event.target?.closest?.('#restartBtn');if(restart)refresh()})}refresh();
   }
   if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount()}
-  return {analyze,renderModel,caseRates,scoreObjective,applyCompletion,failedObjectiveStreak,persistentFailure,renderActiveFocus,renderCompletion,priorityText,refresh,DOMAIN_DEFS,version:'1.4.0'};
+  return {analyze,renderModel,caseRates,scoreObjective,applyCompletion,failedObjectiveStreak,persistentFailure,renderActiveFocus,renderCompletion,priorityText,refresh,DOMAIN_DEFS,version:'1.5.0'};
 });
