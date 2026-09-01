@@ -5,7 +5,10 @@
     if(typeof document==='undefined')return false;
     const target=document.querySelector(TARGET_SELECTOR);
     if(!target||typeof target.scrollIntoView!=='function')return false;
-    target.scrollIntoView({behavior:'smooth',block:'start'});
+    // Repeat-play is a throughput path. Use an immediate jump so any legacy
+    // smooth-scroll started by app.js is cancelled instead of competing with
+    // the navigation to the next decision-relevant card.
+    target.scrollIntoView({behavior:'auto',block:'start'});
     return true;
   }
 
@@ -24,7 +27,7 @@
     document.addEventListener('click',onClick);
   }
 
-  const api={moveToPrescriptionContext,onClick,mount,targetSelector:TARGET_SELECTOR,version:'1.0.0'};
+  const api={moveToPrescriptionContext,onClick,mount,targetSelector:TARGET_SELECTOR,version:'1.1.0'};
   if(root)root.RepeatPlayNavigation=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
