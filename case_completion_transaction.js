@@ -26,18 +26,25 @@
   }
   function save(root,data){root.localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}
 
+  function ownsTerminalCompletion(rootArg){
+    const r=rootArg||root;
+    return Boolean(r?.LearningCurve?.applyLatest);
+  }
+
   function complete(root){
     try{
       const s=currentState(root);
       if(!s?.over||!s?.case?.case_id)return null;
-      const debrief=root.WardCaseDebrief,tracking=root.WardAdaptivePracticeTracking;
+      const learning=root.LearningCurve,debrief=root.WardCaseDebrief,tracking=root.WardAdaptivePracticeTracking;
+      if(!ownsTerminalCompletion(root))return null;
       if(!debrief?.analyze||!debrief?.applyCompletion)throw new Error('WardCaseDebrief completion API is required');
       if(!tracking?.attachPractice||!tracking?.getCapturedSelection)throw new Error('WardAdaptivePracticeTracking transaction API is required');
 
       const caseId=s.case.case_id;
       const before=load(root);
-      const model=debrief.analyze(before,caseId);
-      const applied=debrief.applyCompletion(before,caseId,model);
+      const withBase=learning.applyLatest(before,s);
+      const model=debrief.analyze(withBase,caseId);
+      const applied=debrief.applyCompletion(withBase,caseId,model);
       const selection=tracking.getCapturedSelection(caseId);
       const attached=tracking.attachPractice(applied.data,caseId,selection);
       const next=attached.data;
@@ -45,8 +52,10 @@
       next.completion_records={...(next.completion_records||{}),[caseId]:{
         ...prior,
         completion_transaction:{
-          version:1,
+          version:2,
+          learning_curve_attached:true,
           adaptive_practice_attached:Boolean(attached.record),
+          write_count:1,
           committed_at:new Date().toISOString()
         }
       }};
@@ -54,7 +63,7 @@
       save(root,next);
       debrief.renderCompletion?.(next,caseId);
       if(attached.record)tracking.render?.(root,attached.record);
-      root.LearningCurve?.render?.();
+      learning.render?.();
       root.CaseLearningProgress?.refresh?.();
       return {data:next,model,scored:applied.scored||null,practice:attached.record||null};
     }catch(e){
@@ -70,5 +79,5 @@
     completeAfterTerminal(root);
   }
 
-  return {complete,currentState,load,mount,version:'1.0.0'};
+  return {complete,currentState,load,ownsTerminalCompletion,mount,version:'1.1.0'};
 });
