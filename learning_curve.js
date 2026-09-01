@@ -49,6 +49,11 @@
   function pct(n,d){return d?`${Math.round(100*n/d)}%`:'—'}
   function mean(xs){return xs.length?xs.reduce((a,b)=>a+b,0)/xs.length:null}
 
+  function correctionScaleUsed(rec){
+    const doses=rec?.result?.correction_doses_u||{};
+    return ['breakfast','lunch','dinner'].some(k=>Number(doses[k])>0);
+  }
+
   function prescribingPattern(rec,p){
     const mealCarb={breakfast:50,lunch:70,dinner:60};
     const rapidKeys=['breakfast_u','lunch_u','dinner_u'];
@@ -75,7 +80,7 @@
       rapid_near:rapidNear,
       basal_over:basalDelta!=null&&basalDelta>BASAL_ERROR_U,
       basal_under:basalDelta!=null&&basalDelta<-BASAL_ERROR_U,
-      scale_used:Boolean(rec?.result?.correction_scale)
+      scale_used:correctionScaleUsed(rec)
     };
   }
 
@@ -84,6 +89,8 @@
     const poc=['pre_breakfast','pre_lunch','pre_dinner','bedtime'].map(k=>Number(bg[k]));
     const mn=Number(rec?.result?.min),mx=Number(rec?.result?.max);
     const safe=Number.isFinite(mn)&&Number.isFinite(mx)&&mn>=70&&mx<=400;
+    // Discharge-grade intentionally still requires the scale to be switched OFF,
+    // while scale dependence below means actual correction insulin was delivered.
     const dischargeGrade=safe&&!rec?.result?.correction_scale&&poc.every(v=>Number.isFinite(v)&&v>=80&&v<=180)&&mn>=70&&mx<=250;
     const feedbackTags=Array.isArray(rec?.education_feedback?.tags)?[...new Set(rec.education_feedback.tags.filter(x=>typeof x==='string'))]:[];
     return {
@@ -92,7 +99,7 @@
       day:Number(rec.day),
       safe,
       discharge_grade:dischargeGrade,
-      used_scale:Boolean(rec?.result?.correction_scale),
+      used_scale:correctionScaleUsed(rec),
       min:mn,
       max:mx,
       prescribing:prescribingPattern(rec,p),
@@ -315,7 +322,7 @@
     render();
   }
 
-  const api={load,save,render,recordLatest,applyLatest,daySummary,recurrenceStats,caseDomainSummary,completedCaseSummaries,caseDomainTrend,objectiveText,version:'1.7.0'};
+  const api={load,save,render,recordLatest,applyLatest,daySummary,correctionScaleUsed,recurrenceStats,caseDomainSummary,completedCaseSummaries,caseDomainTrend,objectiveText,version:'1.8.0'};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof window!=='undefined')window.LearningCurve=api;
   if(typeof document!=='undefined'){
