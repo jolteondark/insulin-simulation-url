@@ -27,16 +27,19 @@
     {id:'hidden_awareness',label:'hidden excursion',tags:['hidden_low_near_miss','hidden_high_excursion']}
   ];
 
+  function normalize(x){
+    const data=x&&typeof x==='object'?x:{};
+    return {
+      ...data,
+      days:Array.isArray(data.days)?data.days:[],
+      cases:Array.isArray(data.cases)?data.cases:[],
+      objectives:Array.isArray(data.objectives)?data.objectives:[]
+    };
+  }
+
   function load(){
-    try{
-      const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
-      return {
-        ...x,
-        days:Array.isArray(x.days)?x.days:[],
-        cases:Array.isArray(x.cases)?x.cases:[],
-        objectives:Array.isArray(x.objectives)?x.objectives:[]
-      };
-    }catch{return {days:[],cases:[],objectives:[]}}
+    try{return normalize(JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'))}
+    catch{return normalize({})}
   }
 
   function save(data){
@@ -97,27 +100,42 @@
     };
   }
 
+  function applyLatest(input,s){
+    const data=normalize(input);
+    const next={...data,days:[...data.days],cases:[...data.cases],objectives:[...data.objectives]};
+    if(!s?.history?.length)return next;
+    const rec=s.history[s.history.length-1];
+    const caseId=s.case?.case_id||'unknown';
+    const d=daySummary(rec,caseId,s.p);
+    const old=next.days.findIndex(x=>x.key===d.key);
+    if(old>=0)next.days[old]=d;else next.days.push(d);
+    next.days=next.days.slice(-MAX_DAYS);
+
+    if(s.over&&!next.cases.some(x=>x.case_id===caseId)){
+      const fatal=!d.safe;
+      next.cases.push({
+        case_id:caseId,
+        outcome:fatal?'game_over':'discharged',
+        days:Number(rec.day),
+        recorded_at:new Date().toISOString()
+      });
+      next.cases=next.cases.slice(-100);
+    }
+    return next;
+  }
+
+  function transactionOwnsTerminal(s){
+    if(!s?.over)return false;
+    try{return Boolean(window?.WardCaseCompletionTransaction?.ownsTerminalCompletion?.())}
+    catch{return false}
+  }
+
   function recordLatest(){
     try{
       if(typeof state==='undefined'||!state?.history?.length)return;
-      const rec=state.history[state.history.length-1];
-      const caseId=state.case?.case_id||'unknown';
-      const data=load(),d=daySummary(rec,caseId,state.p);
-      const old=data.days.findIndex(x=>x.key===d.key);
-      if(old>=0)data.days[old]=d;else data.days.push(d);
-      data.days=data.days.slice(-MAX_DAYS);
-
-      if(state.over&&!data.cases.some(x=>x.case_id===caseId)){
-        const fatal=!d.safe;
-        data.cases.push({
-          case_id:caseId,
-          outcome:fatal?'game_over':'discharged',
-          days:Number(rec.day),
-          recorded_at:new Date().toISOString()
-        });
-        data.cases=data.cases.slice(-100);
-      }
-      save(data);render();
+      if(transactionOwnsTerminal(state))return;
+      save(applyLatest(load(),state));
+      render();
     }catch(e){console.error('learning curve',e)}
   }
 
@@ -170,10 +188,7 @@
   }
 
   function completedCaseSummaries(data){
-    return data.cases.map(c=>({
-      ...c,
-      learning:caseDomainSummary(data.days,c.case_id)
-    })).filter(c=>c.learning.recorded_days>0);
+    return data.cases.map(c=>({...c,learning:caseDomainSummary(data.days,c.case_id)})).filter(c=>c.learning.recorded_days>0);
   }
 
   function pooledDomainRate(cases,domainId){
@@ -195,13 +210,7 @@
     const domains=domainDefs.map(def=>{
       const earlyRate=pooledDomainRate(early,def.id);
       const recentRate=pooledDomainRate(recent,def.id);
-      return {
-        id:def.id,
-        label:def.label,
-        early_rate:earlyRate,
-        recent_rate:recentRate,
-        delta_pp:earlyRate==null||recentRate==null?null:100*(recentRate-earlyRate)
-      };
+      return {id:def.id,label:def.label,early_rate:earlyRate,recent_rate:recentRate,delta_pp:earlyRate==null||recentRate==null?null:100*(recentRate-earlyRate)};
     });
     return {ready:true,n:cases.length,group_n:groupN,domains};
   }
@@ -300,14 +309,12 @@
     const submit=document.querySelector('#submitBtn');
     if(submit&&!submit.dataset.learningCurveMounted){
       submit.dataset.learningCurveMounted='1';
-      // daily_feedback.js mounts before this module, so feedback tags are attached
-      // before recordLatest snapshots the completed day.
       submit.addEventListener('click',recordLatest);
     }
     render();
   }
 
-  const api={load,render,recordLatest,recurrenceStats,caseDomainSummary,completedCaseSummaries,caseDomainTrend,objectiveText,version:'1.5.0'};
+  const api={load,save,render,recordLatest,applyLatest,daySummary,recurrenceStats,caseDomainSummary,completedCaseSummaries,caseDomainTrend,objectiveText,version:'1.6.0'};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof window!=='undefined')window.LearningCurve=api;
   if(typeof document!=='undefined'){
