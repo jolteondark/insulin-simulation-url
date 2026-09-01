@@ -32,6 +32,18 @@
     }catch{return null}
   }
 
+  function shouldDisplay(carry,focusVisible){
+    if(!carry)return false;
+    if(carry.source==='previous_case'&&focusVisible)return false;
+    return true;
+  }
+
+  function learningFocusVisible(){
+    if(typeof document==='undefined')return false;
+    const focus=document.querySelector('#learningFocus');
+    return Boolean(focus&&!focus.classList?.contains?.('hidden'));
+  }
+
   function render(){
     if(typeof document==='undefined')return;
     const el=document.querySelector('#previousFeedback');
@@ -40,7 +52,11 @@
     const title=el.querySelector('.learning-focus-title');
     const kicker=el.querySelector('.learning-focus-kicker');
     const carry=latestCarryover();
-    if(!carry){el.classList.add('hidden');if(body)body.textContent='';return;}
+    if(!shouldDisplay(carry,learningFocusVisible())){
+      el.classList.add('hidden');
+      if(body)body.textContent='';
+      return;
+    }
     if(body)body.textContent=carry.text;
     if(carry.source==='previous_case'){
       if(title)title.textContent='前症例の1点';
@@ -66,7 +82,7 @@
     if(newCase)newCase.addEventListener('click',()=>queueMicrotask(render));
   }
 
-  const api={storedTerminalFeedback,latestCarryover,render,version:'1.1.0'};
+  const api={storedTerminalFeedback,latestCarryover,shouldDisplay,render,version:'1.2.0'};
   if(root)root.FeedbackCarryover=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
