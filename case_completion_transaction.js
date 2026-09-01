@@ -31,6 +31,21 @@
     return Boolean(r?.LearningCurve?.applyLatest);
   }
 
+  function completedRecord(data,caseId){
+    const rec=data?.completion_records?.[caseId];
+    return rec?.completion_transaction?rec:null;
+  }
+
+  function renderCommitted(root,data,caseId){
+    const debrief=root.WardCaseDebrief,tracking=root.WardAdaptivePracticeTracking,learning=root.LearningCurve;
+    debrief?.renderCompletion?.(data,caseId);
+    const practice=data?.cases?.find?.(c=>c.case_id===caseId)?.adaptive_practice||null;
+    if(practice)tracking?.render?.(root,practice);
+    learning?.render?.();
+    root.CaseLearningProgress?.refresh?.();
+    return practice;
+  }
+
   function complete(root){
     try{
       const s=currentState(root);
@@ -42,6 +57,12 @@
 
       const caseId=s.case.case_id;
       const before=load(root);
+      const priorCommitted=completedRecord(before,caseId);
+      if(priorCommitted){
+        const practice=renderCommitted(root,before,caseId);
+        return {data:before,model:null,scored:priorCommitted.scored||null,practice,reused:true};
+      }
+
       const withBase=learning.applyLatest(before,s);
       const model=debrief.analyze(withBase,caseId);
       const applied=debrief.applyCompletion(withBase,caseId,model);
@@ -52,7 +73,7 @@
       next.completion_records={...(next.completion_records||{}),[caseId]:{
         ...prior,
         completion_transaction:{
-          version:2,
+          version:3,
           learning_curve_attached:true,
           adaptive_practice_attached:Boolean(attached.record),
           write_count:1,
@@ -65,7 +86,7 @@
       if(attached.record)tracking.render?.(root,attached.record);
       learning.render?.();
       root.CaseLearningProgress?.refresh?.();
-      return {data:next,model,scored:applied.scored||null,practice:attached.record||null};
+      return {data:next,model,scored:applied.scored||null,practice:attached.record||null,reused:false};
     }catch(e){
       console.error('case completion transaction',e);
       return null;
@@ -79,5 +100,5 @@
     completeAfterTerminal(root);
   }
 
-  return {complete,currentState,load,ownsTerminalCompletion,mount,version:'1.1.0'};
+  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,mount,version:'1.2.0'};
 });
