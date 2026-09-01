@@ -1,11 +1,12 @@
 (function(root,factory){
-  const api=factory();
+  const routing=(root&&root.WardEducationRoutingState)||(typeof require==='function'?require('./education_routing_state.js'):null);
+  const api=factory(root,routing);
   if(typeof module==='object'&&module.exports)module.exports=api;
   else{
     root.WardAdaptivePracticeTracking=api;
     api.mount(root);
   }
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(root,routing){
   const STORAGE_KEY='ward_glucose_learning_curve_v1';
   const captured=new Map();
 
@@ -45,18 +46,13 @@
   }
 
   function lifecycle(selection,scored){
-    const before=Math.max(0,Number(selection?.persistent_streak)||0);
-    const status=scored?.status||null;
-    const persistent=before>=2;
-    if(!persistent)return {state:'not_persistent',persistent_before:before,persistent_after:before,released:false,continued:false};
-    if(status==='resolved'||status==='improved')return {state:'released',persistent_before:before,persistent_after:0,released:true,continued:false};
-    if(status==='not_resolved')return {state:'continued',persistent_before:before,persistent_after:before+1,released:false,continued:true};
-    return {state:'active',persistent_before:before,persistent_after:before,released:false,continued:false};
+    if(!routing||typeof routing.practiceLifecycle!=='function')throw new Error('WardEducationRoutingState.practiceLifecycle is required');
+    return routing.practiceLifecycle(selection,scored);
   }
 
   function practiceRecord(selection,scored){
     if(!selection)return null;
-    const routing=lifecycle(selection,scored);
+    const routingLifecycle=lifecycle(selection,scored);
     return {
       domain_id:selection.domain_id||null,
       persistent_streak:Number(selection.persistent_streak)||0,
@@ -70,7 +66,7 @@
       objective_status:scored?.status||null,
       source_rate:Number.isFinite(Number(scored?.source_rate))?Number(scored.source_rate):null,
       target_rate:Number.isFinite(Number(scored?.target_rate))?Number(scored.target_rate):null,
-      routing_lifecycle:routing,
+      routing_lifecycle:routingLifecycle,
       recorded_at:new Date().toISOString()
     };
   }
@@ -97,7 +93,7 @@
   }
 
   function statusLabel(x){return x==='resolved'?'達成':x==='improved'?'改善':x==='not_resolved'?'未達':'評価待ち'}
-  function domainLabel(id){return ({basal:'basal',breakfast_rapid:'朝rapid',lunch_rapid:'昼rapid',dinner_rapid:'夕rapid',scale_dependence:'scale依存',hidden_awareness:'hidden excursion'})[id]||id||'重点領域'}
+  function domainLabel(id){return routing?.DOMAIN_LABELS?.[id]||id||'重点領域'}
   function pct(x){return Number.isFinite(Number(x))?`${Math.round(100*Number(x))}%`:'—'}
   function lifecycleLabel(x){
     if(x?.state==='released')return `persistent解除（${x.persistent_before}回未達後に改善）`;
@@ -134,5 +130,5 @@
     root.document.querySelector('#resultPanel')?.addEventListener('click',e=>{if(e.target?.closest?.('#restartBtn'))captureAfterStart(root)});
   }
 
-  return {practiceRecord,lifecycle,scoredObjective,statusLabel,domainLabel,lifecycleLabel,currentState,mount,version:'1.1.0'};
+  return {practiceRecord,lifecycle,scoredObjective,statusLabel,domainLabel,lifecycleLabel,currentState,mount,version:'1.2.0'};
 });
