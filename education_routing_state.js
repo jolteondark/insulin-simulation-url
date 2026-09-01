@@ -24,6 +24,44 @@
     hidden_awareness:'hidden excursion'
   };
 
+  function isPersistentStreak(streak){
+    return Math.max(0,Number(streak)||0)>=REPEATED_UNMET_N;
+  }
+
+  function objectiveFailureStreak(data,domainId){
+    const xs=Array.isArray(data?.objectives)?data.objectives:[];
+    let n=0;
+    for(let i=xs.length-1;i>=0;i--){
+      const x=xs[i];
+      if(x?.domain_id!==domainId||x?.status!=='not_resolved')break;
+      n++;
+    }
+    return n;
+  }
+
+  function persistentFromObjectiveHistory(data,domainId){
+    const streak=objectiveFailureStreak(data,domainId);
+    if(!isPersistentStreak(streak))return null;
+    return {domain_id:domainId,label:DOMAIN_LABELS[domainId]||domainId,streak};
+  }
+
+  function makePersistentObjective(input){
+    const streak=Math.max(0,Number(input?.streak)||0);
+    if(!input?.domain_id||!isPersistentStreak(streak))return null;
+    return {
+      domain_id:input.domain_id,
+      label:input.label||DOMAIN_LABELS[input.domain_id]||input.domain_id,
+      source_case_id:input.source_case_id||null,
+      source_rate:Number.isFinite(Number(input.source_rate))?Number(input.source_rate):null,
+      created_at:input.created_at||new Date().toISOString(),
+      persistent_streak:streak,
+      emphasis:'high',
+      selection_reason:'persistent',
+      prior_cases_with_issue:streak,
+      routing_source:input.routing_source||'objective_history'
+    };
+  }
+
   function scoredPracticeRows(data){
     return (Array.isArray(data?.cases)?data.cases:[])
       .map((c,index)=>({case_id:c.case_id,index,...(c.adaptive_practice||{})}))
@@ -47,15 +85,14 @@
       const streak=trailingUnresolved(xs);
       const last=xs[xs.length-1]||null;
       return {domain_id:domainId,label:DOMAIN_LABELS[domainId]||domainId,streak,last};
-    }).filter(x=>x.streak>=REPEATED_UNMET_N)
+    }).filter(x=>isPersistentStreak(x.streak))
       .sort((a,b)=>b.streak-a.streak||(b.last?.index??-1)-(a.last?.index??-1)||a.label.localeCompare(b.label,'ja'));
   }
 
   function practiceLifecycle(selection,scored){
     const before=Math.max(0,Number(selection?.persistent_streak)||0);
     const status=scored?.status||null;
-    const persistent=before>=REPEATED_UNMET_N;
-    if(!persistent)return {state:'not_persistent',persistent_before:before,persistent_after:before,released:false,continued:false};
+    if(!isPersistentStreak(before))return {state:'not_persistent',persistent_before:before,persistent_after:before,released:false,continued:false};
     if(status==='resolved'||status==='improved')return {state:'released',persistent_before:before,persistent_after:0,released:true,continued:false};
     if(status==='not_resolved')return {state:'continued',persistent_before:before,persistent_after:before+1,released:false,continued:true};
     return {state:'active',persistent_before:before,persistent_after:before,released:false,continued:false};
@@ -73,19 +110,14 @@
     if(!top)return {objective:current,reason:'existing',repeated};
     const last=top.last||{};
     const sourceRate=Number.isFinite(Number(last.target_rate))?Number(last.target_rate):Number.isFinite(Number(current?.source_rate))?Number(current.source_rate):null;
-    const objective={
-      ...(current?.domain_id===top.domain_id?current:{}),
+    const objective=makePersistentObjective({
       domain_id:top.domain_id,
       label:top.label,
       source_case_id:last.case_id||current?.source_case_id||null,
       source_rate:sourceRate,
-      created_at:new Date().toISOString(),
-      persistent_streak:top.streak,
-      emphasis:'high',
-      selection_reason:'persistent',
-      prior_cases_with_issue:top.streak,
+      streak:top.streak,
       routing_source:'adaptive_practice'
-    };
+    });
     return {objective,reason:'repeated_unmet',repeated};
   }
 
@@ -106,5 +138,5 @@
     }catch{return {data:null,objective:null,reason:'storage_error',repeated:[],changed:false}}
   }
 
-  return {scoredPracticeRows,trailingUnresolved,repeatedUnmet,practiceLifecycle,isSafetyObjective,routedObjective,resolveData,resolveStored,REPEATED_UNMET_N,DOMAIN_LABELS,version:'1.1.0'};
+  return {scoredPracticeRows,trailingUnresolved,repeatedUnmet,practiceLifecycle,isPersistentStreak,objectiveFailureStreak,persistentFromObjectiveHistory,makePersistentObjective,isSafetyObjective,routedObjective,resolveData,resolveStored,REPEATED_UNMET_N,DOMAIN_LABELS,version:'1.2.0'};
 });
