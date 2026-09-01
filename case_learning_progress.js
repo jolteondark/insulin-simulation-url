@@ -10,12 +10,16 @@
   function load(){
     try{
       const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
-      return {...x,days:Array.isArray(x.days)?x.days:[],cases:Array.isArray(x.cases)?x.cases:[]};
-    }catch{return {days:[],cases:[]}}
+      return {...x,days:Array.isArray(x.days)?x.days:[],cases:Array.isArray(x.cases)?x.cases:[],objectives:Array.isArray(x.objectives)?x.objectives:[]};
+    }catch{return {days:[],cases:[],objectives:[]}}
   }
 
   function caseDays(data,caseId){return data.days.filter(d=>d.case_id===caseId)}
   function mean(xs){return xs.length?xs.reduce((a,b)=>a+b,0)/xs.length:null}
+  function objectiveForCase(data,caseId){
+    const xs=(Array.isArray(data?.objectives)?data.objectives:[]).filter(x=>x?.target_case_id===caseId);
+    return xs.length?xs[xs.length-1]:null;
+  }
 
   function caseMetric(data,caseId,metric){
     const days=caseDays(data,caseId);
@@ -30,6 +34,17 @@
       return !p.basal_over&&!p.basal_under?1:0;
     }));
     if(metric==='scale_independence')return mean(days.map(d=>d.used_scale?0:1));
+    if(metric==='discharge_success'){
+      const c=(Array.isArray(data?.cases)?data.cases:[]).find(x=>x.case_id===caseId);
+      return c?.outcome==='discharged'?1:c?.outcome==='game_over'?0:null;
+    }
+    if(metric==='objective_success'){
+      const x=objectiveForCase(data,caseId);
+      if(!x)return null;
+      if(x.status==='resolved'||x.status==='improved')return 1;
+      if(x.status==='not_resolved')return 0;
+      return null;
+    }
     return null;
   }
 
@@ -37,7 +52,9 @@
     {id:'hypo_avoidance',label:'低血糖回避'},
     {id:'rapid_control',label:'rapid過不足'},
     {id:'basal_control',label:'basal調整'},
-    {id:'scale_independence',label:'scale非依存'}
+    {id:'scale_independence',label:'scale非依存'},
+    {id:'discharge_success',label:'DISCHARGE'},
+    {id:'objective_success',label:'学習目標 改善/達成'}
   ];
 
   const DOMAIN_LABELS={
@@ -164,5 +181,5 @@
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);
     else mount();
   }
-  return {caseMetric,summarize,summarizeAdaptivePractice,renderAdaptiveHtml,renderHtml,refresh,METRICS,DOMAIN_LABELS,REPEATED_UNMET_N,version:'1.3.0'};
+  return {caseMetric,objectiveForCase,summarize,summarizeAdaptivePractice,renderAdaptiveHtml,renderHtml,refresh,METRICS,DOMAIN_LABELS,REPEATED_UNMET_N,version:'1.4.0'};
 });
