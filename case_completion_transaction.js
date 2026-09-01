@@ -36,6 +36,10 @@
     return rec?.completion_transaction?rec:null;
   }
 
+  function refreshTerminalUi(root){
+    root.CaseTransitionCta?.refresh?.();
+  }
+
   function renderCommitted(root,data,caseId){
     const debrief=root.WardCaseDebrief,tracking=root.WardAdaptivePracticeTracking,learning=root.LearningCurve;
     debrief?.renderCompletion?.(data,caseId);
@@ -43,6 +47,7 @@
     if(practice)tracking?.render?.(root,practice);
     learning?.render?.();
     root.CaseLearningProgress?.refresh?.();
+    refreshTerminalUi(root);
     return practice;
   }
 
@@ -73,7 +78,7 @@
       next.completion_records={...(next.completion_records||{}),[caseId]:{
         ...prior,
         completion_transaction:{
-          version:3,
+          version:4,
           learning_curve_attached:true,
           adaptive_practice_attached:Boolean(attached.record),
           write_count:1,
@@ -86,6 +91,7 @@
       if(attached.record)tracking.render?.(root,attached.record);
       learning.render?.();
       root.CaseLearningProgress?.refresh?.();
+      refreshTerminalUi(root);
       return {data:next,model,scored:applied.scored||null,practice:attached.record||null,reused:false};
     }catch(e){
       console.error('case completion transaction',e);
@@ -100,5 +106,5 @@
     completeAfterTerminal(root);
   }
 
-  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,mount,version:'1.2.0'};
+  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,refreshTerminalUi,mount,version:'1.3.0'};
 });
