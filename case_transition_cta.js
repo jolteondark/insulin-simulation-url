@@ -9,6 +9,14 @@
     return d.querySelector('#resultPanel #restartBtn');
   }
 
+  function navigateCaseStart(){
+    try{
+      const nav=root?.RepeatPlayNavigation;
+      if(nav?.moveToCaseStartContext)return nav.moveToCaseStartContext();
+      return nav?.moveToPrescriptionContext?.();
+    }catch(e){console.error('case transition navigation',e)}
+  }
+
   function ensureCta(){
     const d=doc();
     if(!d)return null;
@@ -30,7 +38,10 @@
       if(typeof root?.startGenerated!=='function')return;
       root.startGenerated();
       try{root.WardCaseDebrief?.refresh?.()}catch(e){console.error('case transition debrief refresh',e)}
-      try{root.RepeatPlayNavigation?.moveToPrescriptionContext?.()}catch(e){console.error('case transition navigation',e)}
+      // The debrief refresh above renders any prospective objective for the new
+      // case. Navigation therefore surfaces LEARNING FOCUS once at case start,
+      // falling back to the four-point prescription context when no focus exists.
+      navigateCaseStart();
     });
     body.appendChild(btn);
     return btn;
@@ -68,7 +79,7 @@
     refresh();
   }
 
-  const api={ensureCta,refresh,mount,version:'1.1.0'};
+  const api={ensureCta,refresh,mount,navigateCaseStart,version:'1.2.0'};
   if(root)root.CaseTransitionCta=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();
