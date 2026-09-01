@@ -36,6 +36,8 @@
     }catch{return null}
   }
 
+  function getCapturedSelection(caseId){return captured.has(caseId)?clone(captured.get(caseId)):null}
+
   function scoredObjective(data,caseId,domainId){
     const xs=(data.objectives||[]).filter(x=>x?.target_case_id===caseId);
     if(domainId){
@@ -71,24 +73,37 @@
     };
   }
 
+  function attachPractice(data,caseId,selection){
+    if(!selection)return {data,record:null};
+    const next={...(data||{}),cases:Array.isArray(data?.cases)?[...data.cases]:[],objectives:Array.isArray(data?.objectives)?data.objectives:[]};
+    const idx=next.cases.findIndex(c=>c.case_id===caseId);
+    if(idx<0)return {data:next,record:null};
+    const scored=scoredObjective(next,caseId,selection.domain_id);
+    const record=practiceRecord(selection,scored);
+    next.cases[idx]={...next.cases[idx],adaptive_practice:record};
+    return {data:next,record};
+  }
+
   function persist(root){
     try{
       const s=currentState(root);
       if(!s?.over)return null;
       const caseId=s.case?.case_id;
       if(!caseId)return null;
-      const selection=captured.has(caseId)?captured.get(caseId):null;
+      if(root?.WardCaseCompletionTransaction){
+        const data=load(root);
+        const rec=data.cases.find(c=>c.case_id===caseId)?.adaptive_practice||null;
+        if(rec)render(root,rec);
+        return rec;
+      }
+      const selection=getCapturedSelection(caseId);
       if(!selection)return null;
-      const data=load(root);
-      const idx=data.cases.findIndex(c=>c.case_id===caseId);
-      if(idx<0)return null;
-      const scored=scoredObjective(data,caseId,selection.domain_id);
-      const record=practiceRecord(selection,scored);
-      data.cases[idx]={...data.cases[idx],adaptive_practice:record};
-      save(root,data);
-      render(root,record);
+      const attached=attachPractice(load(root),caseId,selection);
+      if(!attached.record)return null;
+      save(root,attached.data);
+      render(root,attached.record);
       root.CaseLearningProgress?.refresh?.();
-      return record;
+      return attached.record;
     }catch{return null}
   }
 
@@ -130,5 +145,5 @@
     root.document.querySelector('#resultPanel')?.addEventListener('click',e=>{if(e.target?.closest?.('#restartBtn'))captureAfterStart(root)});
   }
 
-  return {practiceRecord,lifecycle,scoredObjective,statusLabel,domainLabel,lifecycleLabel,currentState,mount,version:'1.2.0'};
+  return {practiceRecord,attachPractice,getCapturedSelection,lifecycle,scoredObjective,statusLabel,domainLabel,lifecycleLabel,currentState,render,persist,mount,version:'1.3.0'};
 });
