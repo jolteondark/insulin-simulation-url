@@ -7,9 +7,9 @@
 
   const slotSpec={
     pre_breakfast:{name:'朝前',focus:'前夜から効いていた basal',tagLow:'basal_excess',tagHigh:'basal_deficit'},
-    pre_lunch:{name:'昼前',focus:'朝 rapid',doseKey:'breakfast_u',tagLow:'breakfast_rapid_excess',tagHigh:'breakfast_rapid_deficit'},
-    pre_dinner:{name:'夕前',focus:'昼 rapid',doseKey:'lunch_u',tagLow:'lunch_rapid_excess',tagHigh:'lunch_rapid_deficit'},
-    bedtime:{name:'眠前',focus:'夕 rapid',doseKey:'dinner_u',tagLow:'dinner_rapid_excess',tagHigh:'dinner_rapid_deficit'}
+    pre_lunch:{name:'昼前',focus:'朝の実投与rapid',doseKey:'breakfast_u',tagLow:'breakfast_rapid_excess',tagHigh:'breakfast_rapid_deficit'},
+    pre_dinner:{name:'夕前',focus:'昼の実投与rapid',doseKey:'lunch_u',tagLow:'lunch_rapid_excess',tagHigh:'lunch_rapid_deficit'},
+    bedtime:{name:'眠前',focus:'夕の実投与rapid',doseKey:'dinner_u',tagLow:'dinner_rapid_excess',tagHigh:'dinner_rapid_deficit'}
   };
 
   const objectiveTags={
@@ -25,6 +25,12 @@
   function fmt(x){const n=Number(x);return Number.isInteger(n)?String(n):n.toFixed(1)}
   function correctionFor(rec,key){const k=key.replace('_u','');return Number(rec?.result?.correction_doses_u?.[k])||0}
   function actualRapid(rec,key){return Number(rec?.order?.[key]||0)+correctionFor(rec,key)}
+  function rapidDetail(rec,spec,direction){
+    const scheduled=Number(rec?.order?.[spec.doseKey]||0),extra=correctionFor(rec,spec.doseKey),actual=scheduled+extra;
+    if(extra<=0)return `次処方では ${spec.focus} を${direction==='low'?'減らす':'増やす'}方向にまず再検討します。`;
+    if(direction==='low')return `${spec.focus}（定時+scale）は過量方向です。定時 ${fmt(scheduled)} U + scale ${fmt(extra)} U = 実投与 ${fmt(actual)} Uでした。定時量だけを直ちに減らさず、scale発動を含む総量のどこを調整すべきか再検討します。`;
+    return `${spec.focus}（定時+scale）でも不足方向です。定時 ${fmt(scheduled)} U + scale ${fmt(extra)} U = 実投与 ${fmt(actual)} Uでした。定時量・scale設定・contextを分けて再検討します。`;
+  }
 
   function analyze(rec,caseContext={}){
     const bg=rec?.result?.bg||{};
@@ -38,19 +44,13 @@
       if(!Number.isFinite(value))continue;
       if(value<POC_MIN){
         addTag(spec.tagLow);
-        let detail=`${spec.name} ${Math.round(value)} mg/dL：次処方では ${spec.focus} を減らす方向にまず再検討します。`;
-        if(spec.doseKey){
-          const extra=correctionFor(rec,spec.doseKey),actual=actualRapid(rec,spec.doseKey);
-          if(extra>0)detail+=` この食事では定時 ${fmt(rec.order?.[spec.doseKey]||0)} U + scale ${fmt(extra)} U = 実投与 ${fmt(actual)} Uでした。`;
-        }
+        let detail=`${spec.name} ${Math.round(value)} mg/dL：`;
+        detail+=spec.doseKey?rapidDetail(rec,spec,'low'):`次処方では ${spec.focus} を減らす方向にまず再検討します。`;
         items.push({kind:'low',slot:key,tag:spec.tagLow,text:detail});
       }else if(value>POC_MAX){
         addTag(spec.tagHigh);
-        let detail=`${spec.name} ${Math.round(value)} mg/dL：次処方では ${spec.focus} を増やす方向にまず再検討します。`;
-        if(spec.doseKey){
-          const extra=correctionFor(rec,spec.doseKey),actual=actualRapid(rec,spec.doseKey);
-          if(extra>0)detail+=` この食事では定時 ${fmt(rec.order?.[spec.doseKey]||0)} U + scale ${fmt(extra)} U = 実投与 ${fmt(actual)} Uでした。`;
-        }
+        let detail=`${spec.name} ${Math.round(value)} mg/dL：`;
+        detail+=spec.doseKey?rapidDetail(rec,spec,'high'):`次処方では ${spec.focus} を増やす方向にまず再検討します。`;
         if(caseContext.infection_severity>0)detail+=' 感染によるインスリン抵抗性上昇も高血糖方向に作用します。';
         if(caseContext.prednisone_mg>0)detail+=' ステロイドも日中〜夕方の高血糖方向に作用します。';
         items.push({kind:'high',slot:key,tag:spec.tagHigh,text:detail});
@@ -158,7 +158,7 @@
     submit.addEventListener('click',annotateLatest);
   }
 
-  const api={analyze,emphasizeForObjective,selectPrimary,renderHtml,annotateLatest,version:'1.4.0'};
+  const api={analyze,emphasizeForObjective,selectPrimary,renderHtml,annotateLatest,version:'1.5.0'};
   if(root)root.DailyFeedback=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
