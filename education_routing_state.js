@@ -51,6 +51,16 @@
       .sort((a,b)=>b.streak-a.streak||(b.last?.index??-1)-(a.last?.index??-1)||a.label.localeCompare(b.label,'ja'));
   }
 
+  function practiceLifecycle(selection,scored){
+    const before=Math.max(0,Number(selection?.persistent_streak)||0);
+    const status=scored?.status||null;
+    const persistent=before>=REPEATED_UNMET_N;
+    if(!persistent)return {state:'not_persistent',persistent_before:before,persistent_after:before,released:false,continued:false};
+    if(status==='resolved'||status==='improved')return {state:'released',persistent_before:before,persistent_after:0,released:true,continued:false};
+    if(status==='not_resolved')return {state:'continued',persistent_before:before,persistent_after:before+1,released:false,continued:true};
+    return {state:'active',persistent_before:before,persistent_after:before,released:false,continued:false};
+  }
+
   function isSafetyObjective(objective){
     return objective?.selection_reason==='safety'||objective?.domain_id==='hidden_awareness'&&objective?.emphasis==='high';
   }
@@ -96,5 +106,5 @@
     }catch{return {data:null,objective:null,reason:'storage_error',repeated:[],changed:false}}
   }
 
-  return {scoredPracticeRows,trailingUnresolved,repeatedUnmet,isSafetyObjective,routedObjective,resolveData,resolveStored,REPEATED_UNMET_N,DOMAIN_LABELS,version:'1.0.0'};
+  return {scoredPracticeRows,trailingUnresolved,repeatedUnmet,practiceLifecycle,isSafetyObjective,routedObjective,resolveData,resolveStored,REPEATED_UNMET_N,DOMAIN_LABELS,version:'1.1.0'};
 });
