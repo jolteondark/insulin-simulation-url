@@ -48,7 +48,6 @@
 
   function pct(n,d){return d?`${Math.round(100*n/d)}%`:'—'}
   function mean(xs){return xs.length?xs.reduce((a,b)=>a+b,0)/xs.length:null}
-  function correctionFor(rec,key){const k=key.replace('_u','');return Number(rec?.result?.correction_doses_u?.[k])||0}
 
   function prescribingPattern(rec,p){
     const mealCarb={breakfast:50,lunch:70,dinner:60};
@@ -59,9 +58,11 @@
       const intake=Number(rec?.intake?.[meal]);
       const icr=Number(p?.icr_g_u);
       const expected=Number.isFinite(intake)&&Number.isFinite(icr)&&icr>0?mealCarb[meal]*intake/icr:null;
-      const actual=Number(rec?.order?.[key]||0)+correctionFor(rec,key);
+      // Prescribing skill is the scheduled meal dose chosen by the learner.
+      // Correction-scale insulin is rescue exposure and is tracked separately as scale dependence.
+      const scheduled=Number(rec?.order?.[key]||0);
       if(expected==null)continue;
-      const delta=actual-expected;
+      const delta=scheduled-expected;
       if(delta>RAPID_ERROR_U)rapidOver++;
       else if(delta<-RAPID_ERROR_U)rapidUnder++;
       else rapidNear++;
@@ -314,7 +315,7 @@
     render();
   }
 
-  const api={load,save,render,recordLatest,applyLatest,daySummary,recurrenceStats,caseDomainSummary,completedCaseSummaries,caseDomainTrend,objectiveText,version:'1.6.0'};
+  const api={load,save,render,recordLatest,applyLatest,daySummary,recurrenceStats,caseDomainSummary,completedCaseSummaries,caseDomainTrend,objectiveText,version:'1.7.0'};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof window!=='undefined')window.LearningCurve=api;
   if(typeof document!=='undefined'){
