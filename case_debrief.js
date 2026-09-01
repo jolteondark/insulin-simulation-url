@@ -1,11 +1,11 @@
 (function(root,factory){
-  const api=factory();
+  const routing=typeof module==='object'&&module.exports?require('./education_routing_state.js'):root.WardEducationRoutingState;
+  const api=factory(routing);
   if(typeof module==='object'&&module.exports)module.exports=api;
   else root.WardCaseDebrief=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(routingState){
   const STORAGE_KEY='ward_glucose_learning_curve_v1';
   const MAX_OBJECTIVES=100;
-  const PERSISTENT_FAILURE_THRESHOLD=2;
   const DOMAIN_DEFS=[
     {id:'basal',label:'basal',tags:['basal_excess','basal_deficit']},
     {id:'breakfast_rapid',label:'朝rapid',tags:['breakfast_rapid_excess','breakfast_rapid_deficit']},
@@ -87,21 +87,15 @@
   }
 
   function failedObjectiveStreak(data,domainId){
-    const xs=Array.isArray(data?.objectives)?data.objectives:[];
-    let n=0;
-    for(let i=xs.length-1;i>=0;i--){
-      const x=xs[i];
-      if(x?.domain_id!==domainId||x?.status!=='not_resolved')break;
-      n++;
-    }
-    return n;
+    return routingState?.objectiveFailureStreak?routingState.objectiveFailureStreak(data,domainId):0;
   }
 
-  function persistentFailure(data,domainId,threshold=PERSISTENT_FAILURE_THRESHOLD){
-    const streak=failedObjectiveStreak(data,domainId);
-    if(streak<threshold)return null;
-    const def=domainById(domainId);
-    return def?{domain_id:def.id,label:def.label,streak}:null;
+  function persistentFailure(data,domainId){
+    return routingState?.persistentFromObjectiveHistory?routingState.persistentFromObjectiveHistory(data,domainId):null;
+  }
+
+  function isPersistent(streak){
+    return routingState?.isPersistentStreak?routingState.isPersistentStreak(streak):false;
   }
 
   function applyCompletion(data,currentCaseId,model){
@@ -123,7 +117,14 @@
     if(persistent){
       scored.persistent_streak=persistent.streak;
       next.objectives[next.objectives.length-1]=scored;
-      next.active_objective={domain_id:persistent.domain_id,label:persistent.label,source_case_id:currentCaseId,source_rate:scored.target_rate,created_at:new Date().toISOString(),persistent_streak:persistent.streak,emphasis:'high',selection_reason:'persistent',prior_cases_with_issue:persistent.streak};
+      next.active_objective=routingState.makePersistentObjective({
+        domain_id:persistent.domain_id,
+        label:persistent.label,
+        source_case_id:currentCaseId,
+        source_rate:scored.target_rate,
+        streak:persistent.streak,
+        routing_source:'objective_history'
+      });
     }else if(model?.priority){
       next.active_objective={domain_id:model.priority.id,label:model.priority.label,source_case_id:currentCaseId,source_rate:model.priority.current_rate,created_at:new Date().toISOString(),persistent_streak:0,emphasis:model.priority_reason==='safety'?'high':'normal',selection_reason:model.priority_reason||'current',prior_cases_with_issue:Number(model.priority.prior_cases_with_issue)||0};
     }
@@ -136,12 +137,12 @@
   function objectiveScoreText(scored){
     if(!scored)return '';
     const status=scored.status==='resolved'?'達成':scored.status==='improved'?'改善':'未達';
-    const persistent=scored.persistent_streak>=PERSISTENT_FAILURE_THRESHOLD?` ／ ${scored.persistent_streak}症例連続未達のため重点継続`:'';
+    const persistent=isPersistent(scored.persistent_streak)?` ／ ${scored.persistent_streak}症例連続未達のため重点継続`:'';
     return `<div class="micro-note"><b>前症例の目標：</b>${scored.label} ${pct(scored.source_rate)}→${pct(scored.target_rate)}（${status}${persistent}）</div>`;
   }
 
   function priorityText(model,scored){
-    if(scored?.persistent_streak>=PERSISTENT_FAILURE_THRESHOLD)return `「${scored.label}」が${scored.persistent_streak}症例連続未達のため、次症例も同じ領域を重点継続します。正解単位ではなく、対応する血糖と実投与量の方向を毎日確認します。`;
+    if(isPersistent(scored?.persistent_streak))return `「${scored.label}」が${scored.persistent_streak}症例連続未達のため、次症例も同じ領域を重点継続します。正解単位ではなく、対応する血糖と実投与量の方向を毎日確認します。`;
     if(!model?.priority)return '次症例では現在の安全な処方判断を維持し、hidden excursionとscale救済の有無を確認してください。';
     if(model.priority_reason==='safety')return `hidden safety signalを優先し、次症例では「${model.priority.label}」を最優先で確認してください。対応する血糖と実投与量の方向を毎日確認します。`;
     if(model.priority_reason==='recurrent')return `「${model.priority.label}」は今回に加えて過去${model.priority.prior_cases_with_issue}症例でも出現しています。単発の最大エラーより反復弱点を優先し、次症例の1目標として確認してください。`;
@@ -205,8 +206,8 @@
       else if(objective.selection_reason==='safety')body.textContent='前症例のhidden safety signalを優先して追います。対応する血糖と実投与量の方向を確認してから処方します。';
       else body.textContent='対応する血糖と実投与量の方向を確認してから処方します。症例終了時にこの1領域の改善を判定します。';
     }
-    if(status)status.textContent=streak>=PERSISTENT_FAILURE_THRESHOLD?`${streak}症例連続未達`:objective.selection_reason==='safety'?'安全優先':objective.selection_reason==='recurrent'?`反復 ${recurrentN}症例`:'今回の1目標';
-    el.classList.toggle('persistent',streak>=PERSISTENT_FAILURE_THRESHOLD||objective.selection_reason==='safety');
+    if(status)status.textContent=isPersistent(streak)?`${streak}症例連続未達`:objective.selection_reason==='safety'?'安全優先':objective.selection_reason==='recurrent'?`反復 ${recurrentN}症例`:'今回の1目標';
+    el.classList.toggle('persistent',isPersistent(streak)||objective.selection_reason==='safety');
     el.classList.remove('hidden');
   }
 
@@ -219,8 +220,6 @@
       const caseId=state.case?.case_id||'unknown';
       renderActiveFocus(data,caseId);
       if(!state?.over){
-        // During an active case the one prospective target lives beside the order form.
-        // Keep the debrief area terminal-only so the same instruction is not scattered twice.
         el.classList.add('hidden');
         return;
       }
