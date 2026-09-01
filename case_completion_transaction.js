@@ -36,6 +36,19 @@
     return rec?.completion_transaction?rec:null;
   }
 
+  function terminalFeedback(s){
+    const rec=s?.history?.[s.history.length-1];
+    const feedback=rec?.education_feedback;
+    if(!rec||!feedback?.primary_text)return null;
+    return {
+      case_id:s?.case?.case_id||'unknown',
+      day:Number(rec.day)||null,
+      primary_tag:feedback.primary_tag||null,
+      text:String(feedback.primary_text),
+      recorded_at:new Date().toISOString()
+    };
+  }
+
   function refreshTerminalUi(root){
     root.CaseTransitionCta?.refresh?.();
   }
@@ -74,13 +87,16 @@
       const selection=tracking.getCapturedSelection(caseId);
       const attached=tracking.attachPractice(applied.data,caseId,selection);
       const next=attached.data;
+      const feedback=terminalFeedback(s);
+      if(feedback)next.last_terminal_feedback=feedback;
       const prior=next.completion_records?.[caseId]||{};
       next.completion_records={...(next.completion_records||{}),[caseId]:{
         ...prior,
         completion_transaction:{
-          version:4,
+          version:5,
           learning_curve_attached:true,
           adaptive_practice_attached:Boolean(attached.record),
+          terminal_feedback_attached:Boolean(feedback),
           write_count:1,
           committed_at:new Date().toISOString()
         }
@@ -92,7 +108,7 @@
       learning.render?.();
       root.CaseLearningProgress?.refresh?.();
       refreshTerminalUi(root);
-      return {data:next,model,scored:applied.scored||null,practice:attached.record||null,reused:false};
+      return {data:next,model,scored:applied.scored||null,practice:attached.record||null,terminal_feedback:feedback,reused:false};
     }catch(e){
       console.error('case completion transaction',e);
       return null;
@@ -106,5 +122,5 @@
     completeAfterTerminal(root);
   }
 
-  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,refreshTerminalUi,mount,version:'1.3.0'};
+  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,terminalFeedback,refreshTerminalUi,mount,version:'1.4.0'};
 });
