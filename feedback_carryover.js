@@ -34,6 +34,10 @@
 
   function shouldDisplay(carry,focusVisible){
     if(!carry)return false;
+    // A prospective LEARNING FOCUS is already the actionable handoff from the
+    // prior debrief. Repeating the old terminal sentence beneath it adds
+    // cognitive load without adding a new decision. Keep previous-case
+    // feedback only as a fallback when no focus was created.
     if(carry.source==='previous_case'&&focusVisible)return false;
     return true;
   }
