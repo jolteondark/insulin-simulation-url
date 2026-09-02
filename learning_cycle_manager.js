@@ -35,6 +35,8 @@
     const archive=buildArchive(raw,meta,stamp);
     const archives=[...loadArchives(store),archive].slice(-MAX_ARCHIVES);
     const nextMeta={schema_version:1,block_number:meta.block_number+1,started_at:stamp};
+    // Archive first, then clear the active learning block. A failed write therefore does not
+    // intentionally discard the only copy of a completed 100-case block.
     store.setItem(ARCHIVE_KEY,JSON.stringify(archives));
     store.setItem(STORAGE_KEY,JSON.stringify(resetLearningPayload()));
     store.setItem(META_KEY,JSON.stringify(nextMeta));
