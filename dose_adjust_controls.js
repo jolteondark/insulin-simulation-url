@@ -17,16 +17,27 @@
     return true;
   }
 
+  function isUsableAction(el){
+    if(!el||el.disabled||el.hidden)return false;
+    if(el.classList?.contains?.('hidden'))return false;
+    if(el.style?.display==='none'||el.getAttribute?.('aria-hidden')==='true')return false;
+    return true;
+  }
+
   function focusFirstDose(){
     return focusElement(document.querySelector(`#${GRID_ID} input[type="number"][id^="dose_"]`));
   }
 
   function focusResultAction(){
-    return focusElement(
-      document.getElementById('nextDayBtn') ||
-      document.getElementById('restartBtn') ||
+    // Terminal flow replaces restartBtn with caseNextCta. Prefer the visible CTA
+    // and never strand keyboard users on the hidden legacy restart button.
+    const candidates=[
+      document.getElementById('caseNextCta'),
+      document.getElementById('nextDayBtn'),
+      document.getElementById('restartBtn'),
       document.querySelector('#resultPanel button.next-btn')
-    );
+    ];
+    return focusElement(candidates.find(isUsableAction));
   }
 
   function adjust(input,delta){
@@ -75,9 +86,10 @@
   }
 
   function onDocumentClick(event){
-    if(event?.target?.id!=='nextDayBtn')return;
-    // app.js renders the next day before the click bubbles here. Defer once so
-    // repeat-play navigation can position the page, then return focus to dosing.
+    const id=event?.target?.id;
+    if(!['nextDayBtn','caseNextCta','restartBtn'].includes(id))return;
+    // The destination state is rendered before the click bubbles here. Defer
+    // once so navigation can position the page, then return focus to dosing.
     setTimeout(focusFirstDose,0);
   }
 
@@ -106,5 +118,5 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.DoseAdjustControls={clampDose,focusFirstDose,focusResultAction,version:'1.1.0'};
+  window.DoseAdjustControls={clampDose,isUsableAction,focusFirstDose,focusResultAction,version:'1.2.0'};
 })();
