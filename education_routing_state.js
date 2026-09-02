@@ -15,128 +15,26 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   const STORAGE_KEY='ward_glucose_learning_curve_v1';
   const REPEATED_UNMET_N=2;
-  const DOMAIN_LABELS={
-    basal:'basal',
-    breakfast_rapid:'朝rapid',
-    lunch_rapid:'昼rapid',
-    dinner_rapid:'夕rapid',
-    scale_dependence:'scale依存',
-    hidden_awareness:'hidden excursion'
-  };
-
-  function isPersistentStreak(streak){
-    return Math.max(0,Number(streak)||0)>=REPEATED_UNMET_N;
-  }
-
-  function objectiveFailureStreak(data,domainId){
-    const xs=Array.isArray(data?.objectives)?data.objectives:[];
-    let n=0;
-    for(let i=xs.length-1;i>=0;i--){
-      const x=xs[i];
-      if(x?.domain_id!==domainId||x?.status!=='not_resolved')break;
-      n++;
-    }
-    return n;
-  }
-
-  function persistentFromObjectiveHistory(data,domainId){
-    const streak=objectiveFailureStreak(data,domainId);
-    if(!isPersistentStreak(streak))return null;
-    return {domain_id:domainId,label:DOMAIN_LABELS[domainId]||domainId,streak};
-  }
-
-  function makePersistentObjective(input){
-    const streak=Math.max(0,Number(input?.streak)||0);
-    if(!input?.domain_id||!isPersistentStreak(streak))return null;
-    return {
-      domain_id:input.domain_id,
-      label:input.label||DOMAIN_LABELS[input.domain_id]||input.domain_id,
-      source_case_id:input.source_case_id||null,
-      source_rate:Number.isFinite(Number(input.source_rate))?Number(input.source_rate):null,
-      created_at:input.created_at||new Date().toISOString(),
-      persistent_streak:streak,
-      emphasis:'high',
-      selection_reason:'persistent',
-      prior_cases_with_issue:streak,
-      routing_source:input.routing_source||'objective_history'
-    };
-  }
-
-  function scoredPracticeRows(data){
-    return (Array.isArray(data?.cases)?data.cases:[])
-      .map((c,index)=>({case_id:c.case_id,index,...(c.adaptive_practice||{})}))
-      .filter(x=>x.domain_id&&x.practice_opportunity&&x.practice_opportunity!=='standard_case'&&['resolved','improved','not_resolved'].includes(x.objective_status));
-  }
-
-  function trailingUnresolved(xs){
-    let n=0;
-    for(let i=xs.length-1;i>=0;i--){
-      if(xs[i].objective_status!=='not_resolved')break;
-      n++;
-    }
-    return n;
-  }
-
-  function repeatedUnmet(data){
-    const rows=scoredPracticeRows(data);
-    const domains=[...new Set(rows.map(x=>x.domain_id))];
-    return domains.map(domainId=>{
-      const xs=rows.filter(x=>x.domain_id===domainId);
-      const streak=trailingUnresolved(xs);
-      const last=xs[xs.length-1]||null;
-      return {domain_id:domainId,label:DOMAIN_LABELS[domainId]||domainId,streak,last};
-    }).filter(x=>isPersistentStreak(x.streak))
-      .sort((a,b)=>b.streak-a.streak||(b.last?.index??-1)-(a.last?.index??-1)||a.label.localeCompare(b.label,'ja'));
-  }
-
-  function practiceLifecycle(selection,scored){
-    const before=Math.max(0,Number(selection?.persistent_streak)||0);
-    const status=scored?.status||null;
-    if(!isPersistentStreak(before))return {state:'not_persistent',persistent_before:before,persistent_after:before,released:false,continued:false};
-    if(status==='resolved'||status==='improved')return {state:'released',persistent_before:before,persistent_after:0,released:true,continued:false};
-    if(status==='not_resolved')return {state:'continued',persistent_before:before,persistent_after:before+1,released:false,continued:true};
-    return {state:'active',persistent_before:before,persistent_after:before,released:false,continued:false};
-  }
-
-  function isSafetyObjective(objective){
-    return objective?.selection_reason==='safety'||objective?.domain_id==='hidden_awareness'&&objective?.emphasis==='high';
-  }
-
-  function routedObjective(data){
-    const current=data?.active_objective||null;
-    if(isSafetyObjective(current))return {objective:current,reason:'safety_preserved',repeated:repeatedUnmet(data)};
-    const repeated=repeatedUnmet(data);
-    const top=repeated[0]||null;
-    if(!top)return {objective:current,reason:'existing',repeated};
-    const last=top.last||{};
-    const sourceRate=Number.isFinite(Number(last.target_rate))?Number(last.target_rate):Number.isFinite(Number(current?.source_rate))?Number(current.source_rate):null;
-    const objective=makePersistentObjective({
-      domain_id:top.domain_id,
-      label:top.label,
-      source_case_id:last.case_id||current?.source_case_id||null,
-      source_rate:sourceRate,
-      streak:top.streak,
-      routing_source:'adaptive_practice'
-    });
-    return {objective,reason:'repeated_unmet',repeated};
-  }
-
-  function resolveData(data){
-    const base={...(data||{}),cases:Array.isArray(data?.cases)?data.cases:[]};
-    const routed=routedObjective(base);
-    const before=base.active_objective||null;
-    const changed=JSON.stringify(before)!==JSON.stringify(routed.objective);
-    return {data:{...base,active_objective:routed.objective},objective:routed.objective,reason:routed.reason,repeated:routed.repeated,changed};
-  }
-
-  function resolveStored(root){
-    try{
-      const raw=JSON.parse(root.localStorage.getItem(STORAGE_KEY)||'{}');
-      const out=resolveData(raw);
-      if(out.changed)root.localStorage.setItem(STORAGE_KEY,JSON.stringify(out.data));
-      return out;
-    }catch{return {data:null,objective:null,reason:'storage_error',repeated:[],changed:false}}
-  }
-
-  return {scoredPracticeRows,trailingUnresolved,repeatedUnmet,practiceLifecycle,isPersistentStreak,objectiveFailureStreak,persistentFromObjectiveHistory,makePersistentObjective,isSafetyObjective,routedObjective,resolveData,resolveStored,REPEATED_UNMET_N,DOMAIN_LABELS,version:'1.2.0'};
+  const LONGITUDINAL_MIN_CASES=9;
+  const LONGITUDINAL_RECENT_CASES=3;
+  const LONGITUDINAL_MIN_RECENT_RATE=.34;
+  const LONGITUDINAL_MIN_DELTA=.15;
+  const DOMAIN_LABELS={basal:'basal',breakfast_rapid:'朝rapid',lunch_rapid:'昼rapid',dinner_rapid:'夕rapid',scale_dependence:'scale依存',hidden_awareness:'hidden excursion'};
+  const DOMAIN_TAGS={basal:['basal_excess','basal_deficit'],breakfast_rapid:['breakfast_rapid_excess','breakfast_rapid_deficit'],lunch_rapid:['lunch_rapid_excess','lunch_rapid_deficit'],dinner_rapid:['dinner_rapid_excess','dinner_rapid_deficit'],scale_dependence:['scale_dependence'],hidden_awareness:['hidden_low_near_miss','hidden_high_excursion']};
+  function isPersistentStreak(streak){return Math.max(0,Number(streak)||0)>=REPEATED_UNMET_N}
+  function objectiveFailureStreak(data,domainId){const xs=Array.isArray(data?.objectives)?data.objectives:[];let n=0;for(let i=xs.length-1;i>=0;i--){const x=xs[i];if(x?.domain_id!==domainId||x?.status!=='not_resolved')break;n++}return n}
+  function persistentFromObjectiveHistory(data,domainId){const streak=objectiveFailureStreak(data,domainId);return isPersistentStreak(streak)?{domain_id:domainId,label:DOMAIN_LABELS[domainId]||domainId,streak}:null}
+  function makePersistentObjective(input){const streak=Math.max(0,Number(input?.streak)||0);if(!input?.domain_id||!isPersistentStreak(streak))return null;return {domain_id:input.domain_id,label:input.label||DOMAIN_LABELS[input.domain_id]||input.domain_id,source_case_id:input.source_case_id||null,source_rate:Number.isFinite(Number(input.source_rate))?Number(input.source_rate):null,created_at:input.created_at||new Date().toISOString(),persistent_streak:streak,emphasis:'high',selection_reason:'persistent',prior_cases_with_issue:streak,routing_source:input.routing_source||'objective_history'}}
+  function scoredPracticeRows(data){return (Array.isArray(data?.cases)?data.cases:[]).map((c,index)=>({case_id:c.case_id,index,...(c.adaptive_practice||{})})).filter(x=>x.domain_id&&x.practice_opportunity&&x.practice_opportunity!=='standard_case'&&['resolved','improved','not_resolved'].includes(x.objective_status))}
+  function trailingUnresolved(xs){let n=0;for(let i=xs.length-1;i>=0;i--){if(xs[i].objective_status!=='not_resolved')break;n++}return n}
+  function repeatedUnmet(data){const rows=scoredPracticeRows(data),domains=[...new Set(rows.map(x=>x.domain_id))];return domains.map(domainId=>{const xs=rows.filter(x=>x.domain_id===domainId),streak=trailingUnresolved(xs),last=xs[xs.length-1]||null;return {domain_id:domainId,label:DOMAIN_LABELS[domainId]||domainId,streak,last}}).filter(x=>isPersistentStreak(x.streak)).sort((a,b)=>b.streak-a.streak||(b.last?.index??-1)-(a.last?.index??-1)||a.label.localeCompare(b.label,'ja'))}
+  function practiceLifecycle(selection,scored){const before=Math.max(0,Number(selection?.persistent_streak)||0),status=scored?.status||null;if(!isPersistentStreak(before))return {state:'not_persistent',persistent_before:before,persistent_after:before,released:false,continued:false};if(status==='resolved'||status==='improved')return {state:'released',persistent_before:before,persistent_after:0,released:true,continued:false};if(status==='not_resolved')return {state:'continued',persistent_before:before,persistent_after:before+1,released:false,continued:true};return {state:'active',persistent_before:before,persistent_after:before,released:false,continued:false}}
+  function isSafetyObjective(objective){return objective?.selection_reason==='safety'||objective?.domain_id==='hidden_awareness'&&objective?.emphasis==='high'}
+  function caseIssueRate(data,caseIds,domainId){const tags=DOMAIN_TAGS[domainId]||[],days=Array.isArray(data?.days)?data.days:[];if(!caseIds.length)return null;let issue=0;for(const id of caseIds){const hit=days.some(d=>d?.case_id===id&&(Array.isArray(d.feedback_tags)?d.feedback_tags:[]).some(t=>tags.includes(t)));if(hit)issue++}return issue/caseIds.length}
+  function longitudinalWeakness(data){const cases=(Array.isArray(data?.cases)?data.cases:[]).filter(c=>c?.case_id&&['discharged','game_over'].includes(c.outcome));if(cases.length<LONGITUDINAL_MIN_CASES)return null;const recent=cases.slice(-LONGITUDINAL_RECENT_CASES),reference=cases.slice(0,-LONGITUDINAL_RECENT_CASES);if(!reference.length)return null;const recentIds=recent.map(c=>c.case_id),referenceIds=reference.map(c=>c.case_id),lastCase=recent[recent.length-1]?.case_id||null;const rows=Object.keys(DOMAIN_TAGS).filter(id=>id!=='hidden_awareness').map(domainId=>{const recentRate=caseIssueRate(data,recentIds,domainId),referenceRate=caseIssueRate(data,referenceIds,domainId),delta=(recentRate??0)-(referenceRate??0);return {domain_id:domainId,label:DOMAIN_LABELS[domainId]||domainId,recent_rate:recentRate,reference_rate:referenceRate,delta,source_case_id:lastCase,prior_cases_with_issue:Math.round((referenceRate||0)*referenceIds.length)}}).filter(x=>x.recent_rate>=LONGITUDINAL_MIN_RECENT_RATE&&x.delta>=LONGITUDINAL_MIN_DELTA).sort((a,b)=>b.recent_rate-a.recent_rate||b.delta-a.delta||a.label.localeCompare(b.label,'ja'));return rows[0]||null}
+  function makeLongitudinalObjective(w){if(!w)return null;return {domain_id:w.domain_id,label:w.label,source_case_id:w.source_case_id,source_rate:w.recent_rate,created_at:new Date().toISOString(),persistent_streak:0,emphasis:'normal',selection_reason:'longitudinal',prior_cases_with_issue:w.prior_cases_with_issue,routing_source:'longitudinal_learning',longitudinal_reference_rate:w.reference_rate,longitudinal_recent_rate:w.recent_rate,longitudinal_delta:w.delta}}
+  function routedObjective(data){const current=data?.active_objective||null;if(isSafetyObjective(current))return {objective:current,reason:'safety_preserved',repeated:repeatedUnmet(data),longitudinal:longitudinalWeakness(data)};const repeated=repeatedUnmet(data),top=repeated[0]||null;if(top){const last=top.last||{},sourceRate=Number.isFinite(Number(last.target_rate))?Number(last.target_rate):Number.isFinite(Number(current?.source_rate))?Number(current.source_rate):null;const objective=makePersistentObjective({domain_id:top.domain_id,label:top.label,source_case_id:last.case_id||current?.source_case_id||null,source_rate:sourceRate,streak:top.streak,routing_source:'adaptive_practice'});return {objective,reason:'repeated_unmet',repeated,longitudinal:longitudinalWeakness(data)}}const longitudinal=longitudinalWeakness(data);if(longitudinal&&current?.selection_reason!=='persistent')return {objective:makeLongitudinalObjective(longitudinal),reason:'longitudinal_weakness',repeated,longitudinal};return {objective:current,reason:'existing',repeated,longitudinal}}
+  function resolveData(data){const base={...(data||{}),cases:Array.isArray(data?.cases)?data.cases:[]};const routed=routedObjective(base),before=base.active_objective||null,changed=JSON.stringify(before)!==JSON.stringify(routed.objective);return {data:{...base,active_objective:routed.objective},objective:routed.objective,reason:routed.reason,repeated:routed.repeated,longitudinal:routed.longitudinal,changed}}
+  function resolveStored(root){try{const raw=JSON.parse(root.localStorage.getItem(STORAGE_KEY)||'{}'),out=resolveData(raw);if(out.changed)root.localStorage.setItem(STORAGE_KEY,JSON.stringify(out.data));return out}catch{return {data:null,objective:null,reason:'storage_error',repeated:[],longitudinal:null,changed:false}}}
+  return {scoredPracticeRows,trailingUnresolved,repeatedUnmet,practiceLifecycle,isPersistentStreak,objectiveFailureStreak,persistentFromObjectiveHistory,makePersistentObjective,isSafetyObjective,caseIssueRate,longitudinalWeakness,makeLongitudinalObjective,routedObjective,resolveData,resolveStored,REPEATED_UNMET_N,LONGITUDINAL_MIN_CASES,LONGITUDINAL_RECENT_CASES,LONGITUDINAL_MIN_RECENT_RATE,LONGITUDINAL_MIN_DELTA,DOMAIN_LABELS,DOMAIN_TAGS,version:'1.3.0'};
 });
