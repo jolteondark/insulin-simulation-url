@@ -128,23 +128,43 @@
     return `<div class="micro-note">completed caseを時系列の3群に分け、同じ指標を100症例まで一貫して追います。変化はearly→lateで、正値ほど改善方向です。</div><div style="overflow-x:auto;margin-top:8px"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th>指標</th><th>early</th><th>middle</th><th>late</th><th>改善量</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
-  function installUI(){
-    if(typeof document==='undefined'||document.querySelector('#learningAnalysis'))return;
+  function ensureUI(){
+    if(typeof document==='undefined')return null;
+    let box=document.querySelector('#learningAnalysis');
+    if(box)return box;
     const anchor=document.querySelector('#learningDataExport')||document.querySelector('#runHistory');
-    if(!anchor)return;
-    const box=document.createElement('section');
+    if(!anchor)return null;
+    box=document.createElement('section');
     box.id='learningAnalysis';
     box.className='section-block';
     box.style.marginTop='16px';
     box.innerHTML=`<div class="section-title"><span>L</span> 学習効果サマリー</div><div id="learningAnalysisBody"></div>`;
     anchor.insertAdjacentElement('afterend',box);
-    const body=box.querySelector('#learningAnalysisBody');
+    return box;
+  }
+
+  function refresh(){
+    const box=ensureUI();
+    const body=box?.querySelector('#learningAnalysisBody');
     if(body)body.innerHTML=renderHtml(summarize(load()));
   }
 
-  window.WardLearningAnalysis={normalize,completedCases,splitTerciles,groupMetrics,summarize,renderHtml,METRICS,MIN_CASES,version:'1.0.0'};
+  function mount(){
+    refresh();
+    const submit=document.querySelector('#submitBtn');
+    const next=document.querySelector('#newCaseBtn');
+    if(submit&&!submit.dataset.learningAnalysisMounted){submit.dataset.learningAnalysisMounted='1';submit.addEventListener('click',()=>setTimeout(refresh,0));}
+    if(next&&!next.dataset.learningAnalysisMounted){next.dataset.learningAnalysisMounted='1';next.addEventListener('click',()=>setTimeout(refresh,0));}
+    const result=document.querySelector('#resultPanel');
+    if(result&&!result.dataset.learningAnalysisMounted){
+      result.dataset.learningAnalysisMounted='1';
+      result.addEventListener('click',event=>{if(event.target?.closest?.('#restartBtn'))setTimeout(refresh,0);});
+    }
+  }
+
+  window.WardLearningAnalysis={normalize,completedCases,splitTerciles,groupMetrics,summarize,renderHtml,refresh,METRICS,MIN_CASES,version:'1.1.0'};
   if(typeof document!=='undefined'){
-    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installUI,{once:true});
-    else installUI();
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});
+    else mount();
   }
 })();
