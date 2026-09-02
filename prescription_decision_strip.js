@@ -3,6 +3,8 @@
 (function(){
   const STRIP_ID='prescriptionDecisionStrip';
   const MIRRORED_CLASS='feedback-mirrored-in-decision-strip';
+  const COMPACTED_CLASS='decision-strip-source-compacted';
+  const DETAILS_ID='prescriptionContextDetailsBtn';
 
   function text(el){return (el?.textContent||'').replace(/\s+/g,' ').trim()}
 
@@ -13,11 +15,12 @@
   function snapshot(){
     const glucose=collect('#bgGrid .bg-card').map(x=>x.replace(/mg\/dL/gi,'').trim());
     const meals=collect('#todayMealGrid .meal-card');
+    const previousDoses=collect('#prevDoseGrid .prev-dose');
     const context=collect('#contextBadges .badge');
     const feedback=text(document.getElementById('previousFeedbackBody'));
     const feedbackSection=document.getElementById('previousFeedback');
     const feedbackVisible=feedbackSection&&!feedbackSection.classList.contains('hidden')&&Boolean(feedback);
-    return {glucose,meals,context,feedback:feedbackVisible?feedback:''};
+    return {glucose,meals,previousDoses,context,feedback:feedbackVisible?feedback:''};
   }
 
   function row(label,values,kind=''){
@@ -46,6 +49,37 @@
     else section.removeAttribute('aria-hidden');
   }
 
+  function sourceSections(){
+    return [document.getElementById('prescriptionContext'),document.getElementById('todayMealGrid')?.closest('section')].filter(Boolean);
+  }
+
+  function setSourcesCompacted(compacted){
+    sourceSections().forEach(section=>{
+      section.classList.toggle(COMPACTED_CLASS,Boolean(compacted));
+      if(compacted)section.setAttribute('aria-hidden','true');
+      else section.removeAttribute('aria-hidden');
+    });
+    const btn=document.getElementById(DETAILS_ID);
+    if(btn){
+      btn.textContent=compacted?'詳細を表示':'詳細を閉じる';
+      btn.setAttribute('aria-expanded',String(!compacted));
+    }
+  }
+
+  function detailsButton(){
+    return `<button type="button" id="${DETAILS_ID}" class="decision-strip-details-btn" aria-expanded="false">詳細を表示</button>`;
+  }
+
+  function bindDetails(){
+    const btn=document.getElementById(DETAILS_ID);
+    if(!btn||btn.dataset.bound==='1')return;
+    btn.dataset.bound='1';
+    btn.addEventListener('click',()=>{
+      const compacted=sourceSections().some(section=>section.classList.contains(COMPACTED_CLASS));
+      setSourcesCompacted(!compacted);
+    });
+  }
+
   function render(){
     const strip=ensureStrip();
     if(!strip)return;
@@ -54,15 +88,18 @@
       row('病態',s.context,'context'),
       row('直近4検',s.glucose,'glucose'),
       row('今日の食事',s.meals,'meal'),
-      s.feedback?`<div class="decision-strip-feedback"><span class="decision-strip-label">前日の1点</span><span>${s.feedback}</span></div>`:''
+      row('前回処方',s.previousDoses,'dose'),
+      s.feedback?`<div class="decision-strip-feedback"><span class="decision-strip-label">前日の1点</span><span>${s.feedback}</span></div>`:'',
+      detailsButton()
     ].filter(Boolean).join('');
     strip.innerHTML=html;
     strip.classList.toggle('hidden',!html);
-    // Once the actionable carryover is present beside the dose controls, hide
-    // the standalone YESTERDAY -> TODAY card. feedback_carryover.js remains
-    // the source of the sentence and still provides a fallback if this strip
-    // cannot mount, so no education state or routing logic is duplicated.
     setFeedbackMirrored(Boolean(s.feedback));
+    bindDetails();
+    // Once the summary contains the decision-critical information, the two
+    // larger source cards become an opt-in detail view. They stay in the DOM
+    // as the app.js-rendered source of truth and as a fallback for debugging.
+    setSourcesCompacted(Boolean(s.glucose.length&&s.meals.length&&s.previousDoses.length));
   }
 
   function installStyles(){
@@ -77,7 +114,9 @@
       .decision-strip-values span{min-width:0;padding:4px 3px;border-radius:8px;background:#fff;text-align:center;font-size:10px;line-height:1.2;font-weight:760;color:#3f4650;overflow:hidden;text-overflow:ellipsis}
       .decision-strip-row.context .decision-strip-values,.decision-strip-row.meal .decision-strip-values{grid-template-columns:repeat(3,minmax(0,1fr))}
       .decision-strip-feedback{display:grid;grid-template-columns:62px minmax(0,1fr);gap:7px;padding-top:7px;border-top:1px solid #e4e7ec;font-size:10px;line-height:1.35;color:#4d5560}
+      .decision-strip-details-btn{justify-self:end;border:0;background:transparent;padding:2px 0;font:inherit;font-size:9px;font-weight:800;color:#69717d;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
       #previousFeedback.${MIRRORED_CLASS}{display:none!important}
+      .${COMPACTED_CLASS}{display:none!important}
       @media(max-width:430px){
         .prescription-decision-strip{margin-bottom:9px;padding:9px}
         .decision-strip-row,.decision-strip-feedback{grid-template-columns:56px minmax(0,1fr);gap:5px}
@@ -97,11 +136,11 @@
   function boot(){
     installStyles();
     render();
-    ['bgGrid','todayMealGrid','contextBadges','previousFeedback','previousFeedbackBody','doseGrid'].forEach(observe);
+    ['bgGrid','todayMealGrid','prevDoseGrid','contextBadges','previousFeedback','previousFeedbackBody','doseGrid'].forEach(observe);
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.PrescriptionDecisionStrip={snapshot,render,setFeedbackMirrored,version:'1.1.0'};
+  window.PrescriptionDecisionStrip={snapshot,render,setFeedbackMirrored,setSourcesCompacted,version:'1.2.0'};
 })();
