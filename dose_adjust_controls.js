@@ -1,9 +1,10 @@
-// One-tap +/-1 U controls and keyboard-first repeat-play dosing.
+// One-tap +/-1 U and +/-2 U controls plus keyboard-first repeat-play dosing.
 // Keeps app.js as the source of prescription state; this module only edits/focuses visible controls.
 (function(){
   const GRID_ID='doseGrid';
   const MIN=0;
   const MAX=80;
+  const STEPS=[-2,-1,1,2];
 
   function clampDose(value){
     const n=Number(value);
@@ -57,6 +58,10 @@
     setTimeout(focusResultAction,0);
   }
 
+  function stepLabel(delta){
+    return `${delta>0?'+':''}${delta}`;
+  }
+
   function decorateCard(card){
     if(card.dataset.quickAdjustReady==='1')return;
     const input=card.querySelector('input[type="number"][id^="dose_"]');
@@ -65,13 +70,13 @@
     input.setAttribute('title','Enterでこの処方を実行');
     const controls=document.createElement('div');
     controls.className='dose-quick-adjust';
-    controls.setAttribute('aria-label','1単位ずつ調整');
-    for(const delta of [-1,1]){
+    controls.setAttribute('aria-label','投与量をすばやく調整');
+    for(const delta of STEPS){
       const button=document.createElement('button');
       button.type='button';
-      button.className='dose-step-btn';
-      button.textContent=delta<0?'−1':'+1';
-      button.setAttribute('aria-label',`${delta<0?'1単位減らす':'1単位増やす'}`);
+      button.className=`dose-step-btn ${Math.abs(delta)===2?'dose-step-major':''}`;
+      button.textContent=stepLabel(delta);
+      button.setAttribute('aria-label',`${Math.abs(delta)}単位${delta<0?'減らす':'増やす'}`);
       button.addEventListener('click',()=>adjust(input,delta));
       controls.appendChild(button);
     }
@@ -98,10 +103,11 @@
     const style=document.createElement('style');
     style.id='doseQuickAdjustStyle';
     style.textContent=`
-      .dose-quick-adjust{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:7px}
-      .dose-step-btn{border:1px solid #dde1e7;background:#fff;border-radius:9px;padding:6px 2px;font-size:11px;font-weight:800;color:#59616b;touch-action:manipulation}
+      .dose-quick-adjust{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:7px}
+      .dose-step-btn{border:1px solid #dde1e7;background:#fff;border-radius:9px;padding:7px 1px;font-size:10px;font-weight:800;color:#59616b;touch-action:manipulation;min-width:0}
       .dose-step-btn:active{transform:translateY(1px);background:#f0f2f5}
-      @media(max-width:430px){.dose-step-btn{padding:7px 1px;font-size:10px}}
+      .dose-step-major{font-weight:900;background:#f8f9fb}
+      @media(max-width:430px){.dose-quick-adjust{gap:3px}.dose-step-btn{padding:8px 0;font-size:10px}}
     `;
     document.head.appendChild(style);
   }
@@ -118,5 +124,5 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.DoseAdjustControls={clampDose,isUsableAction,focusFirstDose,focusResultAction,version:'1.2.0'};
+  window.DoseAdjustControls={clampDose,isUsableAction,focusFirstDose,focusResultAction,steps:[...STEPS],version:'1.3.0'};
 })();
