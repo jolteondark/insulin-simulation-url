@@ -41,6 +41,8 @@
     if(!submit||submit.disabled)return;
     event.preventDefault();
     submit.click();
+    // app.js and education modules update the result panel synchronously.
+    // Move keyboard focus to the resulting action without changing scroll.
     setTimeout(focusResultAction,0);
   }
 
@@ -74,6 +76,8 @@
 
   function onDocumentClick(event){
     if(event?.target?.id!=='nextDayBtn')return;
+    // app.js renders the next day before the click bubbles here. Defer once so
+    // repeat-play navigation can position the page, then return focus to dosing.
     setTimeout(focusFirstDose,0);
   }
 
