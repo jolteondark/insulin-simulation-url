@@ -2,6 +2,7 @@
 // Mirrors already-rendered DOM; app.js remains the source of patient/prescription state.
 (function(){
   const STRIP_ID='prescriptionDecisionStrip';
+  const MIRRORED_CLASS='feedback-mirrored-in-decision-strip';
 
   function text(el){return (el?.textContent||'').replace(/\s+/g,' ').trim()}
 
@@ -37,6 +38,14 @@
     return strip;
   }
 
+  function setFeedbackMirrored(mirrored){
+    const section=document.getElementById('previousFeedback');
+    if(!section)return;
+    section.classList.toggle(MIRRORED_CLASS,Boolean(mirrored));
+    if(mirrored)section.setAttribute('aria-hidden','true');
+    else section.removeAttribute('aria-hidden');
+  }
+
   function render(){
     const strip=ensureStrip();
     if(!strip)return;
@@ -49,6 +58,11 @@
     ].filter(Boolean).join('');
     strip.innerHTML=html;
     strip.classList.toggle('hidden',!html);
+    // Once the actionable carryover is present beside the dose controls, hide
+    // the standalone YESTERDAY -> TODAY card. feedback_carryover.js remains
+    // the source of the sentence and still provides a fallback if this strip
+    // cannot mount, so no education state or routing logic is duplicated.
+    setFeedbackMirrored(Boolean(s.feedback));
   }
 
   function installStyles(){
@@ -63,6 +77,7 @@
       .decision-strip-values span{min-width:0;padding:4px 3px;border-radius:8px;background:#fff;text-align:center;font-size:10px;line-height:1.2;font-weight:760;color:#3f4650;overflow:hidden;text-overflow:ellipsis}
       .decision-strip-row.context .decision-strip-values,.decision-strip-row.meal .decision-strip-values{grid-template-columns:repeat(3,minmax(0,1fr))}
       .decision-strip-feedback{display:grid;grid-template-columns:62px minmax(0,1fr);gap:7px;padding-top:7px;border-top:1px solid #e4e7ec;font-size:10px;line-height:1.35;color:#4d5560}
+      #previousFeedback.${MIRRORED_CLASS}{display:none!important}
       @media(max-width:430px){
         .prescription-decision-strip{margin-bottom:9px;padding:9px}
         .decision-strip-row,.decision-strip-feedback{grid-template-columns:56px minmax(0,1fr);gap:5px}
@@ -88,5 +103,5 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.PrescriptionDecisionStrip={snapshot,render,version:'1.0.0'};
+  window.PrescriptionDecisionStrip={snapshot,render,setFeedbackMirrored,version:'1.1.0'};
 })();
