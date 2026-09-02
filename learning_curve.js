@@ -63,6 +63,8 @@
       const intake=Number(rec?.intake?.[meal]);
       const icr=Number(p?.icr_g_u);
       const expected=Number.isFinite(intake)&&Number.isFinite(icr)&&icr>0?mealCarb[meal]*intake/icr:null;
+      // Prescribing skill is the scheduled meal dose chosen by the learner.
+      // Correction-scale insulin is rescue exposure and is tracked separately as scale dependence.
       const scheduled=Number(rec?.order?.[key]||0);
       if(expected==null)continue;
       const delta=scheduled-expected;
@@ -87,6 +89,8 @@
     const poc=['pre_breakfast','pre_lunch','pre_dinner','bedtime'].map(k=>Number(bg[k]));
     const mn=Number(rec?.result?.min),mx=Number(rec?.result?.max);
     const safe=Number.isFinite(mn)&&Number.isFinite(mx)&&mn>=70&&mx<=400;
+    // Discharge-grade intentionally still requires the scale to be switched OFF,
+    // while scale dependence below means actual correction insulin was delivered.
     const dischargeGrade=safe&&!rec?.result?.correction_scale&&poc.every(v=>Number.isFinite(v)&&v>=80&&v<=180)&&mn>=70&&mx<=250;
     const feedbackTags=Array.isArray(rec?.education_feedback?.tags)?[...new Set(rec.education_feedback.tags.filter(x=>typeof x==='string'))]:[];
     return {
