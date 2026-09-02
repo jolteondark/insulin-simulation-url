@@ -8,7 +8,7 @@
   function normalize(raw){
     const x=raw&&typeof raw==='object'?raw:{};
     return {
-      schema_version:1,
+      schema_version:2,
       exported_at:new Date().toISOString(),
       days:Array.isArray(x.days)?x.days:[],
       cases:Array.isArray(x.cases)?x.cases:[],
@@ -17,9 +17,18 @@
     };
   }
 
+  function educationReport(snapshot){
+    const analyzer=typeof window!=='undefined'?window.WardLearningAnalysis:null;
+    if(!analyzer||typeof analyzer.summarize!=='function')return null;
+    return analyzer.summarize(snapshot);
+  }
+
   function load(){
-    try{return normalize(JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'))}
-    catch{return normalize({})}
+    let data;
+    try{data=normalize(JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'))}
+    catch{data=normalize({})}
+    data.education_report=educationReport(data);
+    return data;
   }
 
   function csvCell(value){
@@ -89,7 +98,7 @@
     box.style.marginTop='16px';
     box.innerHTML=`
       <div class="section-title"><span>E</span> 学習データ</div>
-      <div class="micro-note">症例横断のlearning curve・処方傾向を解析用に保存します。患者個人情報は含みません。</div>
+      <div class="micro-note">JSONには日次・症例履歴に加え、画面の「学習効果サマリー」と同じ定義のeducation_reportを含めます。患者個人情報は含みません。</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
         <button type="button" class="ghost-btn" id="exportLearningJson">JSONを保存</button>
         <button type="button" class="ghost-btn" id="exportLearningCsv">日次CSVを保存</button>
@@ -99,7 +108,7 @@
     box.querySelector('#exportLearningCsv')?.addEventListener('click',exportCsv);
   }
 
-  window.WardLearningDataExport={load,normalize,dayRow,daysCsv,exportJson,exportCsv,installUI};
+  window.WardLearningDataExport={load,normalize,educationReport,dayRow,daysCsv,exportJson,exportCsv,installUI,version:'2.0.0'};
   if(typeof document!=='undefined'){
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installUI,{once:true});
     else installUI();
