@@ -16,6 +16,8 @@
     if(!d)return null;
     const panel=d.querySelector('#resultPanel');
     if(!panel||panel.classList?.contains?.('hidden'))return null;
+    // Terminal debrief replaces the legacy restart button with caseNextCta.
+    // Prefer the visible canonical CTA and only fall back to legacy controls.
     return [
       d.querySelector('#caseNextCta'),
       panel.querySelector('#nextDayBtn'),
@@ -48,6 +50,8 @@
       const target=actionTarget();
       if(!target)return refresh();
       target.click();
+      // Let the canonical handler finish rendering the next decision state
+      // before deciding whether the dock should remain visible.
       setTimeout(refresh,0);
     });
     dock.appendChild(btn);
