@@ -1,5 +1,5 @@
-// One-tap +/-1 U controls for rapid repeat-play dosing.
-// Keeps app.js as the source of prescription state; this module only edits the visible inputs.
+// One-tap +/-1 U controls and keyboard-first repeat-play dosing.
+// Keeps app.js as the source of prescription state; this module only edits/focuses visible controls.
 (function(){
   const GRID_ID='doseGrid';
   const MIN=0;
@@ -11,16 +11,45 @@
     return Math.max(MIN,Math.min(MAX,Math.round(n)));
   }
 
+  function focusElement(el){
+    if(!el||typeof el.focus!=='function')return false;
+    el.focus({preventScroll:true});
+    return true;
+  }
+
+  function focusFirstDose(){
+    return focusElement(document.querySelector(`#${GRID_ID} input[type="number"][id^="dose_"]`));
+  }
+
+  function focusResultAction(){
+    return focusElement(
+      document.getElementById('nextDayBtn') ||
+      document.getElementById('restartBtn') ||
+      document.querySelector('#resultPanel button.next-btn')
+    );
+  }
+
   function adjust(input,delta){
     input.value=String(clampDose(Number(input.value)+delta));
     input.dispatchEvent(new Event('input',{bubbles:true}));
-    input.focus({preventScroll:true});
+    focusElement(input);
+  }
+
+  function submitFromDoseInput(event){
+    if(event.key!=='Enter'||event.isComposing)return;
+    const submit=document.getElementById('submitBtn');
+    if(!submit||submit.disabled)return;
+    event.preventDefault();
+    submit.click();
+    setTimeout(focusResultAction,0);
   }
 
   function decorateCard(card){
     if(card.dataset.quickAdjustReady==='1')return;
     const input=card.querySelector('input[type="number"][id^="dose_"]');
     if(!input)return;
+    input.addEventListener('keydown',submitFromDoseInput);
+    input.setAttribute('title','Enterでこの処方を実行');
     const controls=document.createElement('div');
     controls.className='dose-quick-adjust';
     controls.setAttribute('aria-label','1単位ずつ調整');
@@ -43,6 +72,11 @@
     grid.querySelectorAll('.dose-input-card').forEach(decorateCard);
   }
 
+  function onDocumentClick(event){
+    if(event?.target?.id!=='nextDayBtn')return;
+    setTimeout(focusFirstDose,0);
+  }
+
   function installStyles(){
     if(document.getElementById('doseQuickAdjustStyle'))return;
     const style=document.createElement('style');
@@ -62,10 +96,11 @@
     const grid=document.getElementById(GRID_ID);
     if(!grid)return;
     new MutationObserver(decorate).observe(grid,{childList:true});
+    document.addEventListener('click',onDocumentClick);
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.DoseAdjustControls={clampDose};
+  window.DoseAdjustControls={clampDose,focusFirstDose,focusResultAction,version:'1.1.0'};
 })();
