@@ -114,6 +114,19 @@
     const practice=summarizeFocusPractice(current?.snapshot||{},focus);
     return {focus,practice,status:practice?.status||'not_practiced'};
   }
+  function buildCurriculumHistory(transitions){
+    return (Array.isArray(transitions)?transitions:[]).map(t=>({
+      from_block:t.from_block,
+      to_block:t.to_block,
+      domain_id:t.curriculum?.focus?.domain_id||null,
+      label:t.curriculum?.focus?.label||null,
+      status:t.curriculum?.status||'no_focus',
+      practice_count:t.curriculum?.practice?.practice_count||0,
+      successful_practice_count:t.curriculum?.practice?.successful_practice_count||0,
+      latest_status:t.curriculum?.practice?.latest_status||null,
+      latest_case_id:t.curriculum?.practice?.latest_case_id||null
+    }));
+  }
   function buildLongitudinal(archives,currentRaw,analyzer){
     const list=Array.isArray(archives)?archives:[];
     const blocks=list.map((a,i)=>summarizeBlock(a?.snapshot,a?.block_number||i+1,analyzer)).filter(Boolean);
@@ -123,11 +136,12 @@
     for(let i=1;i<blocks.length;i++)transitions.push({from_block:blocks[i-1].block_number,to_block:blocks[i].block_number,metrics:compareBlockMetrics(blocks[i-1],blocks[i]),curriculum:buildCurriculumTransition(blocks[i-1],blocks[i])});
     const latest=transitions.at(-1)||null;
     return {
-      schema_version:2,
+      schema_version:3,
       method:'late-phase to late-phase comparison across archived 100-case learning blocks using the existing WardLearningAnalysis metrics; curriculum linkage uses stored active_objective and adaptive_practice status without adding a new learning metric',
       block_count:blocks.length,
       blocks:blocks.map(({snapshot,...rest})=>rest),
       transitions,
+      curriculum_history:buildCurriculumHistory(transitions),
       latest_transition:latest,
       improved:latest?latest.metrics.filter(m=>m.classification==='improved'):[],
       worsened:latest?latest.metrics.filter(m=>m.classification==='worsened'):[],
@@ -136,6 +150,12 @@
   }
 
   function curriculumStatusLabel(x){return x==='improved'?'改善確認':x==='not_resolved'?'未改善':x==='not_practiced'?'まだ重点練習なし':'前blockにcarryover focusなし'}
+  function renderCurriculumHistoryHtml(history){
+    const rows=(Array.isArray(history)?history:[]).filter(x=>x.domain_id);
+    if(rows.length<2)return '';
+    const items=rows.map(x=>`<li>Block ${x.from_block}→${x.to_block}：<b>${x.label}</b> → 重点練習 ${x.practice_count}症例 → <b>${curriculumStatusLabel(x.status)}</b>${x.latest_status?`（最新 ${x.latest_status}）`:''}</li>`).join('');
+    return `<div class="micro-note" style="margin-top:8px"><b>重点学習の履歴</b><ol style="margin:4px 0 0 18px">${items}</ol></div>`;
+  }
   function renderLongitudinalHtml(longitudinal){
     if(!longitudinal||longitudinal.block_count<2)return '<div class="micro-note" style="margin-top:8px">2ブロック以上でブロック間の学習推移を表示します。</div>';
     const t=longitudinal.latest_transition;
@@ -149,7 +169,8 @@
     const next=weak.length?weak.slice(0,2).map(m=>m.label).join('、'):'主要教育指標に明確なblock間悪化なし';
     const c=t.curriculum||null;
     const focusLine=c?.focus?`${t.from_block}末の重点：${c.focus.label} → ${t.to_block}で重点練習 ${c.practice?.practice_count||0}症例 → <b>${curriculumStatusLabel(c.status)}</b>${c.practice?.latest_status?`（最新 ${c.practice.latest_status}）`:''}`:'前block末にcarryover対象のlearning focusなし';
-    return `<div class="micro-note" style="margin-top:8px"><b>ブロック間：</b>${t.from_block}→${t.to_block}。各blockのlate phase同士を比較します。</div>
+    return `${renderCurriculumHistoryHtml(longitudinal.curriculum_history)}
+      <div class="micro-note" style="margin-top:8px"><b>最新ブロック間：</b>${t.from_block}→${t.to_block}。各blockのlate phase同士を比較します。</div>
       <div class="micro-note" style="margin-top:8px"><b>重点学習の接続：</b>${focusLine}</div>
       ${headline?`<div class="micro-note" style="margin-top:8px"><b>主要アウトカム：</b>${headline}</div>`:''}
       ${rows?`<div class="micro-note" style="margin-top:8px"><b>教育ループ3指標</b><ul style="margin:4px 0 0 18px">${rows}</ul></div>`:''}
@@ -205,6 +226,6 @@
   function refresh(){const x=load(),box=ensureUI(),body=box?.querySelector('#finalLearningDebriefBody'),longBody=box?.querySelector('#longitudinalLearningDebriefBody');if(body&&x)body.innerHTML=renderHtml(x.report,x.summary);if(longBody&&x)longBody.innerHTML=renderLongitudinalHtml(x.longitudinal)}
   function mount(){refresh();const submit=document.querySelector('#submitBtn'),next=document.querySelector('#newCaseBtn');if(submit&&!submit.dataset.finalDebriefMounted){submit.dataset.finalDebriefMounted='1';submit.addEventListener('click',()=>setTimeout(refresh,0))}if(next&&!next.dataset.finalDebriefMounted){next.dataset.finalDebriefMounted='1';next.addEventListener('click',()=>setTimeout(refresh,0))}}
 
-  window.WardFinalLearningDebrief={build,analyze,normalizeFocus,practiceRows,summarizeFocusPractice,summarizeBlock,compareBlockMetrics,buildCurriculumTransition,buildLongitudinal,renderHtml,renderLongitudinalHtml,refresh,classifyMetric,TARGET_CASES,CORE_LEARNING_IDS,BLOCK_METRIC_IDS,version:'1.3.0'};
+  window.WardFinalLearningDebrief={build,analyze,normalizeFocus,practiceRows,summarizeFocusPractice,summarizeBlock,compareBlockMetrics,buildCurriculumTransition,buildCurriculumHistory,buildLongitudinal,renderHtml,renderCurriculumHistoryHtml,renderLongitudinalHtml,refresh,classifyMetric,TARGET_CASES,CORE_LEARNING_IDS,BLOCK_METRIC_IDS,version:'1.4.0'};
   if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount()}
 })();
