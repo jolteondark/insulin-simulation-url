@@ -61,20 +61,41 @@
   }
 
   function sourceSections(){
-    return [document.getElementById('prescriptionContext'),document.getElementById('todayMealGrid')?.closest('section')].filter(Boolean);
+    return {
+      context:document.getElementById('prescriptionContext'),
+      meals:document.getElementById('todayMealGrid')?.closest('section')
+    };
+  }
+
+  function setSectionCompacted(section,compacted){
+    if(!section)return;
+    section.classList.toggle(COMPACTED_CLASS,Boolean(compacted));
+    if(compacted)section.setAttribute('aria-hidden','true');
+    else section.removeAttribute('aria-hidden');
+  }
+
+  function updateDetailsButton(){
+    const btn=document.getElementById(DETAILS_ID);
+    if(!btn)return;
+    const sections=Object.values(sourceSections()).filter(Boolean);
+    const compacted=sections.some(section=>section.classList.contains(COMPACTED_CLASS));
+    btn.textContent=compacted?'詳細を表示':'詳細を閉じる';
+    btn.setAttribute('aria-expanded',String(!compacted));
   }
 
   function setSourcesCompacted(compacted){
-    sourceSections().forEach(section=>{
-      section.classList.toggle(COMPACTED_CLASS,Boolean(compacted));
-      if(compacted)section.setAttribute('aria-hidden','true');
-      else section.removeAttribute('aria-hidden');
-    });
-    const btn=document.getElementById(DETAILS_ID);
-    if(btn){
-      btn.textContent=compacted?'詳細を表示':'詳細を閉じる';
-      btn.setAttribute('aria-expanded',String(!compacted));
-    }
+    Object.values(sourceSections()).forEach(section=>setSectionCompacted(section,compacted));
+    updateDetailsButton();
+  }
+
+  function setMirroredSourcesCompacted(s){
+    const sections=sourceSections();
+    // The current-meal card can be hidden as soon as today's meals are mirrored,
+    // including on day 1 when no prior dose exists yet. The larger latest-record
+    // card is hidden only after both glucose and previous actual dose are mirrored.
+    setSectionCompacted(sections.meals,Boolean(s.meals.length));
+    setSectionCompacted(sections.context,Boolean(s.glucose.length&&s.previousDoses.length));
+    updateDetailsButton();
   }
 
   function detailsButton(){
@@ -86,7 +107,7 @@
     if(!btn||btn.dataset.bound==='1')return;
     btn.dataset.bound='1';
     btn.addEventListener('click',()=>{
-      const compacted=sourceSections().some(section=>section.classList.contains(COMPACTED_CLASS));
+      const compacted=Object.values(sourceSections()).filter(Boolean).some(section=>section.classList.contains(COMPACTED_CLASS));
       setSourcesCompacted(!compacted);
     });
   }
@@ -107,10 +128,10 @@
     strip.classList.toggle('hidden',!html);
     setFeedbackMirrored(Boolean(s.feedback));
     bindDetails();
-    // Once the summary contains the decision-critical information, the two
-    // larger source cards become an opt-in detail view. They stay in the DOM
-    // as the app.js-rendered source of truth and as a fallback for debugging.
-    setSourcesCompacted(Boolean(s.glucose.length&&s.meals.length&&s.previousDoses.length));
+    // Compact each source independently once its decision-critical content is
+    // mirrored. This avoids keeping today's meal card duplicated merely because
+    // another source (for example previous dose on day 1) is not available yet.
+    setMirroredSourcesCompacted(s);
   }
 
   function installStyles(){
@@ -153,5 +174,5 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.PrescriptionDecisionStrip={snapshot,previousDoseSnapshot,render,setFeedbackMirrored,setSourcesCompacted,version:'1.3.0'};
+  window.PrescriptionDecisionStrip={snapshot,previousDoseSnapshot,render,setFeedbackMirrored,setSourcesCompacted,setMirroredSourcesCompacted,version:'1.4.0'};
 })();
