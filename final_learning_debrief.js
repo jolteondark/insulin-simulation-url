@@ -2,7 +2,9 @@
   const TARGET_CASES=100;
   const RATE_THRESHOLD=0.05;
   const DAYS_THRESHOLD=0.5;
+  const ARCHIVE_KEY='ward_glucose_learning_cycle_archives_v1';
   const CORE_LEARNING_IDS=['correction_share_of_rapid','same_feedback_next_day_rate','feedback_action_alignment_rate'];
+  const BLOCK_METRIC_IDS=['safe_day_rate','discharge_rate','scale_day_rate','rapid_error_rate','basal_error_day_rate',...CORE_LEARNING_IDS];
 
   function threshold(metric){return metric.id==='mean_completion_days'?DAYS_THRESHOLD:RATE_THRESHOLD}
   function classifyMetric(metric){
@@ -71,6 +73,63 @@
     };
   }
 
+  function summarizeBlock(snapshot,blockNumber,analyzer){
+    if(!analyzer||typeof analyzer.summarize!=='function')return null;
+    const summary=analyzer.summarize(snapshot||{});
+    if(!summary?.ready)return null;
+    const metrics=Object.fromEntries((summary.metrics||[]).filter(m=>BLOCK_METRIC_IDS.includes(m.id)).map(m=>[m.id,{id:m.id,label:m.label,direction:m.direction,late:m.late}]));
+    return {block_number:blockNumber,case_count:Number(summary.case_count||0),metrics,objective_success_rate:summary?.groups?.late?.objective_success_rate??null};
+  }
+  function compareBlockMetrics(previous,current){
+    const ids=[...new Set([...Object.keys(previous?.metrics||{}),...Object.keys(current?.metrics||{})])];
+    return ids.map(id=>{
+      const a=previous?.metrics?.[id],b=current?.metrics?.[id];
+      if(!a||!b||a.late==null||b.late==null)return null;
+      const direction=b.direction||a.direction||'higher';
+      const raw=b.late-a.late;
+      const improvement=direction==='lower'?-raw:raw;
+      const metric={id,label:b.label||a.label,direction,early:a.late,late:b.late,change:{raw,improvement}};
+      return {...metric,classification:classifyMetric(metric)};
+    }).filter(Boolean);
+  }
+  function buildLongitudinal(archives,currentRaw,analyzer){
+    const list=Array.isArray(archives)?archives:[];
+    const blocks=list.map((a,i)=>summarizeBlock(a?.snapshot,a?.block_number||i+1,analyzer)).filter(Boolean);
+    const current=summarizeBlock(currentRaw,(list.at(-1)?.block_number||0)+1,analyzer);
+    if(current&&current.case_count>=6)blocks.push(current);
+    const transitions=[];
+    for(let i=1;i<blocks.length;i++)transitions.push({from_block:blocks[i-1].block_number,to_block:blocks[i].block_number,metrics:compareBlockMetrics(blocks[i-1],blocks[i])});
+    const latest=transitions.at(-1)||null;
+    return {
+      schema_version:1,
+      method:'late-phase to late-phase comparison across archived 100-case learning blocks using the existing WardLearningAnalysis metrics',
+      block_count:blocks.length,
+      blocks,
+      transitions,
+      latest_transition:latest,
+      improved:latest?latest.metrics.filter(m=>m.classification==='improved'):[],
+      worsened:latest?latest.metrics.filter(m=>m.classification==='worsened'):[],
+      stable:latest?latest.metrics.filter(m=>m.classification==='stable'):[]
+    };
+  }
+
+  function renderLongitudinalHtml(longitudinal){
+    if(!longitudinal||longitudinal.block_count<2)return '<div class="micro-note" style="margin-top:8px">2ブロック以上でブロック間の学習推移を表示します。</div>';
+    const t=longitudinal.latest_transition;
+    const key=CORE_LEARNING_IDS.map(id=>t.metrics.find(m=>m.id===id)).filter(Boolean);
+    const rows=key.map(m=>`<li><b>${classificationLabel(m.classification)}</b>：${m.label} ${formatValue(m,m.early)}→${formatValue(m,m.late)}（${formatChange(m)}）</li>`).join('');
+    const safety=t.metrics.find(m=>m.id==='safe_day_rate');
+    const discharge=t.metrics.find(m=>m.id==='discharge_rate');
+    const scale=t.metrics.find(m=>m.id==='scale_day_rate');
+    const headline=[safety,discharge,scale].filter(Boolean).map(m=>`${m.label} ${formatValue(m,m.early)}→${formatValue(m,m.late)}［${classificationLabel(m.classification)}］`).join(' ／ ');
+    const weak=longitudinal.worsened.filter(m=>CORE_LEARNING_IDS.includes(m.id)||['rapid_error_rate','basal_error_day_rate'].includes(m.id));
+    const next=weak.length?weak.slice(0,2).map(m=>m.label).join('、'):'主要教育指標に明確なblock間悪化なし';
+    return `<div class="micro-note" style="margin-top:8px"><b>ブロック間：</b>${t.from_block}→${t.to_block}。各blockのlate phase同士を比較します。</div>
+      ${headline?`<div class="micro-note" style="margin-top:8px"><b>主要アウトカム：</b>${headline}</div>`:''}
+      ${rows?`<div class="micro-note" style="margin-top:8px"><b>教育ループ3指標</b><ul style="margin:4px 0 0 18px">${rows}</ul></div>`:''}
+      <div class="micro-note" style="margin-top:8px"><b>次ブロックで優先：</b>${next}</div>`;
+  }
+
   function renderHtml(report,summary){
     if(!report.analysis_ready)return `<div class="micro-note">${summary?.minimum_cases||6}症例完了後から学習変化を集計します。</div>`;
     const progress=Math.min(report.case_count,report.target_cases);
@@ -101,21 +160,25 @@
     return {summary,report:build(summary)};
   }
   function load(){
-    let raw={};
+    let raw={},archives=[];
     try{raw=JSON.parse(localStorage.getItem('ward_glucose_learning_curve_v1')||'{}')}catch{}
-    return analyze(raw);
+    try{archives=JSON.parse(localStorage.getItem(ARCHIVE_KEY)||'[]')}catch{}
+    const base=analyze(raw);
+    if(!base)return null;
+    base.longitudinal=buildLongitudinal(archives,raw,window.WardLearningAnalysis);
+    return base;
   }
   function ensureUI(){
     if(typeof document==='undefined')return null;
     let box=document.querySelector('#finalLearningDebrief');if(box)return box;
     const anchor=document.querySelector('#learningAnalysis')||document.querySelector('#learningDataExport');if(!anchor)return null;
     box=document.createElement('section');box.id='finalLearningDebrief';box.className='section-block';box.style.marginTop='16px';
-    box.innerHTML='<div class="section-title"><span>100</span> 100症例 debrief</div><div id="finalLearningDebriefBody"></div>';
+    box.innerHTML='<div class="section-title"><span>100</span> 100症例 debrief</div><div id="finalLearningDebriefBody"></div><div id="longitudinalLearningDebriefBody"></div>';
     anchor.insertAdjacentElement('afterend',box);return box;
   }
-  function refresh(){const x=load(),box=ensureUI(),body=box?.querySelector('#finalLearningDebriefBody');if(body&&x)body.innerHTML=renderHtml(x.report,x.summary)}
+  function refresh(){const x=load(),box=ensureUI(),body=box?.querySelector('#finalLearningDebriefBody'),longBody=box?.querySelector('#longitudinalLearningDebriefBody');if(body&&x)body.innerHTML=renderHtml(x.report,x.summary);if(longBody&&x)longBody.innerHTML=renderLongitudinalHtml(x.longitudinal)}
   function mount(){refresh();const submit=document.querySelector('#submitBtn'),next=document.querySelector('#newCaseBtn');if(submit&&!submit.dataset.finalDebriefMounted){submit.dataset.finalDebriefMounted='1';submit.addEventListener('click',()=>setTimeout(refresh,0))}if(next&&!next.dataset.finalDebriefMounted){next.dataset.finalDebriefMounted='1';next.addEventListener('click',()=>setTimeout(refresh,0))}}
 
-  window.WardFinalLearningDebrief={build,analyze,renderHtml,refresh,classifyMetric,TARGET_CASES,CORE_LEARNING_IDS,version:'1.1.0'};
+  window.WardFinalLearningDebrief={build,analyze,summarizeBlock,compareBlockMetrics,buildLongitudinal,renderHtml,renderLongitudinalHtml,refresh,classifyMetric,TARGET_CASES,CORE_LEARNING_IDS,BLOCK_METRIC_IDS,version:'1.2.0'};
   if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount()}
 })();
