@@ -125,12 +125,22 @@
     return {primary,secondary};
   }
 
+  function compactDisplayText(text){
+    return String(text||'')
+      .replace(/(朝前|昼前|夕前|眠前) \d+ mg\/dL：/g,'')
+      .replace(/定時 [\d.]+ U \+ scale [\d.]+ U = 実投与 [\d.]+ Uでした。/g,'')
+      .replace(/hidden glucose は \d+ mg\/dL まで低下しました。/g,'hidden低血糖がありました。')
+      .replace(/hidden glucose は \d+ mg\/dL まで上昇しました。/g,'hidden高血糖がありました。')
+      .replace(/\s{2,}/g,' ')
+      .trim();
+  }
+
   function renderHtml(analysis){
     const {primary,secondary}=selectPrimary(analysis);
     if(!primary)return '';
     const heading=analysis.stable&&!analysis.objective_emphasis?'次の処方：維持して再現性を確認':'次に変える1点';
-    const extras=secondary.length?`<details class="feedback-details"><summary>補足 ${secondary.length}点</summary><ul class="feedback-list">${secondary.slice(0,4).map(x=>`<li>${x.text}</li>`).join('')}</ul></details>`:'';
-    return `<div class="feedback-box daily-feedback"><div class="feedback-title">${heading}</div><div class="feedback-primary">${primary.text}</div>${extras}</div>`;
+    const extras=secondary.length?`<details class="feedback-details"><summary>補足 ${secondary.length}点</summary><ul class="feedback-list">${secondary.slice(0,4).map(x=>`<li>${compactDisplayText(x.text)}</li>`).join('')}</ul></details>`:'';
+    return `<div class="feedback-box daily-feedback"><div class="feedback-title">${heading}</div><div class="feedback-primary">${compactDisplayText(primary.text)}</div>${extras}</div>`;
   }
 
   function loadObjective(){
@@ -163,7 +173,7 @@
     submit.addEventListener('click',annotateLatest);
   }
 
-  const api={analyze,emphasizeForObjective,selectPrimary,renderHtml,annotateLatest,usedCorrectionDose,version:'1.6.0'};
+  const api={analyze,emphasizeForObjective,selectPrimary,compactDisplayText,renderHtml,annotateLatest,usedCorrectionDose,version:'1.7.0'};
   if(root)root.DailyFeedback=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
