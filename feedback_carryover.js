@@ -1,5 +1,18 @@
 (function(root){
   const STORAGE_KEY='ward_glucose_learning_curve_v1';
+  const conciseByTag={
+    basal_excess:'basal：減量方向を再検討',
+    basal_deficit:'basal：増量方向を再検討',
+    breakfast_rapid_excess:'朝rapid：減量方向を再検討',
+    breakfast_rapid_deficit:'朝rapid：増量方向を再検討',
+    lunch_rapid_excess:'昼rapid：減量方向を再検討',
+    lunch_rapid_deficit:'昼rapid：増量方向を再検討',
+    dinner_rapid_excess:'夕rapid：減量方向を再検討',
+    dinner_rapid_deficit:'夕rapid：増量方向を再検討',
+    scale_dependence:'補正scale依存：定時量とscale設定を分けて再検討',
+    hidden_low_near_miss:'hidden低血糖：4検だけを見て増量しない',
+    hidden_high_excursion:'hidden高血糖：食後高血糖を残していないか確認'
+  };
 
   function storedTerminalFeedback(){
     try{
@@ -42,6 +55,22 @@
     return true;
   }
 
+  function compactCarryText(carry){
+    if(!carry)return '';
+    if(carry.tag&&conciseByTag[carry.tag])return conciseByTag[carry.tag];
+    try{
+      const compact=root?.DailyFeedback?.compactDisplayText;
+      if(typeof compact==='function')return compact(carry.text);
+    }catch{}
+    return String(carry.text||'')
+      .replace(/(朝前|昼前|夕前|眠前) \d+ mg\/dL：/g,'')
+      .replace(/定時 [\d.]+ U \+ scale [\d.]+ U = 実投与 [\d.]+ Uでした。/g,'')
+      .replace(/hidden glucose は \d+ mg\/dL まで低下しました。/g,'hidden低血糖がありました。')
+      .replace(/hidden glucose は \d+ mg\/dL まで上昇しました。/g,'hidden高血糖がありました。')
+      .replace(/\s{2,}/g,' ')
+      .trim();
+  }
+
   function learningFocusVisible(){
     if(typeof document==='undefined')return false;
     const focus=document.querySelector('#learningFocus');
@@ -61,7 +90,7 @@
       if(body)body.textContent='';
       return;
     }
-    if(body)body.textContent=carry.text;
+    if(body)body.textContent=compactCarryText(carry);
     if(carry.source==='previous_case'){
       if(title)title.textContent='前症例の1点';
       if(kicker)kicker.textContent='CASE → NEXT CASE';
@@ -86,7 +115,7 @@
     if(newCase)newCase.addEventListener('click',()=>queueMicrotask(render));
   }
 
-  const api={storedTerminalFeedback,latestCarryover,shouldDisplay,render,version:'1.2.0'};
+  const api={storedTerminalFeedback,latestCarryover,shouldDisplay,compactCarryText,render,version:'1.3.0'};
   if(root)root.FeedbackCarryover=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
