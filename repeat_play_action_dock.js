@@ -8,6 +8,7 @@
     if(el.hidden||el.disabled)return false;
     if(el.classList?.contains?.('hidden'))return false;
     if(el.style?.display==='none')return false;
+    if(el.getAttribute?.('aria-hidden')==='true')return false;
     return true;
   }
 
@@ -15,14 +16,21 @@
     const d=doc();
     if(!d)return null;
     const panel=d.querySelector('#resultPanel');
-    if(!panel||panel.classList?.contains?.('hidden'))return null;
-    // Terminal debrief replaces the legacy restart button with caseNextCta.
-    // Prefer the visible canonical CTA and only fall back to legacy controls.
-    return [
-      d.querySelector('#caseNextCta'),
-      panel.querySelector('#nextDayBtn'),
-      panel.querySelector('#restartBtn')
-    ].find(visible)||null;
+    const resultVisible=visible(panel);
+    if(resultVisible){
+      // Terminal debrief replaces the legacy restart button with caseNextCta.
+      // Prefer the visible canonical CTA and only fall back to legacy controls.
+      return [
+        d.querySelector('#caseNextCta'),
+        panel.querySelector('#nextDayBtn'),
+        panel.querySelector('#restartBtn')
+      ].find(visible)||null;
+    }
+    // During prescription entry, proxy the canonical submit button as well.
+    // This removes the mobile-only scroll to the bottom of the order card while
+    // keeping app.js as the sole owner of validation/simulation/state changes.
+    const submit=d.querySelector('#submitBtn');
+    return visible(submit)?submit:null;
   }
 
   function ensureStyle(){
@@ -51,7 +59,7 @@
       if(!target)return refresh();
       target.click();
       // Let the canonical handler finish rendering the next decision state
-      // before deciding whether the dock should remain visible.
+      // before deciding whether the dock should remain visible or change role.
       setTimeout(refresh,0);
     });
     dock.appendChild(btn);
@@ -96,7 +104,7 @@
     refresh();
   }
 
-  const api={actionTarget,refresh,mount,version:'1.0.0',dockId:DOCK_ID,buttonId:BUTTON_ID};
+  const api={actionTarget,refresh,mount,version:'1.1.0',dockId:DOCK_ID,buttonId:BUTTON_ID};
   if(root)root.RepeatPlayActionDock=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();
