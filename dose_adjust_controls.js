@@ -41,10 +41,18 @@
     return focusElement(candidates.find(isUsableAction));
   }
 
-  function adjust(input,delta){
+  function adjust(input,delta,{focusAfter=true}={}){
     input.value=String(clampDose(Number(input.value)+delta));
     input.dispatchEvent(new Event('input',{bubbles:true}));
-    focusElement(input);
+    if(focusAfter)focusElement(input);
+  }
+
+  function shouldRefocusInput(event){
+    // Pointer/touch-generated clicks have a positive click count. Do not move
+    // focus into the numeric input in that path: mobile browsers may open the
+    // soft keyboard and shift the viewport after every +/- tap. Keyboard or
+    // programmatic activation keeps the existing input-focus behavior.
+    return !(Number(event?.detail)>0);
   }
 
   function submitFromDoseInput(event){
@@ -77,7 +85,7 @@
       button.className=`dose-step-btn ${Math.abs(delta)===2?'dose-step-major':''}`;
       button.textContent=stepLabel(delta);
       button.setAttribute('aria-label',`${Math.abs(delta)}単位${delta<0?'減らす':'増やす'}`);
-      button.addEventListener('click',()=>adjust(input,delta));
+      button.addEventListener('click',(event)=>adjust(input,delta,{focusAfter:shouldRefocusInput(event)}));
       controls.appendChild(button);
     }
     card.appendChild(controls);
@@ -124,5 +132,5 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.DoseAdjustControls={clampDose,isUsableAction,focusFirstDose,focusResultAction,steps:[...STEPS],version:'1.3.0'};
+  window.DoseAdjustControls={clampDose,isUsableAction,focusFirstDose,focusResultAction,shouldRefocusInput,steps:[...STEPS],version:'1.4.0'};
 })();
