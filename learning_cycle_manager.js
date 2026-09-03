@@ -26,23 +26,35 @@
   function carryForwardObjective(snapshot){const x=snapshot?.active_objective;return x&&typeof x==='object'&&x.domain_id?{...x,block_carryover:true}:null}
   function resetLearningPayload(activeObjective=null){return {days:[],cases:[],objectives:[],active_objective:activeObjective||null}}
   function buildArchive(snapshot,meta,completedAt){return {schema_version:1,block_number:meta.block_number,started_at:meta.started_at,completed_at:completedAt,case_count:caseCount(snapshot),snapshot}}
+  function routeFinalSnapshot(snapshot,routingApi){
+    const raw=snapshot&&typeof snapshot==='object'?snapshot:{};
+    if(!routingApi||typeof routingApi.resolveData!=='function')return {snapshot:raw,routing_reason:null,routed:false};
+    try{
+      const out=routingApi.resolveData(raw);
+      if(out?.data&&typeof out.data==='object')return {snapshot:out.data,routing_reason:out.reason||null,routed:Boolean(out.changed)};
+    }catch{}
+    return {snapshot:raw,routing_reason:null,routed:false};
+  }
 
-  function startNextBlock(store,snapshot,now){
-    const raw=snapshot&&typeof snapshot==='object'?snapshot:loadData(store);
-    const n=caseCount(raw);
+  function startNextBlock(store,snapshot,now,routingApi=null){
+    const input=snapshot&&typeof snapshot==='object'?snapshot:loadData(store);
+    const n=caseCount(input);
     if(n<TARGET_CASES)return {ok:false,reason:'incomplete',case_count:n,target_cases:TARGET_CASES};
+    // Re-run education routing against the completed 100-case snapshot before clearing
+    // it. This captures a weakness that only becomes visible after the final case,
+    // instead of carrying the objective that happened to exist before case 100.
+    const routed=routeFinalSnapshot(input,routingApi);
+    const raw=routed.snapshot;
     const stamp=now||new Date().toISOString();
     const meta=loadMeta(store,stamp);
     const archive=buildArchive(raw,meta,stamp);
     const archives=[...loadArchives(store),archive].slice(-MAX_ARCHIVES);
     const nextMeta={schema_version:1,block_number:meta.block_number+1,started_at:stamp};
     const carriedObjective=carryForwardObjective(raw);
-    // Archive first, then clear the completed block. Preserve only the currently routed
-    // learning objective so an unresolved focus is not lost at the 100-case boundary.
     store.setItem(ARCHIVE_KEY,JSON.stringify(archives));
     store.setItem(STORAGE_KEY,JSON.stringify(resetLearningPayload(carriedObjective)));
     store.setItem(META_KEY,JSON.stringify(nextMeta));
-    return {ok:true,archived_block:meta.block_number,next_block:nextMeta.block_number,archive_count:archives.length,case_count:n,carried_focus:carriedObjective?.domain_id||null};
+    return {ok:true,archived_block:meta.block_number,next_block:nextMeta.block_number,archive_count:archives.length,case_count:n,carried_focus:carriedObjective?.domain_id||null,carryover_routing_reason:routed.routing_reason,carryover_routed:routed.routed};
   }
 
   function ensureMeta(store){
@@ -65,21 +77,21 @@
     const raw=loadData(store),meta=ensureMeta(store),n=caseCount(raw),archives=loadArchives(store);
     const complete=n>=TARGET_CASES;
     body.innerHTML=`<div class="micro-note">ブロック ${meta.block_number}：<b>${Math.min(n,TARGET_CASES)}/${TARGET_CASES}</b> 症例完了。完了ブロックのローカル退避 ${archives.length}件。</div>
-      <div class="micro-note" style="margin-top:6px">100症例到達後は最終JSONを保存し、完了ブロックをブラウザ内にも退避してから、学習履歴を次の100本用に初期化します。未解決の学習focusがあれば次ブロックへ引き継ぎます。</div>
+      <div class="micro-note" style="margin-top:6px">100症例到達後は最終JSONを保存し、完了ブロックをブラウザ内にも退避してから、学習履歴を次の100本用に初期化します。最終症例まで含めて学習focusを再評価し、未解決なら次ブロックへ引き継ぎます。</div>
       <button type="button" class="ghost-btn" id="startNextLearningBlock" ${complete?'':'disabled'} style="margin-top:10px">${complete?'最終成績を保存して次の100本を開始':'100症例完了後に次ブロックを開始'}</button>`;
     const btn=body.querySelector('#startNextLearningBlock');
     btn?.addEventListener('click',()=>{
       const current=loadData(store);if(caseCount(current)<TARGET_CASES){refresh(root);return}
-      const ok=typeof root.confirm==='function'?root.confirm('現在の100症例ブロックをJSON保存・ローカル退避して、学習履歴を次の100本用に初期化します。現在表示中の患者も新しい症例へ切り替わります。未解決の学習focusは次ブロックへ引き継ぎます。実行しますか？'):true;
+      const ok=typeof root.confirm==='function'?root.confirm('現在の100症例ブロックをJSON保存・ローカル退避して、学習履歴を次の100本用に初期化します。現在表示中の患者も新しい症例へ切り替わります。最終症例まで含めて学習focusを再評価し、未解決なら次ブロックへ引き継ぎます。実行しますか？'):true;
       if(!ok)return;
       try{root.WardLearningDataExport?.exportJson?.()}catch(e){console.error('learning cycle export',e)}
       const snapshot=root.WardLearningDataExport?.load?.()||current;
-      const out=startNextBlock(store,snapshot);
+      const out=startNextBlock(store,snapshot,null,root.WardEducationRoutingState);
       if(!out.ok){refresh(root);return}
       try{root.location?.reload?.()}catch{refresh(root)}
     },{once:true});
   }
 
   function mount(root){refresh(root)}
-  return {parse,completedCases,caseCount,defaultMeta,normalizeMeta,loadData,loadMeta,loadArchives,carryForwardObjective,resetLearningPayload,buildArchive,startNextBlock,ensureMeta,refresh,mount,STORAGE_KEY,META_KEY,ARCHIVE_KEY,TARGET_CASES,MAX_ARCHIVES,version:'1.1.0'};
+  return {parse,completedCases,caseCount,defaultMeta,normalizeMeta,loadData,loadMeta,loadArchives,carryForwardObjective,resetLearningPayload,buildArchive,routeFinalSnapshot,startNextBlock,ensureMeta,refresh,mount,STORAGE_KEY,META_KEY,ARCHIVE_KEY,TARGET_CASES,MAX_ARCHIVES,version:'1.2.0'};
 });

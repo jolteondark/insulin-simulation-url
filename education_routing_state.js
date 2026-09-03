@@ -62,6 +62,14 @@
   }
   function isSafetyObjective(objective){return objective?.selection_reason==='safety'||objective?.domain_id==='hidden_awareness'&&objective?.emphasis==='high'}
   function completedCases(data){return (Array.isArray(data?.cases)?data.cases:[]).filter(c=>c?.case_id&&['discharged','game_over'].includes(c.outcome))}
+  function latestPersistentPracticeRelease(data,current){
+    if(current?.selection_reason!=='persistent'||!current?.domain_id)return null;
+    const rows=scoredPracticeRows(data).filter(x=>x.domain_id===current.domain_id&&['resolved','improved'].includes(x.objective_status));
+    if(!rows.length)return null;
+    const sourceIndex=(Array.isArray(data?.cases)?data.cases:[]).findIndex(c=>c?.case_id===current.source_case_id);
+    const eligible=sourceIndex>=0?rows.filter(x=>x.index>sourceIndex):rows;
+    return eligible.length?eligible[eligible.length-1]:null;
+  }
   function latestLongitudinalRelease(data,domainId){
     const xs=Array.isArray(data?.objectives)?data.objectives:[];
     for(let i=xs.length-1;i>=0;i--){const x=xs[i];if(x?.domain_id===domainId&&x?.selection_reason==='longitudinal'&&['resolved','improved'].includes(x?.status)&&x?.target_case_id)return x}
@@ -98,14 +106,19 @@
     if(isSafetyObjective(current))return {objective:current,reason:'safety_preserved',repeated:repeatedUnmet(data),longitudinal:longitudinalWeakness(data),release:null};
     const repeated=repeatedUnmet(data),top=repeated[0]||null;
     if(top){const last=top.last||{},sourceRate=Number.isFinite(Number(last.target_rate))?Number(last.target_rate):Number.isFinite(Number(current?.source_rate))?Number(current.source_rate):null;const objective=makePersistentObjective({domain_id:top.domain_id,label:top.label,source_case_id:last.case_id||current?.source_case_id||null,source_rate:sourceRate,streak:top.streak,routing_source:'adaptive_practice'});return {objective,reason:'repeated_unmet',repeated,longitudinal:longitudinalWeakness(data),release:null}}
-    const release=current?.domain_id?activeLongitudinalRelease(data,current.domain_id):null;
-    const releasedCurrent=Boolean(release&&current?.source_case_id===release.target_case_id&&current?.selection_reason!=='persistent');
-    if(releasedCurrent)current=null;
+    const persistentRelease=latestPersistentPracticeRelease(data,current);
+    const releasedPersistent=Boolean(persistentRelease&&current?.selection_reason==='persistent');
+    if(releasedPersistent)current=null;
+    const longitudinalRelease=current?.domain_id?activeLongitudinalRelease(data,current.domain_id):null;
+    const releasedLongitudinal=Boolean(longitudinalRelease&&current?.selection_reason==='longitudinal'&&longitudinalRelease?.domain_id===current?.domain_id);
+    if(releasedLongitudinal)current=null;
+    const release=persistentRelease||longitudinalRelease||null;
     const longitudinal=longitudinalWeakness(data);
     if(longitudinal&&current?.selection_reason!=='persistent')return {objective:makeLongitudinalObjective(longitudinal),reason:'longitudinal_weakness',repeated,longitudinal,release};
-    return {objective:current,reason:releasedCurrent?'longitudinal_released':'existing',repeated,longitudinal,release};
+    const reason=releasedPersistent?'persistent_released':releasedLongitudinal?'longitudinal_released':'existing';
+    return {objective:current,reason,repeated,longitudinal,release};
   }
   function resolveData(data){const base={...(data||{}),cases:Array.isArray(data?.cases)?data.cases:[]};const routed=routedObjective(base),before=base.active_objective||null,changed=JSON.stringify(before)!==JSON.stringify(routed.objective);return {data:{...base,active_objective:routed.objective},objective:routed.objective,reason:routed.reason,repeated:routed.repeated,longitudinal:routed.longitudinal,release:routed.release,changed}}
   function resolveStored(root){try{const raw=JSON.parse(root.localStorage.getItem(STORAGE_KEY)||'{}'),out=resolveData(raw);if(out.changed)root.localStorage.setItem(STORAGE_KEY,JSON.stringify(out.data));return out}catch{return {data:null,objective:null,reason:'storage_error',repeated:[],longitudinal:null,release:null,changed:false}}}
-  return {scoredPracticeRows,trailingUnresolved,repeatedUnmet,practiceLifecycle,isPersistentStreak,objectiveFailureStreak,persistentFromObjectiveHistory,makePersistentObjective,isSafetyObjective,completedCases,latestLongitudinalRelease,activeLongitudinalRelease,caseIssueRate,longitudinalWeakness,makeLongitudinalObjective,routedObjective,resolveData,resolveStored,REPEATED_UNMET_N,LONGITUDINAL_MIN_CASES,LONGITUDINAL_RECENT_CASES,LONGITUDINAL_MIN_RECENT_RATE,LONGITUDINAL_MIN_DELTA,DOMAIN_LABELS,DOMAIN_TAGS,version:'1.4.0'};
+  return {scoredPracticeRows,trailingUnresolved,repeatedUnmet,practiceLifecycle,isPersistentStreak,objectiveFailureStreak,persistentFromObjectiveHistory,makePersistentObjective,isSafetyObjective,completedCases,latestPersistentPracticeRelease,latestLongitudinalRelease,activeLongitudinalRelease,caseIssueRate,longitudinalWeakness,makeLongitudinalObjective,routedObjective,resolveData,resolveStored,REPEATED_UNMET_N,LONGITUDINAL_MIN_CASES,LONGITUDINAL_RECENT_CASES,LONGITUDINAL_MIN_RECENT_RATE,LONGITUDINAL_MIN_DELTA,DOMAIN_LABELS,DOMAIN_TAGS,version:'1.6.0'};
 });
