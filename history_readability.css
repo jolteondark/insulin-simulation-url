@@ -1,0 +1,13 @@
+/* Readability guard for legacy inline history markup in app.js.
+   Keep the run-history view at the same gameplay typography floor as the rest of the UI
+   without changing simulation/state behavior. */
+#runHistoryBody [style*="font-size:8px"],
+#runHistoryBody [style*="font-size:9px"],
+#runHistoryBody [style*="font-size:10px"],
+#runHistoryBody [style*="font-size:11px"] {
+  font-size: 12px !important;
+}
+
+#runHistoryBody [style*="font-size:15px"] {
+  font-size: 16px !important;
+}
