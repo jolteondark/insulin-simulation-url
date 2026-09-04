@@ -1,0 +1,24 @@
+/* Mobile prescription-throughput compaction.
+   Keep clinical decision content and readable type sizes intact; remove only
+   redundant chrome/spacing so repeated cases require less vertical travel. */
+@media (max-width:430px) {
+  .topbar { padding-bottom:10px; }
+  .patient-card { padding:14px; }
+  .rule-line { margin-top:10px; padding-top:9px; line-height:1.45; }
+
+  .record-card { margin-top:10px; padding-top:12px; padding-bottom:10px; }
+  .record-title-row,
+  .order-head { margin-bottom:8px; }
+  .record-caption { display:none; }
+  .record-row { min-height:54px; }
+
+  /* The instruction repeats what the visible meal row already communicates. */
+  #todayMealGrid + .micro-note { display:none; }
+
+  #previousFeedback { margin-top:10px; }
+  .learning-focus { padding-top:11px; padding-bottom:11px; }
+
+  .order-card { margin-top:10px; padding:14px 12px; }
+  .dose-input-card { padding-top:8px; padding-bottom:8px; }
+  .primary-btn { margin-top:9px; }
+}
