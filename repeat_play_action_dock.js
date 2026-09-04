@@ -34,11 +34,26 @@
     return visible(submit)?submit:null;
   }
 
+  function feedbackAlreadyInResultGlance(){
+    const d=doc();
+    if(!d)return false;
+    const panel=d.querySelector('#resultPanel');
+    if(!visible(panel))return false;
+    const glance=panel.querySelector('.result-glance');
+    const primary=glance?.querySelector('.daily-feedback .feedback-primary');
+    return visible(glance)&&visible(primary);
+  }
+
   function primaryFeedbackText(){
     const d=doc();
     if(!d)return '';
     const panel=d.querySelector('#resultPanel');
     if(!visible(panel)||!panel.querySelector('#nextDayBtn'))return '';
+    // The compact result card now owns the normal result-review teaching text.
+    // Repeating the same sentence in the fixed dock consumes scarce mobile
+    // viewport height. Keep the dock copy only as a graceful fallback if the
+    // one-card integration did not mount or could not move the feedback.
+    if(feedbackAlreadyInResultGlance())return '';
     const primary=panel.querySelector('.daily-feedback .feedback-primary');
     const text=primary?.textContent?.replace(/\s+/g,' ')?.trim()||'';
     return text;
@@ -125,7 +140,7 @@
     refresh();
   }
 
-  const api={actionTarget,primaryFeedbackText,refresh,mount,version:'1.3.0',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
+  const api={actionTarget,feedbackAlreadyInResultGlance,primaryFeedbackText,refresh,mount,version:'1.4.0',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
   if(root)root.RepeatPlayActionDock=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();
