@@ -1,0 +1,96 @@
+name: T1DM short-memory model revision screen
+
+on:
+  push:
+    branches: [validation/azt1d-acf-20260819]
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/azt1d-model-revision-screen.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  screen-revisions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Screen restore strength and slow latent state without changing model files
+        shell: bash
+        run: |
+          node <<'JS'
+          const fs=require('fs'), vm=require('vm');
+          const engineSrc=fs.readFileSync('engine.js','utf8');
+          const generatorSrc=fs.readFileSync('patient_generator.js','utf8');
+          const TARGET={30:0.8627021804030711,60:0.6351287169138964,120:0.21844683502175127,240:0.007311763980037047};
+          const RECORDED_FROZEN={30:0.787,60:0.345,120:-0.425,240:-0.166};
+          const LAGS=[30,60,120,240], N=1000;
+
+          function contextWithEngine(src){
+            const c={console,Float64Array,Math,Number,String,Object,Array,JSON,Date,Set,Map}; c.window=c; c.globalThis=c;
+            vm.createContext(c); vm.runInContext(src,c); return c;
+          }
+          const baseCtx=contextWithEngine(engineSrc); vm.runInContext(generatorSrc,baseCtx);
+          const cohort=[];
+          for(let i=0;i<N;i++){
+            const seed=910001+i;
+            const g=baseCtx.PatientGenerator.generate(seed);
+            cohort.push({seed,patient:structuredClone(g.patient),case:structuredClone(g.case)});
+          }
+          function transformRestore(scale){
+            const needle='function restoreK(p){return Math.log(2)/(300/clamp(p.egp_suppression_strength,.70,1.35))}';
+            if(!engineSrc.includes(needle)) throw new Error('restoreK source signature changed');
+            return engineSrc.replace(needle,`function restoreK(p){return ${scale}*Math.log(2)/(300/clamp(p.egp_suppression_strength,.70,1.35))}`);
+          }
+          function transformSlowLatent(sd,halfLife){
+            const needle='const g=new Float64Array(n);g[0]=startG==null?p.fasting_setpoint_mg_dl:Number(startG);let mn=g[0],mx=g[0];\n  for(let t=0;t<n-1;t++){\n    const insulinScale=infScale*steroidSensitivity(t,prednisone,response),restore=-kh*(g[t]-p.fasting_setpoint_mg_dl),counter=';
+            if(!engineSrc.includes(needle)) throw new Error('simulate source signature changed for slow latent injection');
+            const repl=`const g=new Float64Array(n);g[0]=startG==null?p.fasting_setpoint_mg_dl:Number(startG);let mn=g[0],mx=g[0];\n  let __a=((Number(_seed)||1)>>>0)||1,__sp=0,__spare=null;const __u=()=>{let t=__a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296},__z=()=>{if(__spare!==null){const z=__spare;__spare=null;return z}let u=0,v=0;while(!u)u=__u();while(!v)v=__u();const r=Math.sqrt(-2*Math.log(u)),th=2*Math.PI*v;__spare=r*Math.sin(th);return r*Math.cos(th)};const __phi=Math.exp(-Math.log(2)/${halfLife}),__eps=${sd}*Math.sqrt(1-__phi*__phi);\n  for(let t=0;t<n-1;t++){\n    __sp=__phi*__sp+__eps*__z();\n    const insulinScale=infScale*steroidSensitivity(t,prednisone,response),restore=-kh*(g[t]-(p.fasting_setpoint_mg_dl+__sp)),counter=`;
+            return engineSrc.replace(needle,repl);
+          }
+          function corr(x,y){
+            const n=x.length;if(n<50)return NaN;let sx=0,sy=0,sxx=0,syy=0,sxy=0;
+            for(let i=0;i<n;i++){const a=x[i],b=y[i];sx+=a;sy+=b;sxx+=a*a;syy+=b*b;sxy+=a*b}
+            const vx=n*sxx-sx*sx,vy=n*syy-sy*sy;return (n*sxy-sx*sy)/Math.sqrt(vx*vy);
+          }
+          function median(a){const x=[...a].sort((a,b)=>a-b),n=x.length;return n%2?x[(n-1)/2]:(x[n/2-1]+x[n/2])/2}
+          function runVariant(name,src){
+            const ctx=contextWithEngine(src); const acfs=Object.fromEntries(LAGS.map(l=>[l,[]]));
+            let count=0,sum=0,sum2=0,tir=0,tbr70=0,tbr54=0,tar180=0,tar250=0,min=Infinity,max=-Infinity;
+            for(const c of cohort){
+              const o=c.case.previous_order_u;
+              const res=ctx.GlucoseEngine.simulate(c.patient,c.case,{breakfast_u:o.breakfast_u,lunch_u:o.lunch_u,dinner_u:o.dinner_u},o.basal_u,c.seed,c.case.previous_day_end_glucose_mg_dl);
+              const s=[];for(let t=0;t<res.series.length;t+=5)s.push(res.series[t]);
+              for(const lag of LAGS){const k=lag/5;acfs[lag].push(corr(s.slice(0,-k),s.slice(k)))}
+              for(const g of s){count++;sum+=g;sum2+=g*g;if(g>=70&&g<=180)tir++;if(g<70)tbr70++;if(g<54)tbr54++;if(g>180)tar180++;if(g>250)tar250++;if(g<min)min=g;if(g>max)max=g}
+            }
+            const mean=sum/count,sd=Math.sqrt((sum2-sum*sum/count)/(count-1));
+            const a=Object.fromEntries(LAGS.map(l=>[l,median(acfs[l].filter(Number.isFinite))]));
+            const rmse=Math.sqrt(LAGS.reduce((q,l)=>q+(a[l]-TARGET[l])**2,0)/LAGS.length);
+            return {name,n:N,acf:a,acf_rmse_vs_AZT1D:rmse,mean_mg_dL:mean,sd_mg_dL:sd,cv_percent:100*sd/mean,TIR_percent:100*tir/count,TBR70_percent:100*tbr70/count,TBR54_percent:100*tbr54/count,TAR180_percent:100*tar180/count,TAR250_percent:100*tar250/count,min,max};
+          }
+          const variants=[
+            ['baseline',engineSrc],
+            ['restore_0.75x',transformRestore(.75)],
+            ['restore_0.50x',transformRestore(.50)],
+            ['restore_0.35x',transformRestore(.35)],
+            ['slowOU_sd5_hl8h',transformSlowLatent(5,480)],
+            ['slowOU_sd10_hl8h',transformSlowLatent(10,480)],
+            ['slowOU_sd15_hl8h',transformSlowLatent(15,480)],
+            ['slowOU_sd10_hl12h',transformSlowLatent(10,720)],
+          ];
+          const results=variants.map(([n,s])=>runVariant(n,s));
+          const baseline=results[0];
+          const baselineProtocolError=Math.sqrt(LAGS.reduce((q,l)=>q+(baseline.acf[l]-RECORDED_FROZEN[l])**2,0)/LAGS.length);
+          const baselineProtocolValid=baselineProtocolError<=0.15;
+          const score=r=>r.acf_rmse_vs_AZT1D + 0.003*Math.abs(r.mean_mg_dL-baseline.mean_mg_dL) + 0.002*Math.abs(r.TIR_percent-baseline.TIR_percent);
+          const ranked=results.slice(1).map(r=>({...r,screen_score:score(r)})).sort((a,b)=>a.screen_score-b.screen_score);
+          const out={status:'EXPERIMENTAL_VALIDATION_ONLY_NO_MODEL_FILES_CHANGED',target_AZT1D:TARGET,recorded_frozen_acf:RECORDED_FROZEN,baseline_protocol_rmse_vs_recorded:baselineProtocolError,baseline_protocol_valid:baselineProtocolValid,baseline,ranked,decision:baselineProtocolValid?'SCREEN_INTERPRETABLE':'DO_NOT_USE_FOR_MODEL_SELECTION_PROTOCOL_DOES_NOT_REPRODUCE_RECORDED_FROZEN_ACF'};
+          fs.writeFileSync('model-revision-screen.json',JSON.stringify(out,null,2));
+          console.log('MODEL_REVISION_SCREEN_BEGIN'); console.log(JSON.stringify(out,null,2)); console.log('MODEL_REVISION_SCREEN_END');
+          JS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: model-revision-screen
+          path: model-revision-screen.json

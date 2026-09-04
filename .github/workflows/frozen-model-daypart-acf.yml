@@ -1,0 +1,27 @@
+name: Frozen model daypart autocorrelation
+on:
+  push:
+    branches: [validation/azt1d-acf-20260819]
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/frozen-model-daypart-acf.yml']
+permissions: {contents: read}
+jobs:
+  acf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - shell: bash
+        run: |
+          node <<'JS'
+          const fs=require('fs'),vm=require('vm');const E=fs.readFileSync('engine.js','utf8'),G=fs.readFileSync('patient_generator.js','utf8'),N=250,L=[30,60,120,240];
+          const c={console,Float64Array,Math,Number,String,Object,Array,JSON,Date,Set,Map};c.window=c;c.globalThis=c;vm.createContext(c);vm.runInContext(E,c);vm.runInContext(G,c);
+          function corr(a,b){const n=a.length;if(n<20)return NaN;let sx=0,sy=0,sxx=0,syy=0,sxy=0;for(let i=0;i<n;i++){let x=a[i],y=b[i];sx+=x;sy+=y;sxx+=x*x;syy+=y*y;sxy+=x*y}return(n*sxy-sx*sy)/Math.sqrt((n*sxx-sx*sx)*(n*syy-sy*sy))}
+          function med(a){a=a.filter(Number.isFinite).sort((x,y)=>x-y);return a.length%2?a[(a.length-1)/2]:(a[a.length/2-1]+a[a.length/2])/2}
+          const scopes={all:Object.fromEntries(L.map(l=>[l,[]])),overnight_00_06:Object.fromEntries(L.map(l=>[l,[]])),daytime_06_24:Object.fromEntries(L.map(l=>[l,[]]))};
+          for(let i=0;i<N;i++){const seed=950001+i,x=c.PatientGenerator.generate(seed),o=x.case.previous_order_u,r=c.GlucoseEngine.simulate(x.patient,x.case,{breakfast_u:o.breakfast_u,lunch_u:o.lunch_u,dinner_u:o.dinner_u},o.basal_u,seed,x.case.previous_day_end_glucose_mg_dl),s=[];for(let t=0;t<1440;t+=5)s.push(r.series[t]);for(const l of L){const k=l/5;let a=[],b=[],an=[],bn=[],ad=[],bd=[];for(let j=0;j+k<s.length;j++){a.push(s[j]);b.push(s[j+k]);const t=j*5,t2=(j+k)*5;if(t<360&&t2<360){an.push(s[j]);bn.push(s[j+k])}if(t>=360&&t2<1440){ad.push(s[j]);bd.push(s[j+k])}}scopes.all[l].push(corr(a,b));scopes.overnight_00_06[l].push(corr(an,bn));scopes.daytime_06_24[l].push(corr(ad,bd));}}
+          const out={patients:N,patient_median:{}};for(const [sc,d] of Object.entries(scopes))out.patient_median[sc]=Object.fromEntries(L.map(l=>[l,med(d[l])]));fs.writeFileSync('frozen-daypart-acf.json',JSON.stringify(out,null,2));console.log('FROZEN_DAYPART_BEGIN');console.log(JSON.stringify(out,null,2));console.log('FROZEN_DAYPART_END');
+          JS
+      - uses: actions/upload-artifact@v4
+        with: {name: frozen-daypart-acf, path: frozen-daypart-acf.json}

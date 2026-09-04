@@ -1,0 +1,83 @@
+name: AZT1D short-memory mechanism discrimination
+
+on:
+  push:
+    branches: [validation/azt1d-acf-20260819]
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/azt1d-memory-discrimination.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  discriminate-memory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare all-day, overnight, and daytime autocorrelation
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import csv, datetime as dt, io, json, math, statistics, urllib.request, zipfile
+          URL='https://raw.githubusercontent.com/Augmented-Health-Lab/Glucose-ML-Project/main/3_Glucose-ML-collection/AZT1D/AZT1D-from-Glucose-ML.zip'
+          LAGS=(30,60,120,240)
+          raw=urllib.request.urlopen(urllib.request.Request(URL,headers={'User-Agent':'Mozilla/5.0'}),timeout=120).read()
+          z=zipfile.ZipFile(io.BytesIO(raw))
+          members=[n for n in z.namelist() if n.lower().endswith('.csv') and 'metadata' not in n.lower()]
+          def corr(x,y):
+              n=len(x)
+              if n<50:return None
+              sx=sum(x);sy=sum(y);sxx=sum(v*v for v in x);syy=sum(v*v for v in y);sxy=sum(a*b for a,b in zip(x,y))
+              vx=n*sxx-sx*sx;vy=n*syy-sy*sy
+              return None if vx<=0 or vy<=0 else (n*sxy-sx*sy)/math.sqrt(vx*vy)
+          def qmed(vals):
+              vals=[v for v in vals if v is not None]
+              return statistics.median(vals) if vals else None
+          per=[]
+          for member in sorted(members):
+              by={}
+              for r in csv.DictReader(io.StringIO(z.read(member).decode('utf-8-sig'))):
+                  try:t=dt.datetime.fromisoformat(r['timestamp']);g=float(r['glucose_value_mg_dl'])
+                  except:continue
+                  if math.isfinite(g):by[t]=g
+              times=sorted(by)
+              scopes={}
+              for scope in ('all','overnight_00_06','daytime_06_24'):
+                  rr={}
+                  for lag in LAGS:
+                      xs=[];ys=[];d=dt.timedelta(minutes=lag)
+                      for t in times:
+                          t2=t+d
+                          if t2 not in by:continue
+                          if scope=='overnight_00_06' and not (0<=t.hour<6 and 0<=t2.hour<6):continue
+                          if scope=='daytime_06_24' and not (6<=t.hour<24 and 6<=t2.hour<24):continue
+                          xs.append(by[t]);ys.append(by[t2])
+                      rr[str(lag)]=corr(xs,ys)
+                  scopes[scope]=rr
+              # consecutive-day mean persistence
+              daily={}
+              for t,g in by.items():daily.setdefault(t.date(),[]).append(g)
+              dmeans={d:statistics.fmean(v) for d,v in daily.items() if len(v)>=144}
+              dx=[];dy=[]
+              for d,m in dmeans.items():
+                  d2=d+dt.timedelta(days=1)
+                  if d2 in dmeans:dx.append(m);dy.append(dmeans[d2])
+              per.append({'patient':member.rsplit('/',1)[-1].replace('.csv',''),'acf':scopes,'day_mean_lag1':corr(dx,dy),'n_day_pairs':len(dx)})
+          out={'status':'MECHANISM_DISCRIMINATION_SECONDARY_AZT1D','patients':len(per),'patient_median':{},'day_mean_lag1_median':qmed([p['day_mean_lag1'] for p in per]),'per_patient':per}
+          for scope in ('all','overnight_00_06','daytime_06_24'):
+              out['patient_median'][scope]={str(l):qmed([p['acf'][scope][str(l)] for p in per]) for l in LAGS}
+          out['interpretation_rules']={
+            'meal_only_weakened_if':'overnight r60/r120 remain materially above frozen-model all-day r60=.345/r120=-.425',
+            'slow_latent_state_supported_if':'positive consecutive-day mean persistence is present across patients',
+            'note':'AID feedback remains a cohort-specific confounder; no parameter is changed by this workflow.'}
+          open('azt1d-memory-discrimination.json','w').write(json.dumps(out,indent=2))
+          print('AZT1D_MEMORY_DISCRIMINATION_BEGIN')
+          print(json.dumps({k:v for k,v in out.items() if k!='per_patient'},indent=2))
+          print('AZT1D_MEMORY_DISCRIMINATION_END')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: azt1d-memory-discrimination
+          path: azt1d-memory-discrimination.json
