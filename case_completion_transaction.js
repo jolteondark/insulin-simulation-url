@@ -49,8 +49,9 @@
     };
   }
 
-  function refreshTerminalUi(root){
+  function refreshTerminalUi(root,data=null,caseId=null){
     root.CaseTransitionCta?.refresh?.();
+    root.WardLearningMomentum?.refresh?.(root,data,caseId);
   }
 
   function renderCommitted(root,data,caseId){
@@ -60,7 +61,7 @@
     if(practice)tracking?.render?.(root,practice);
     learning?.render?.();
     root.CaseLearningProgress?.refresh?.();
-    refreshTerminalUi(root);
+    refreshTerminalUi(root,data,caseId);
     return practice;
   }
 
@@ -93,10 +94,11 @@
       next.completion_records={...(next.completion_records||{}),[caseId]:{
         ...prior,
         completion_transaction:{
-          version:5,
+          version:6,
           learning_curve_attached:true,
           adaptive_practice_attached:Boolean(attached.record),
           terminal_feedback_attached:Boolean(feedback),
+          momentum_feedback_ready:true,
           write_count:1,
           committed_at:new Date().toISOString()
         }
@@ -107,7 +109,7 @@
       if(attached.record)tracking.render?.(root,attached.record);
       learning.render?.();
       root.CaseLearningProgress?.refresh?.();
-      refreshTerminalUi(root);
+      refreshTerminalUi(root,next,caseId);
       return {data:next,model,scored:applied.scored||null,practice:attached.record||null,terminal_feedback:feedback,reused:false};
     }catch(e){
       console.error('case completion transaction',e);
@@ -122,5 +124,5 @@
     completeAfterTerminal(root);
   }
 
-  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,terminalFeedback,refreshTerminalUi,mount,version:'1.4.0'};
+  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,terminalFeedback,refreshTerminalUi,mount,version:'1.5.0'};
 });
