@@ -112,14 +112,14 @@
     style.id='doseQuickAdjustStyle';
     style.textContent=`
       .dose-quick-adjust{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:7px}
-      .dose-step-btn{border:1px solid #dde1e7;background:#fff;border-radius:9px;padding:7px 1px;font-size:10px;font-weight:800;color:#59616b;touch-action:manipulation;min-width:0}
+      .dose-step-btn{border:1px solid #dde1e7;background:#fff;border-radius:9px;padding:8px 2px;font-size:12px;font-weight:800;color:#59616b;touch-action:manipulation;min-width:0;min-height:38px}
       .dose-step-btn:active{transform:translateY(1px);background:#f0f2f5}
       .dose-step-major{font-weight:900;background:#f8f9fb}
       @media(max-width:430px){
         #${GRID_ID}{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
         .dose-input-card{padding:9px 8px}
-        .dose-quick-adjust{gap:4px}
-        .dose-step-btn{min-height:36px;padding:8px 1px;font-size:11px}
+        .dose-quick-adjust{gap:5px}
+        .dose-step-btn{min-height:44px;padding:9px 2px;font-size:13px}
       }
     `;
     document.head.appendChild(style);
@@ -137,5 +137,5 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.DoseAdjustControls={clampDose,isUsableAction,focusFirstDose,focusResultAction,shouldRefocusInput,steps:[...STEPS],version:'1.5.0'};
+  window.DoseAdjustControls={clampDose,isUsableAction,focusFirstDose,focusResultAction,shouldRefocusInput,steps:[...STEPS],version:'1.6.0'};
 })();
