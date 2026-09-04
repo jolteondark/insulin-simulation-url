@@ -139,22 +139,25 @@
     const style=document.createElement('style');
     style.id='prescriptionDecisionStripStyle';
     style.textContent=`
-      .prescription-decision-strip{margin:0 0 12px;padding:10px 11px;border:1px solid #e4e7ec;border-radius:14px;background:#f8f9fb;display:grid;gap:7px}
-      .decision-strip-row{display:grid;grid-template-columns:68px minmax(0,1fr);gap:7px;align-items:start}
-      .decision-strip-label{font-size:9px;line-height:1.35;font-weight:850;letter-spacing:.03em;color:#7b828c;white-space:nowrap}
-      .decision-strip-values{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
-      .decision-strip-values span{min-width:0;padding:4px 3px;border-radius:8px;background:#fff;text-align:center;font-size:10px;line-height:1.2;font-weight:760;color:#3f4650;overflow:hidden;text-overflow:ellipsis}
+      .prescription-decision-strip{margin:0 0 12px;padding:10px 11px;border:1px solid #e4e7ec;border-radius:14px;background:#f8f9fb;display:grid;gap:8px}
+      .decision-strip-row{display:grid;grid-template-columns:82px minmax(0,1fr);gap:8px;align-items:start}
+      .decision-strip-label{font-size:12px;line-height:1.35;font-weight:850;letter-spacing:.02em;color:#6f7782;white-space:nowrap}
+      .decision-strip-values{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+      .decision-strip-values span{min-width:0;padding:5px 3px;border-radius:8px;background:#fff;text-align:center;font-size:13px;line-height:1.2;font-weight:780;color:#343b45;overflow:hidden;text-overflow:ellipsis}
+      .decision-strip-row.glucose .decision-strip-values span{font-size:15px;font-weight:850;font-variant-numeric:tabular-nums}
       .decision-strip-row.context .decision-strip-values,.decision-strip-row.meal .decision-strip-values{grid-template-columns:repeat(3,minmax(0,1fr))}
-      .decision-strip-feedback{display:grid;grid-template-columns:68px minmax(0,1fr);gap:7px;padding-top:7px;border-top:1px solid #e4e7ec;font-size:10px;line-height:1.35;color:#4d5560}
-      .decision-strip-details-btn{justify-self:end;border:0;background:transparent;padding:2px 0;font:inherit;font-size:9px;font-weight:800;color:#69717d;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+      .decision-strip-feedback{display:grid;grid-template-columns:82px minmax(0,1fr);gap:8px;padding-top:8px;border-top:1px solid #e4e7ec;font-size:13px;line-height:1.4;color:#404853}
+      .decision-strip-details-btn{justify-self:end;border:0;background:transparent;padding:6px 2px;font:inherit;font-size:12px;font-weight:800;color:#5e6875;text-decoration:underline;text-underline-offset:2px;cursor:pointer;min-height:32px}
       #previousFeedback.${MIRRORED_CLASS}{display:none!important}
       .${COMPACTED_CLASS}{display:none!important}
       @media(max-width:430px){
-        .prescription-decision-strip{margin-bottom:9px;padding:9px}
-        .decision-strip-row,.decision-strip-feedback{grid-template-columns:62px minmax(0,1fr);gap:5px}
-        .decision-strip-values{gap:3px}
-        .decision-strip-values span{font-size:9px;padding:4px 2px}
-        .decision-strip-feedback{font-size:9px}
+        .prescription-decision-strip{margin-bottom:10px;padding:10px}
+        .decision-strip-row,.decision-strip-feedback{grid-template-columns:76px minmax(0,1fr);gap:6px}
+        .decision-strip-values{gap:4px}
+        .decision-strip-values span{font-size:12px;padding:5px 2px}
+        .decision-strip-row.glucose .decision-strip-values span{font-size:15px}
+        .decision-strip-feedback{font-size:13px}
+        .decision-strip-details-btn{font-size:12px;min-height:36px}
       }
     `;
     document.head.appendChild(style);
@@ -174,5 +177,5 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.PrescriptionDecisionStrip={snapshot,previousDoseSnapshot,render,setFeedbackMirrored,setSourcesCompacted,setMirroredSourcesCompacted,version:'1.4.0'};
+  window.PrescriptionDecisionStrip={snapshot,previousDoseSnapshot,render,setFeedbackMirrored,setSourcesCompacted,setMirroredSourcesCompacted,version:'1.5.0'};
 })();
