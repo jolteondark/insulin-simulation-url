@@ -65,6 +65,13 @@
     scale_dependence:'scale依存',
     hidden_awareness:'hidden excursion'
   };
+  const FOCUS_LABELS={
+    basal_excess:'basal過量',basal_deficit:'basal不足',
+    breakfast_rapid_excess:'朝rapid過量',breakfast_rapid_deficit:'朝rapid不足',
+    lunch_rapid_excess:'昼rapid過量',lunch_rapid_deficit:'昼rapid不足',
+    dinner_rapid_excess:'夕rapid過量',dinner_rapid_deficit:'夕rapid不足',
+    scale_dependence:'scale依存',hidden_low_near_miss:'hidden低血糖',hidden_high_excursion:'hidden高血糖'
+  };
 
   function pooledStats(data,cases,metric){
     const xs=cases.map(c=>caseMetric(data,c.case_id,metric)).filter(v=>v!=null);
@@ -83,6 +90,42 @@
     return {ready:true,n:completed.length,group_n:groupN,metrics};
   }
 
+  function completedCases(data){
+    return (Array.isArray(data?.cases)?data.cases:[]).filter(c=>caseDays(data,c.case_id).length>0);
+  }
+  function tendencyLabel(over,under){
+    if(over===0&&under===0)return '明らかな偏りなし';
+    if(over>under)return '過量flag寄り';
+    if(under>over)return '不足flag寄り';
+    return '過量・不足flag同程度';
+  }
+  function summarizePrescribingTendency(data){
+    const recent=completedCases(data).slice(-GROUP_N);
+    if(!recent.length)return {ready:false,n:0,days:0};
+    const days=recent.flatMap(c=>caseDays(data,c.case_id));
+    let rapidOver=0,rapidUnder=0,basalOver=0,basalUnder=0,scaleDays=0;
+    for(const d of days){
+      const p=d.prescribing||{};
+      rapidOver+=Math.max(0,Number(p.rapid_over)||0);
+      rapidUnder+=Math.max(0,Number(p.rapid_under)||0);
+      if(p.basal_over)basalOver++;
+      if(p.basal_under)basalUnder++;
+      if(d.used_scale)scaleDays++;
+    }
+    return {
+      ready:true,
+      n:recent.length,
+      days:days.length,
+      rapid_over:rapidOver,
+      rapid_under:rapidUnder,
+      basal_over:basalOver,
+      basal_under:basalUnder,
+      scale_days:scaleDays,
+      rapid_tendency:tendencyLabel(rapidOver,rapidUnder),
+      basal_tendency:tendencyLabel(basalOver,basalUnder)
+    };
+  }
+
   function trailingUnresolved(xs){
     let n=0;
     for(let i=xs.length-1;i>=0;i--){
@@ -92,18 +135,25 @@
     return n;
   }
 
+  function practiceKey(x){return x?.focus_tag||x?.domain_id||null}
+  function practiceLabel(x){return FOCUS_LABELS[x?.focus_tag]||DOMAIN_LABELS[x?.domain_id]||x?.focus_tag||x?.domain_id||'重点'}
+
   function summarizeAdaptivePractice(data){
     const rows=(Array.isArray(data?.cases)?data.cases:[])
       .map(c=>({case_id:c.case_id,...(c.adaptive_practice||{})}))
       .filter(x=>x.domain_id&&x.practice_opportunity&&x.practice_opportunity!=='standard_case');
     const scored=rows.filter(x=>['resolved','improved','not_resolved'].includes(x.objective_status));
-    const domains=[...new Set(scored.map(x=>x.domain_id))].map(domainId=>{
-      const xs=scored.filter(x=>x.domain_id===domainId);
+    const keys=[...new Set(scored.map(practiceKey).filter(Boolean))];
+    const domains=keys.map(key=>{
+      const xs=scored.filter(x=>practiceKey(x)===key);
+      const sample=xs[xs.length-1]||{};
       const improved=xs.filter(x=>x.objective_status==='resolved'||x.objective_status==='improved').length;
       const unresolved_streak=trailingUnresolved(xs);
       return {
-        domain_id:domainId,
-        label:DOMAIN_LABELS[domainId]||domainId,
+        practice_key:key,
+        focus_tag:sample.focus_tag||null,
+        domain_id:sample.domain_id||key,
+        label:practiceLabel(sample),
         n:xs.length,
         improved,
         rate:xs.length?improved/xs.length:null,
@@ -133,6 +183,11 @@
     return `ほぼ維持 ${n>0?'+':''}${n}pt`;
   }
 
+  function renderPrescribingTendencyHtml(summary){
+    if(!summary?.ready)return '';
+    return `<div id="prescribingTendency" class="micro-note" style="margin-top:8px"><b>最近${summary.n}症例の処方傾向：</b>rapid 過量flag ${summary.rapid_over}／不足flag ${summary.rapid_under}（${summary.rapid_tendency}） ／ basal 過量flag ${summary.basal_over}日／不足flag ${summary.basal_under}日（${summary.basal_tendency}） ／ correction実投与 ${summary.scale_days}/${summary.days}日。<br><span>※モデル内部の正解量そのものではなく、結果feedbackに記録された方向性の集計です。</span></div>`;
+  }
+
   function renderAdaptiveHtml(summary){
     if(!summary.ready)return '';
     const rows=summary.domains.map(x=>`<div class="prev-dose"><div class="name">${x.label}</div><div class="value" style="font-size:15px">${x.improved}/${x.n}症例</div><div class="micro-note">改善 ${pct(x.rate)}</div></div>`).join('');
@@ -145,11 +200,12 @@
     return `<div id="adaptivePracticeProgress" style="margin-top:10px"><div class="micro-note"><b>重点練習後の改善：</b>${summary.improved}/${summary.n}症例（${pct(summary.rate)}）${fallback}</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px">${rows}</div>${attention}${lifecycle}</div>`;
   }
 
-  function renderHtml(summary,adaptiveSummary){
+  function renderHtml(summary,adaptiveSummary,tendencySummary){
     const adaptive=renderAdaptiveHtml(adaptiveSummary||{ready:false});
-    if(!summary.ready)return `<div id="caseLearningProgress" class="micro-note" style="margin-top:8px"><b>症例横断の学習変化：</b>${summary.n}/4症例。4症例完了後から、最近の症例で何が改善したかを表示します。${adaptive}</div>`;
+    const tendency=renderPrescribingTendencyHtml(tendencySummary||{ready:false});
+    if(!summary.ready)return `<div id="caseLearningProgress" class="micro-note" style="margin-top:8px"><b>症例横断の学習変化：</b>${summary.n}/4症例。4症例完了後から、最近の症例で何が改善したかを表示します。${tendency}${adaptive}</div>`;
     const cards=summary.metrics.map(m=>`<div class="prev-dose"><div class="name">${m.label}</div><div class="value" style="font-size:15px">${pct(m.early_rate)} → ${pct(m.recent_rate)}</div><div class="micro-note">${deltaText(m.delta_pp)}</div><div class="micro-note">評価 ${m.early_n}/${summary.group_n} → ${m.recent_n}/${summary.group_n}症例</div></div>`).join('');
-    return `<div id="caseLearningProgress" style="margin-top:10px"><div class="micro-note"><b>症例横断の学習変化：</b>初期${summary.group_n}症例 → 最近${summary.group_n}症例</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px">${cards}</div>${adaptive}</div>`;
+    return `<div id="caseLearningProgress" style="margin-top:10px"><div class="micro-note"><b>症例横断の学習変化：</b>初期${summary.group_n}症例 → 最近${summary.group_n}症例</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px">${cards}</div>${tendency}${adaptive}</div>`;
   }
 
   function refresh(){
@@ -160,7 +216,7 @@
     if(old)old.remove();
     if(typeof state==='undefined'||!state?.over)return;
     const data=load();
-    body.insertAdjacentHTML('beforeend',renderHtml(summarize(data),summarizeAdaptivePractice(data)));
+    body.insertAdjacentHTML('beforeend',renderHtml(summarize(data),summarizeAdaptivePractice(data),summarizePrescribingTendency(data)));
   }
 
   function mount(){
@@ -181,5 +237,5 @@
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);
     else mount();
   }
-  return {caseMetric,objectiveForCase,summarize,summarizeAdaptivePractice,renderAdaptiveHtml,renderHtml,refresh,METRICS,DOMAIN_LABELS,REPEATED_UNMET_N,version:'1.5.0'};
+  return {caseMetric,objectiveForCase,summarize,summarizePrescribingTendency,tendencyLabel,summarizeAdaptivePractice,practiceKey,practiceLabel,renderPrescribingTendencyHtml,renderAdaptiveHtml,renderHtml,refresh,METRICS,DOMAIN_LABELS,FOCUS_LABELS,REPEATED_UNMET_N,version:'1.7.0'};
 });
