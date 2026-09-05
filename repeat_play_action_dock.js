@@ -2,6 +2,7 @@
   const DOCK_ID='repeatPlayActionDock';
   const BUTTON_ID='repeatPlayActionButton';
   const FEEDBACK_ID='repeatPlayActionFeedback';
+  let viewportRefreshQueued=false;
 
   function doc(){return root?.document||(typeof document!=='undefined'?document:null)}
   function visible(el){
@@ -44,6 +45,16 @@
     return visible(glance)&&visible(primary);
   }
 
+  function decisionStripVisibleInViewport(){
+    const d=doc();
+    if(!d)return false;
+    const strip=d.getElementById('prescriptionDecisionStrip');
+    if(!visible(strip)||typeof strip.getBoundingClientRect!=='function')return false;
+    const rect=strip.getBoundingClientRect();
+    const viewportHeight=root?.innerHeight||d.documentElement?.clientHeight||0;
+    return viewportHeight>0&&rect.bottom>0&&rect.top<viewportHeight;
+  }
+
   function prescriptionMealContext(){
     const d=doc();
     if(!d)return '';
@@ -65,7 +76,12 @@
     const d=doc();
     if(!d)return '';
     const panel=d.querySelector('#resultPanel');
-    if(!visible(panel))return prescriptionMealContext();
+    if(!visible(panel)){
+      // The prescription decision strip already mirrors today's meal context
+      // beside the dose controls. Keep the fixed dock silent while that strip is
+      // actually on screen, then restore the meal reminder after it scrolls away.
+      return decisionStripVisibleInViewport()?'':prescriptionMealContext();
+    }
     if(!panel.querySelector('#nextDayBtn'))return '';
     // The compact result card now owns the normal result-review teaching text.
     // Repeating the same sentence in the fixed dock consumes scarce mobile
@@ -143,6 +159,17 @@
     return true;
   }
 
+  function scheduleViewportRefresh(){
+    if(viewportRefreshQueued)return;
+    viewportRefreshQueued=true;
+    const run=()=>{
+      viewportRefreshQueued=false;
+      refresh();
+    };
+    if(typeof root?.requestAnimationFrame==='function')root.requestAnimationFrame(run);
+    else setTimeout(run,0);
+  }
+
   function mount(){
     const d=doc();
     if(!d||d.documentElement?.dataset?.repeatPlayActionDockMounted)return;
@@ -158,10 +185,12 @@
       const id=event?.target?.id;
       if(['nextDayBtn','restartBtn','caseNextCta','newCaseBtn'].includes(id))setTimeout(refresh,0);
     });
+    root?.addEventListener?.('scroll',scheduleViewportRefresh,{passive:true});
+    root?.addEventListener?.('resize',scheduleViewportRefresh);
     refresh();
   }
 
-  const api={actionTarget,feedbackAlreadyInResultGlance,prescriptionMealContext,primaryFeedbackText,refresh,mount,version:'1.6.0',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
+  const api={actionTarget,feedbackAlreadyInResultGlance,decisionStripVisibleInViewport,prescriptionMealContext,primaryFeedbackText,refresh,scheduleViewportRefresh,mount,version:'1.7.0',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
   if(root)root.RepeatPlayActionDock=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();
