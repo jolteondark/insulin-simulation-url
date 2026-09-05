@@ -96,6 +96,14 @@
     return model;
   }
 
+  function startNextCase(){
+    if(typeof root?.startGenerated!=='function')return false;
+    root.startGenerated();
+    try{root.WardCaseDebrief?.refresh?.()}catch(e){console.error('case transition debrief refresh',e)}
+    navigateCaseStart();
+    return true;
+  }
+
   function ensureCta(){
     const d=doc();
     if(!d)return null;
@@ -109,15 +117,26 @@
     btn.className='next-btn';
     btn.type='button';
     btn.textContent='次の重点症例へ';
+    btn.title='Nキーでも次の重点症例を開始できます';
     btn.style.marginTop='10px';
-    btn.addEventListener('click',()=>{
-      if(typeof root?.startGenerated!=='function')return;
-      root.startGenerated();
-      try{root.WardCaseDebrief?.refresh?.()}catch(e){console.error('case transition debrief refresh',e)}
-      navigateCaseStart();
-    });
+    btn.addEventListener('click',startNextCase);
     body.appendChild(btn);
     return btn;
+  }
+
+  function isTypingTarget(target){
+    const tag=String(target?.tagName||'').toLowerCase();
+    return tag==='input'||tag==='textarea'||tag==='select'||Boolean(target?.isContentEditable);
+  }
+
+  function handleKeydown(event){
+    if(!event||String(event.key||'').toLowerCase()!=='n'||event.ctrlKey||event.altKey||event.metaKey||isTypingTarget(event.target))return false;
+    const d=doc();
+    const s=root?.state||(typeof state!=='undefined'?state:null);
+    const btn=d?.querySelector?.('#'+CTA_ID);
+    if(!s?.over||!btn)return false;
+    event.preventDefault?.();
+    return startNextCase();
   }
 
   function refresh(){
@@ -130,9 +149,12 @@
       const debrief=d.querySelector('#caseDebrief');
       const terminal=Boolean(s?.over)&&debrief&&!debrief.classList.contains('hidden');
       if(terminal){
-        ensureCta();
+        const btn=ensureCta();
         renderPreview();
         if(original)original.style.display='none';
+        if(btn&&!btn.dataset?.throughputFocused){
+          try{btn.focus?.({preventScroll:true});if(btn.dataset)btn.dataset.throughputFocused='1'}catch{}
+        }
       }else{
         if(original)original.style.display='';
         d.querySelector('#'+CTA_ID)?.remove();
@@ -151,10 +173,14 @@
     }
     const newCase=d.querySelector('#newCaseBtn');
     if(newCase)newCase.addEventListener('click',refresh);
+    if(!d.documentElement?.dataset?.caseTransitionHotkeyMounted){
+      d.addEventListener?.('keydown',handleKeydown);
+      if(d.documentElement?.dataset)d.documentElement.dataset.caseTransitionHotkeyMounted='1';
+    }
     refresh();
   }
 
-  const api={ensureCta,refresh,mount,navigateCaseStart,loadLearningData,objectiveLabel,percent,percentagePointDelta,nextChallengeModel,renderPreview,version:'1.4.0'};
+  const api={ensureCta,refresh,mount,navigateCaseStart,loadLearningData,objectiveLabel,percent,percentagePointDelta,nextChallengeModel,renderPreview,startNextCase,isTypingTarget,handleKeydown,version:'1.5.0'};
   if(root)root.CaseTransitionCta=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();
