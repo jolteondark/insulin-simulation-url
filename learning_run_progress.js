@@ -116,6 +116,12 @@
   }
 
   function pct(x){return Number.isFinite(Number(x))?`${Math.round(100*Number(x))}%`:'—'}
+  function latestStatusLabel(d){
+    if(d.latest_status==='resolved')return ' ／ <b>今回 ✓解消</b>';
+    if(d.latest_status==='improved')return ' ／ <b>今回 ↗改善</b>';
+    if(d.latest_status==='not_resolved')return ' ／ <b>今回 未達</b>';
+    return '';
+  }
   function nextFocusLabel(d){
     if(!d.next_focus)return '';
     const reason=d.next_reason==='persistent'?'未達継続':d.next_reason==='longitudinal'?'最近の傾向悪化':d.next_reason==='safety'?'安全重点':'次の重点';
@@ -123,14 +129,14 @@
   }
   function domainRow(d){
     const unresolved=d.unresolved_streak?` ／ 未達 ${d.unresolved_streak}回連続`:'';
-    return `<div class="micro-note" style="display:grid;grid-template-columns:minmax(72px,.8fr) 1fr 1fr;gap:6px;align-items:center;margin-top:5px"><b>${d.label}</b><span>最近 ${pct(d.recent_problem_rate)}</span><span>改善 ${pct(d.improvement_rate)}${unresolved}${nextFocusLabel(d)}</span></div>`;
+    return `<div class="micro-note" style="display:grid;grid-template-columns:minmax(72px,.8fr) 1fr 1fr;gap:6px;align-items:center;margin-top:5px"><b>${d.label}</b><span>最近 ${pct(d.recent_problem_rate)}</span><span>改善 ${pct(d.improvement_rate)}${unresolved}${latestStatusLabel(d)}${nextFocusLabel(d)}</span></div>`;
   }
 
   function domainProgressHtml(summary){
     const xs=Array.isArray(summary?.domains)?summary.domains:[];
     if(!xs.length)return '<div class="micro-note" style="margin-top:9px">領域別の学習変化は、重点症例を完了すると表示されます。</div>';
     const shown=xs.slice(0,4);
-    return `<div class="micro-note" style="margin-top:10px"><b>領域別 learning curve</b> — 最近の問題率 / 重点練習後の改善率 / 未達連続 / 次の重点</div>${shown.map(domainRow).join('')}`;
+    return `<div class="micro-note" style="margin-top:10px"><b>領域別 learning curve</b> — 最近の問題率 / 重点練習後の改善率 / 今回の結果 / 次の重点</div>${shown.map(domainRow).join('')}`;
   }
 
   function renderHtml(summary){
@@ -175,5 +181,5 @@
     delayed();
   }
 
-  return {orderedCompletedCases,scoredStatus,improvementStreak,unresolvedStreak,nextFocusMeta,domainPracticeSummary,summarize,latestReward,nextFocusLabel,domainProgressHtml,renderHtml,render,refresh,mount,version:'1.3.0'};
+  return {orderedCompletedCases,scoredStatus,improvementStreak,unresolvedStreak,nextFocusMeta,domainPracticeSummary,summarize,latestReward,latestStatusLabel,nextFocusLabel,domainProgressHtml,renderHtml,render,refresh,mount,version:'1.4.0'};
 });
