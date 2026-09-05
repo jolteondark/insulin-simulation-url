@@ -82,7 +82,7 @@
     if(!d||d.getElementById('repeatPlayActionDockStyle'))return;
     const style=d.createElement('style');
     style.id='repeatPlayActionDockStyle';
-    style.textContent=`#${DOCK_ID}{display:none}@media(max-width:700px){#${DOCK_ID}{position:fixed;z-index:1000;left:0;right:0;bottom:0;padding:8px max(12px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));background:rgba(242,244,247,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid rgba(120,128,140,.18)}#${DOCK_ID}.active{display:block}#${FEEDBACK_ID}{display:none;margin:0 2px 7px;font-size:13px;line-height:1.35;font-weight:750;color:#3f4650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#${DOCK_ID}.has-feedback #${FEEDBACK_ID}{display:block}#${BUTTON_ID}{width:100%;min-height:48px;margin:0}.app-shell.repeat-play-dock-active{padding-bottom:74px}.app-shell.repeat-play-dock-active.repeat-play-dock-feedback-active{padding-bottom:100px}.app-shell.repeat-play-dock-active #submitBtn,.app-shell.repeat-play-dock-active #nextDayBtn,.app-shell.repeat-play-dock-active #restartBtn,.app-shell.repeat-play-dock-active #caseNextCta{display:none!important}}`;
+    style.textContent=`#${DOCK_ID}{display:none}@media(max-width:700px){#${DOCK_ID}{position:fixed;z-index:1000;left:0;right:0;bottom:0;padding:8px max(12px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));background:rgba(242,244,247,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid rgba(120,128,140,.18)}#${DOCK_ID}.active{display:block}#${FEEDBACK_ID}{display:none;margin:0 2px 7px;font-size:13px;line-height:1.35;font-weight:750;color:#3f4650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#${DOCK_ID}.has-feedback #${FEEDBACK_ID}{display:block}#${BUTTON_ID}{width:100%;min-height:48px;margin:0}.app-shell.repeat-play-dock-active{padding-bottom:74px}.app-shell.repeat-play-dock-active.repeat-play-dock-feedback-active{padding-bottom:100px}.app-shell.repeat-play-dock-active .repeat-play-meal-source{display:none}.app-shell.repeat-play-dock-active #submitBtn,.app-shell.repeat-play-dock-active #nextDayBtn,.app-shell.repeat-play-dock-active #restartBtn,.app-shell.repeat-play-dock-active #caseNextCta{display:none!important}}`;
     d.head.appendChild(style);
   }
 
@@ -152,6 +152,7 @@
     const submit=d.querySelector('#submitBtn');
     if(submit)submit.addEventListener('click',()=>setTimeout(refresh,0));
     const mealGrid=d.querySelector('#todayMealGrid');
+    mealGrid?.closest?.('.record-card')?.classList?.add?.('repeat-play-meal-source');
     if(mealGrid&&typeof MutationObserver!=='undefined')new MutationObserver(refresh).observe(mealGrid,{childList:true,subtree:true,characterData:true});
     d.addEventListener('click',event=>{
       const id=event?.target?.id;
@@ -160,7 +161,7 @@
     refresh();
   }
 
-  const api={actionTarget,feedbackAlreadyInResultGlance,prescriptionMealContext,primaryFeedbackText,refresh,mount,version:'1.5.0',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
+  const api={actionTarget,feedbackAlreadyInResultGlance,prescriptionMealContext,primaryFeedbackText,refresh,mount,version:'1.6.0',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
   if(root)root.RepeatPlayActionDock=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();
