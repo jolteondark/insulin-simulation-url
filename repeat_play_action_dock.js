@@ -44,11 +44,29 @@
     return visible(glance)&&visible(primary);
   }
 
+  function prescriptionMealContext(){
+    const d=doc();
+    if(!d)return '';
+    const panel=d.querySelector('#resultPanel');
+    if(visible(panel))return '';
+    const grid=d.querySelector('#todayMealGrid');
+    if(!grid)return '';
+    const cards=[...grid.querySelectorAll('.meal-card')];
+    if(!cards.length)return '';
+    const items=cards.map(card=>{
+      const name=card.querySelector('.name')?.textContent?.replace(/食$/,'')?.trim()||'';
+      const pct=card.querySelector('.pct')?.textContent?.trim()||'';
+      return name&&pct?`${name}${pct}`:'';
+    }).filter(Boolean);
+    return items.length?`今日の食事 ${items.join(' / ')}`:'';
+  }
+
   function primaryFeedbackText(){
     const d=doc();
     if(!d)return '';
     const panel=d.querySelector('#resultPanel');
-    if(!visible(panel)||!panel.querySelector('#nextDayBtn'))return '';
+    if(!visible(panel))return prescriptionMealContext();
+    if(!panel.querySelector('#nextDayBtn'))return '';
     // The compact result card now owns the normal result-review teaching text.
     // Repeating the same sentence in the fixed dock consumes scarce mobile
     // viewport height. Keep the dock copy only as a graceful fallback if the
@@ -78,7 +96,7 @@
     dock.setAttribute('aria-live','polite');
     const feedback=d.createElement('div');
     feedback.id=FEEDBACK_ID;
-    feedback.setAttribute('aria-label','次に変える1点');
+    feedback.setAttribute('aria-label','現在の判断材料');
     const btn=d.createElement('button');
     btn.id=BUTTON_ID;
     btn.type='button';
@@ -133,6 +151,8 @@
     ensureDock();
     const submit=d.querySelector('#submitBtn');
     if(submit)submit.addEventListener('click',()=>setTimeout(refresh,0));
+    const mealGrid=d.querySelector('#todayMealGrid');
+    if(mealGrid&&typeof MutationObserver!=='undefined')new MutationObserver(refresh).observe(mealGrid,{childList:true,subtree:true,characterData:true});
     d.addEventListener('click',event=>{
       const id=event?.target?.id;
       if(['nextDayBtn','restartBtn','caseNextCta','newCaseBtn'].includes(id))setTimeout(refresh,0);
@@ -140,7 +160,7 @@
     refresh();
   }
 
-  const api={actionTarget,feedbackAlreadyInResultGlance,primaryFeedbackText,refresh,mount,version:'1.4.0',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
+  const api={actionTarget,feedbackAlreadyInResultGlance,prescriptionMealContext,primaryFeedbackText,refresh,mount,version:'1.5.0',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
   if(root)root.RepeatPlayActionDock=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();
