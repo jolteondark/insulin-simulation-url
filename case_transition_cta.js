@@ -28,6 +28,18 @@
     return objective?.focus_label||objective?.label||objective?.domain_id||'現在の処方判断';
   }
 
+  function percent(x){
+    const n=Number(x);
+    return Number.isFinite(n)?`${Math.round(100*n)}%`:'—';
+  }
+
+  function percentagePointDelta(x){
+    const n=Number(x);
+    if(!Number.isFinite(n))return '—';
+    const p=Math.round(100*n);
+    return `${p>=0?'+':''}${p}pt`;
+  }
+
   function nextChallengeModel(dataArg){
     const data=dataArg||loadLearningData();
     const objective=data?.active_objective||null;
@@ -46,6 +58,12 @@
     let reason='前症例で残った1方向を、次症例でも結果ベースで確認します。';
     if(streak>=2)reason=`${streak}症例連続で残った弱点です。次症例も同じ方向を重点練習し、解除できるか確認します。`;
     else if(objective.selection_reason==='safety')reason='前症例のhidden safety signalを優先します。安全性を保ちながら処方方向を修正できるか確認します。';
+    else if(objective.selection_reason==='longitudinal'){
+      const recent=objective.longitudinal_recent_rate??objective.source_rate;
+      const reference=objective.longitudinal_reference_rate;
+      const delta=objective.longitudinal_delta;
+      reason=`最近3症例で${objectiveLabel(objective)}の問題が${percent(recent)}（それ以前 ${percent(reference)}、差 ${percentagePointDelta(delta)}）に増えています。次症例ではこの処方傾向を重点練習し、改善したかを症例終了時に確認します。`;
+    }
     else if(objective.selection_reason==='recurrent'&&recurrentN>0)reason=`過去${recurrentN}症例でも出た反復弱点です。単発の誤差より、繰り返す処方傾向の修正を優先します。`;
     return {label:objectiveLabel(objective),reason,streak:Number(run?.improvement_streak)||0,adaptive:true};
   }
@@ -136,7 +154,7 @@
     refresh();
   }
 
-  const api={ensureCta,refresh,mount,navigateCaseStart,loadLearningData,objectiveLabel,nextChallengeModel,renderPreview,version:'1.3.0'};
+  const api={ensureCta,refresh,mount,navigateCaseStart,loadLearningData,objectiveLabel,percent,percentagePointDelta,nextChallengeModel,renderPreview,version:'1.4.0'};
   if(root)root.CaseTransitionCta=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();
