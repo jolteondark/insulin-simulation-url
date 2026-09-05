@@ -21,4 +21,35 @@
   .order-card { margin-top:10px; padding:14px 12px; }
   .dose-input-card { padding-top:8px; padding-bottom:8px; }
   .primary-btn { margin-top:9px; }
+
+  /* The decision strip already preserves the full clinical context. Tighten
+     only whitespace/chrome so the four dose controls remain close to it. */
+  #prescriptionDecisionStrip {
+    margin-bottom:6px;
+    padding:7px 8px;
+    gap:4px;
+  }
+  #prescriptionDecisionStrip .decision-strip-row,
+  #prescriptionDecisionStrip .decision-strip-feedback {
+    grid-template-columns:60px minmax(0,1fr);
+    gap:4px;
+  }
+  #prescriptionDecisionStrip .decision-strip-values { gap:3px; }
+  #prescriptionDecisionStrip .decision-strip-values span {
+    padding:3px 2px;
+    line-height:1.15;
+  }
+  #prescriptionDecisionStrip .decision-strip-feedback {
+    padding-top:4px;
+    line-height:1.3;
+  }
+  #prescriptionDecisionStrip .decision-strip-details-btn {
+    min-height:28px;
+    padding:2px;
+  }
+
+  /* Preserve 44px tap targets; gain density from card/gap chrome instead. */
+  .order-card #doseGrid { gap:5px; }
+  .order-card .dose-input-card { padding:7px 6px; }
+  .order-card .dose-quick-adjust { gap:3px; margin-top:3px; }
 }
