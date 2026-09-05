@@ -4,6 +4,10 @@
   else{root.WardLearningRunProgress=api;api.mount(root)}
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   const STORAGE_KEY='ward_glucose_learning_curve_v1';
+  const DOMAIN_LABELS={
+    basal:'basal',breakfast_rapid:'朝rapid',lunch_rapid:'昼rapid',dinner_rapid:'夕rapid',
+    scale_dependence:'scale依存',hidden_awareness:'hidden excursion'
+  };
 
   function load(root){
     try{return JSON.parse(root?.localStorage?.getItem(STORAGE_KEY)||'{}')}
@@ -28,6 +32,41 @@
     return streak;
   }
 
+  function finite(x){const n=Number(x);return Number.isFinite(n)?n:null}
+  function unresolvedStreak(xs){
+    let streak=0;
+    for(let i=xs.length-1;i>=0;i--){
+      if(xs[i]?.objective_status==='not_resolved')streak++;
+      else break;
+    }
+    return streak;
+  }
+
+  function domainPracticeSummary(cases){
+    const grouped=new Map();
+    for(const c of cases){
+      const p=c?.adaptive_practice;
+      if(!p?.domain_id||!['resolved','improved','not_resolved'].includes(p.objective_status))continue;
+      if(!grouped.has(p.domain_id))grouped.set(p.domain_id,[]);
+      grouped.get(p.domain_id).push(p);
+    }
+    return [...grouped.entries()].map(([domainId,xs])=>{
+      const recent=xs.slice(-3);
+      const rates=recent.map(x=>finite(x.target_rate)).filter(x=>x!=null);
+      const improved=xs.filter(x=>x.objective_status==='resolved'||x.objective_status==='improved').length;
+      return {
+        domain_id:domainId,
+        label:DOMAIN_LABELS[domainId]||domainId,
+        attempts:xs.length,
+        recent_n:recent.length,
+        recent_problem_rate:rates.length?rates.reduce((a,b)=>a+b,0)/rates.length:null,
+        improvement_rate:xs.length?improved/xs.length:null,
+        unresolved_streak:unresolvedStreak(xs),
+        latest_status:xs[xs.length-1]?.objective_status||null
+      };
+    }).sort((a,b)=>b.unresolved_streak-a.unresolved_streak||(b.recent_problem_rate??-1)-(a.recent_problem_rate??-1)||b.attempts-a.attempts||a.label.localeCompare(b.label));
+  }
+
   function summarize(data){
     const cases=orderedCompletedCases(data);
     const statuses=cases.map(c=>scoredStatus(data,c.case_id)).filter(Boolean);
@@ -47,7 +86,8 @@
       persistent_released:persistentReleased,
       improvement_streak:improvementStreak(data,cases),
       latest_status:latestStatus,
-      latest_persistent_released:Boolean(latestReleased)
+      latest_persistent_released:Boolean(latestReleased),
+      domains:domainPracticeSummary(cases)
     };
   }
 
@@ -64,12 +104,25 @@
     return {kicker:'▶ WARD RUN',title:'次の重点へ',body:'結果とfeedbackを使って、次症例でも1つずつ処方判断を詰めます。'};
   }
 
+  function pct(x){return Number.isFinite(Number(x))?`${Math.round(100*Number(x))}%`:'—'}
+  function domainRow(d){
+    const unresolved=d.unresolved_streak?` ／ 未達 ${d.unresolved_streak}回連続`:'';
+    return `<div class="micro-note" style="display:grid;grid-template-columns:minmax(72px,.8fr) 1fr 1fr;gap:6px;align-items:center;margin-top:5px"><b>${d.label}</b><span>最近 ${pct(d.recent_problem_rate)}</span><span>改善 ${pct(d.improvement_rate)}${unresolved}</span></div>`;
+  }
+
+  function domainProgressHtml(summary){
+    const xs=Array.isArray(summary?.domains)?summary.domains:[];
+    if(!xs.length)return '<div class="micro-note" style="margin-top:9px">領域別の学習変化は、重点症例を完了すると表示されます。</div>';
+    const shown=xs.slice(0,4);
+    return `<div class="micro-note" style="margin-top:10px"><b>領域別 learning curve</b> — 最近の問題率 / 重点練習後の改善率 / 未達連続</div>${shown.map(domainRow).join('')}`;
+  }
+
   function renderHtml(summary){
     if(!summary.ready)return '';
     const reward=latestReward(summary);
     const streak=summary.improvement_streak;
     const streakCopy=streak>=3?`<div class="micro-note" style="margin-top:7px"><b>連続改善 ${streak}症例。</b> 同じ考え方を別症例でも再現できています。</div>`:'';
-    return `<section id="learningRunProgress" class="learning-focus" aria-live="polite"><div class="learning-focus-kicker">${reward.kicker}</div><div class="learning-focus-title">${reward.title}</div><div class="learning-focus-body" style="margin-top:3px">${reward.body}</div><div class="micro-note" style="margin-top:9px"><b>WARD RUN</b> — 症例を重ねた攻略状況</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px">${badge('完了症例',summary.cases,'🏁')}${badge('FOCUS CLEAR',summary.focus_clear,'✓')}${badge('persistent解除',summary.persistent_released,'🔓')}${badge('連続改善',summary.improvement_streak,'↗')}</div>${streakCopy}<div class="micro-note" style="margin-top:7px">DISCHARGE ${summary.discharged}件。新しい点数は付けず、実際の学習履歴だけを表示しています。</div></section>`;
+    return `<section id="learningRunProgress" class="learning-focus" aria-live="polite"><div class="learning-focus-kicker">${reward.kicker}</div><div class="learning-focus-title">${reward.title}</div><div class="learning-focus-body" style="margin-top:3px">${reward.body}</div><div class="micro-note" style="margin-top:9px"><b>WARD RUN</b> — 症例を重ねた攻略状況</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px">${badge('完了症例',summary.cases,'🏁')}${badge('FOCUS CLEAR',summary.focus_clear,'✓')}${badge('persistent解除',summary.persistent_released,'🔓')}${badge('連続改善',summary.improvement_streak,'↗')}</div>${streakCopy}${domainProgressHtml(summary)}<div class="micro-note" style="margin-top:7px">DISCHARGE ${summary.discharged}件。新しい点数は付けず、実際の学習履歴だけを表示しています。</div></section>`;
   }
 
   function ensurePanel(root){
@@ -106,5 +159,5 @@
     delayed();
   }
 
-  return {orderedCompletedCases,scoredStatus,improvementStreak,summarize,latestReward,renderHtml,render,refresh,mount,version:'1.1.0'};
+  return {orderedCompletedCases,scoredStatus,improvementStreak,unresolvedStreak,domainPracticeSummary,summarize,latestReward,domainProgressHtml,renderHtml,render,refresh,mount,version:'1.2.0'};
 });
