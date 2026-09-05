@@ -41,6 +41,25 @@
     return focusElement(candidates.find(isUsableAction));
   }
 
+  function previousScheduledDose(input){
+    const n=Number(input?.dataset?.previousScheduledDose);
+    return Number.isFinite(n)?n:clampDose(input?.value);
+  }
+
+  function doseDeltaText(current,previous){
+    const delta=clampDose(current)-clampDose(previous);
+    if(delta===0)return '前日と同じ';
+    return `前日 ${delta>0?'+':''}${delta} U`;
+  }
+
+  function updateDoseChangeHint(input){
+    const card=input?.closest?.('.dose-input-card');
+    const hint=card?.querySelector?.('.dose-change-hint');
+    if(!hint)return false;
+    hint.textContent=doseDeltaText(input.value,previousScheduledDose(input));
+    return true;
+  }
+
   function adjust(input,delta,{focusAfter=true}={}){
     input.value=String(clampDose(Number(input.value)+delta));
     input.dispatchEvent(new Event('input',{bubbles:true}));
@@ -74,8 +93,17 @@
     if(card.dataset.quickAdjustReady==='1')return;
     const input=card.querySelector('input[type="number"][id^="dose_"]');
     if(!input)return;
+    input.dataset.previousScheduledDose=String(clampDose(input.value));
     input.addEventListener('keydown',submitFromDoseInput);
+    input.addEventListener('input',()=>updateDoseChangeHint(input));
     input.setAttribute('title','Enterでこの処方を実行');
+
+    const hint=document.createElement('div');
+    hint.className='dose-change-hint';
+    hint.setAttribute('aria-live','polite');
+    card.appendChild(hint);
+    updateDoseChangeHint(input);
+
     const controls=document.createElement('div');
     controls.className='dose-quick-adjust';
     controls.setAttribute('aria-label','投与量をすばやく調整');
@@ -111,14 +139,16 @@
     const style=document.createElement('style');
     style.id='doseQuickAdjustStyle';
     style.textContent=`
-      .dose-quick-adjust{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:7px}
+      .dose-change-hint{margin-top:5px;min-height:16px;text-align:center;font-size:12px;line-height:1.3;font-weight:800;color:#747c86;font-variant-numeric:tabular-nums}
+      .dose-quick-adjust{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:6px}
       .dose-step-btn{border:1px solid #dde1e7;background:#fff;border-radius:9px;padding:8px 2px;font-size:12px;font-weight:800;color:#59616b;touch-action:manipulation;min-width:0;min-height:38px}
       .dose-step-btn:active{transform:translateY(1px);background:#f0f2f5}
       .dose-step-major{font-weight:900;background:#f8f9fb}
       @media(max-width:430px){
         #${GRID_ID}{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
         .dose-input-card{padding:9px 8px}
-        .dose-quick-adjust{gap:5px}
+        .dose-change-hint{font-size:12px;margin-top:4px;min-height:16px}
+        .dose-quick-adjust{gap:5px;margin-top:5px}
         .dose-step-btn{min-height:44px;padding:9px 2px;font-size:13px}
       }
     `;
@@ -137,5 +167,5 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.DoseAdjustControls={clampDose,isUsableAction,focusFirstDose,focusResultAction,shouldRefocusInput,steps:[...STEPS],version:'1.6.0'};
+  window.DoseAdjustControls={clampDose,isUsableAction,focusFirstDose,focusResultAction,shouldRefocusInput,previousScheduledDose,doseDeltaText,updateDoseChangeHint,steps:[...STEPS],version:'1.7.0'};
 })();
