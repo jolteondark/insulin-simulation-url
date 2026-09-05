@@ -59,6 +59,7 @@
   function refreshTerminalUi(root,data=null,caseId=null){
     root.CaseTransitionCta?.refresh?.();
     root.WardLearningMomentum?.refresh?.(root,data,caseId);
+    root.WardLearningRunProgress?.refresh?.(root,data);
   }
 
   function renderCommitted(root,data,caseId){
@@ -102,11 +103,12 @@
       next.completion_records={...(next.completion_records||{}),[caseId]:{
         ...prior,
         completion_transaction:{
-          version:7,
+          version:8,
           learning_curve_attached:true,
           adaptive_practice_attached:Boolean(attached.record),
           terminal_feedback_attached:Boolean(feedback),
           next_objective_resolved:Boolean(routed.routing),
+          learning_run_refreshed:Boolean(root?.WardLearningRunProgress?.refresh),
           momentum_feedback_ready:true,
           write_count:1,
           committed_at:new Date().toISOString()
@@ -133,5 +135,5 @@
     completeAfterTerminal(root);
   }
 
-  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,terminalFeedback,resolveNextObjective,refreshTerminalUi,mount,version:'1.6.0'};
+  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,terminalFeedback,resolveNextObjective,refreshTerminalUi,mount,version:'1.7.0'};
 });
