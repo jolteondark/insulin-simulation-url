@@ -42,7 +42,16 @@
     return streak;
   }
 
-  function domainPracticeSummary(cases){
+  function nextFocusMeta(activeObjective,domainId){
+    if(!activeObjective||activeObjective.domain_id!==domainId)return {next_focus:false,next_reason:null,next_focus_tag:null};
+    return {
+      next_focus:true,
+      next_reason:activeObjective.selection_reason||'existing',
+      next_focus_tag:activeObjective.focus_tag||null
+    };
+  }
+
+  function domainPracticeSummary(cases,activeObjective=null){
     const grouped=new Map();
     for(const c of cases){
       const p=c?.adaptive_practice;
@@ -50,6 +59,7 @@
       if(!grouped.has(p.domain_id))grouped.set(p.domain_id,[]);
       grouped.get(p.domain_id).push(p);
     }
+    if(activeObjective?.domain_id&&!grouped.has(activeObjective.domain_id))grouped.set(activeObjective.domain_id,[]);
     return [...grouped.entries()].map(([domainId,xs])=>{
       const recent=xs.slice(-3);
       const rates=recent.map(x=>finite(x.target_rate)).filter(x=>x!=null);
@@ -62,9 +72,10 @@
         recent_problem_rate:rates.length?rates.reduce((a,b)=>a+b,0)/rates.length:null,
         improvement_rate:xs.length?improved/xs.length:null,
         unresolved_streak:unresolvedStreak(xs),
-        latest_status:xs[xs.length-1]?.objective_status||null
+        latest_status:xs[xs.length-1]?.objective_status||null,
+        ...nextFocusMeta(activeObjective,domainId)
       };
-    }).sort((a,b)=>b.unresolved_streak-a.unresolved_streak||(b.recent_problem_rate??-1)-(a.recent_problem_rate??-1)||b.attempts-a.attempts||a.label.localeCompare(b.label));
+    }).sort((a,b)=>Number(b.next_focus)-Number(a.next_focus)||b.unresolved_streak-a.unresolved_streak||(b.recent_problem_rate??-1)-(a.recent_problem_rate??-1)||b.attempts-a.attempts||a.label.localeCompare(b.label));
   }
 
   function summarize(data){
@@ -87,7 +98,7 @@
       improvement_streak:improvementStreak(data,cases),
       latest_status:latestStatus,
       latest_persistent_released:Boolean(latestReleased),
-      domains:domainPracticeSummary(cases)
+      domains:domainPracticeSummary(cases,data?.active_objective||null)
     };
   }
 
@@ -105,16 +116,21 @@
   }
 
   function pct(x){return Number.isFinite(Number(x))?`${Math.round(100*Number(x))}%`:'—'}
+  function nextFocusLabel(d){
+    if(!d.next_focus)return '';
+    const reason=d.next_reason==='persistent'?'未達継続':d.next_reason==='longitudinal'?'最近の傾向悪化':d.next_reason==='safety'?'安全重点':'次の重点';
+    return ` ／ <b>次の重点</b>（${reason}）`;
+  }
   function domainRow(d){
     const unresolved=d.unresolved_streak?` ／ 未達 ${d.unresolved_streak}回連続`:'';
-    return `<div class="micro-note" style="display:grid;grid-template-columns:minmax(72px,.8fr) 1fr 1fr;gap:6px;align-items:center;margin-top:5px"><b>${d.label}</b><span>最近 ${pct(d.recent_problem_rate)}</span><span>改善 ${pct(d.improvement_rate)}${unresolved}</span></div>`;
+    return `<div class="micro-note" style="display:grid;grid-template-columns:minmax(72px,.8fr) 1fr 1fr;gap:6px;align-items:center;margin-top:5px"><b>${d.label}</b><span>最近 ${pct(d.recent_problem_rate)}</span><span>改善 ${pct(d.improvement_rate)}${unresolved}${nextFocusLabel(d)}</span></div>`;
   }
 
   function domainProgressHtml(summary){
     const xs=Array.isArray(summary?.domains)?summary.domains:[];
     if(!xs.length)return '<div class="micro-note" style="margin-top:9px">領域別の学習変化は、重点症例を完了すると表示されます。</div>';
     const shown=xs.slice(0,4);
-    return `<div class="micro-note" style="margin-top:10px"><b>領域別 learning curve</b> — 最近の問題率 / 重点練習後の改善率 / 未達連続</div>${shown.map(domainRow).join('')}`;
+    return `<div class="micro-note" style="margin-top:10px"><b>領域別 learning curve</b> — 最近の問題率 / 重点練習後の改善率 / 未達連続 / 次の重点</div>${shown.map(domainRow).join('')}`;
   }
 
   function renderHtml(summary){
@@ -159,5 +175,5 @@
     delayed();
   }
 
-  return {orderedCompletedCases,scoredStatus,improvementStreak,unresolvedStreak,domainPracticeSummary,summarize,latestReward,domainProgressHtml,renderHtml,render,refresh,mount,version:'1.2.0'};
+  return {orderedCompletedCases,scoredStatus,improvementStreak,unresolvedStreak,nextFocusMeta,domainPracticeSummary,summarize,latestReward,nextFocusLabel,domainProgressHtml,renderHtml,render,refresh,mount,version:'1.3.0'};
 });
