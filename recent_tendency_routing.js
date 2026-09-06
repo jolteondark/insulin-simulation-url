@@ -65,20 +65,29 @@
     if(current?.focus_tag===objective.focus_tag&&current?.selection_reason===objective.selection_reason)return {...out,tendency};
     return {...out,objective,reason:objective.selection_reason==='recent_tendency_adaptive'?'recent_directional_tendency_adaptive':'recent_directional_tendency',tendency,changed:JSON.stringify(current)!==JSON.stringify(objective)};
   }
+  function applyResolvedData(data,base){
+    const next=apply(base?.data||data,base);
+    const finalData={...(base?.data||data||{}),active_objective:next.objective||null};
+    return {...base,...next,data:finalData,changed:JSON.stringify(data?.active_objective||null)!==JSON.stringify(next.objective||null)};
+  }
   function install(root){
     const routing=root?.WardEducationRoutingState;if(!routing||routing.__recentTendencyInstalled)return false;
-    const raw=routing.resolveStored;if(typeof raw!=='function')return false;
+    const rawData=routing.resolveData,rawStored=routing.resolveStored;
+    if(typeof rawData!=='function'||typeof rawStored!=='function')return false;
+    routing.resolveData=function(data){
+      const base=rawData.call(routing,data);
+      return applyResolvedData(data,base);
+    };
     routing.resolveStored=function(r){
-      const base=raw.call(routing,r);
       try{
         const data=JSON.parse(r.localStorage.getItem(STORAGE_KEY)||'{}')||{};
-        const next=apply(data,base);
-        if(next.changed){const saved={...data,active_objective:next.objective};r.localStorage.setItem(STORAGE_KEY,JSON.stringify(saved));next.data=saved}
+        const next=routing.resolveData(data);
+        if(next.changed)r.localStorage.setItem(STORAGE_KEY,JSON.stringify(next.data));
         return next;
-      }catch{return base}
+      }catch{return rawStored.call(routing,r)}
     };
     routing.__recentTendencyInstalled=true;
     return true;
   }
-  return {completedCases,caseDays,tagRate,directionalWeakness,shouldEscalate,makeObjective,apply,install,TAG_DOMAIN,TAG_LABELS,PROTECTED_REASONS,RECENT_REASONS,RECENT_CASES,MIN_CASE_HITS,ADAPTIVE_MIN_CASE_HITS,version:'1.1.0'};
+  return {completedCases,caseDays,tagRate,directionalWeakness,shouldEscalate,makeObjective,apply,applyResolvedData,install,TAG_DOMAIN,TAG_LABELS,PROTECTED_REASONS,RECENT_REASONS,RECENT_CASES,MIN_CASE_HITS,ADAPTIVE_MIN_CASE_HITS,version:'1.2.0'};
 });
