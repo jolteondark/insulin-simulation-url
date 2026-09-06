@@ -1,8 +1,6 @@
 (function(){
   const STORAGE_KEY='ward_glucose_learning_curve_v1';
   const MAX_DAYS=1000;
-  const RAPID_ERROR_U=1.5;
-  const BASAL_ERROR_U=1.5;
 
   const feedbackLabels={
     basal_excess:'basal過量方向',
@@ -27,82 +25,97 @@
     {id:'hidden_awareness',label:'hidden excursion',tags:['hidden_low_near_miss','hidden_high_excursion']}
   ];
 
+  function correctionScaleUsed(rec){
+    const doses=rec?.result?.correction_doses_u||{};
+    return ['breakfast','lunch','dinner'].some(k=>Number(doses[k])>0);
+  }
+
+  function feedbackTagsOf(rec){
+    return Array.isArray(rec?.education_feedback?.tags)
+      ? [...new Set(rec.education_feedback.tags.filter(x=>typeof x==='string'))]
+      : [];
+  }
+
+  function prescribingFromTags(tags,scaleUsed=false){
+    const set=new Set(Array.isArray(tags)?tags:[]);
+    const meals=['breakfast','lunch','dinner'];
+    let rapidOver=0,rapidUnder=0,rapidNear=0;
+    for(const meal of meals){
+      const over=set.has(`${meal}_rapid_excess`);
+      const under=set.has(`${meal}_rapid_deficit`);
+      if(over)rapidOver++;
+      if(under)rapidUnder++;
+      if(!over&&!under)rapidNear++;
+    }
+    return {
+      rapid_over:rapidOver,
+      rapid_under:rapidUnder,
+      rapid_near:rapidNear,
+      basal_over:set.has('basal_excess'),
+      basal_under:set.has('basal_deficit'),
+      scale_used:Boolean(scaleUsed)
+    };
+  }
+
+  function migrateDay(day){
+    if(!day||typeof day!=='object')return day;
+    const tags=Array.isArray(day.feedback_tags)?day.feedback_tags:[];
+    if(!tags.length)return day;
+    return {
+      ...day,
+      prescribing:prescribingFromTags(tags,Boolean(day.used_scale)),
+      prescribing_source:'feedback_tags_v1'
+    };
+  }
+
   function normalize(x){
     const data=x&&typeof x==='object'?x:{};
     return {
       ...data,
-      days:Array.isArray(data.days)?data.days:[],
+      days:Array.isArray(data.days)?data.days.map(migrateDay):[],
       cases:Array.isArray(data.cases)?data.cases:[],
       objectives:Array.isArray(data.objectives)?data.objectives:[]
     };
-  }
-
-  function load(){
-    try{return normalize(JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'))}
-    catch{return normalize({})}
   }
 
   function save(data){
     try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}catch{}
   }
 
+  function load(){
+    try{
+      const raw=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+      const data=normalize(raw);
+      const needsMigration=Array.isArray(raw?.days)&&raw.days.some((d,i)=>
+        Array.isArray(d?.feedback_tags)&&d.feedback_tags.length&&data.days[i]?.prescribing_source!=='feedback_tags_v1'
+      );
+      if(needsMigration)save(data);
+      return data;
+    }catch{return normalize({})}
+  }
+
   function pct(n,d){return d?`${Math.round(100*n/d)}%`:'—'}
   function mean(xs){return xs.length?xs.reduce((a,b)=>a+b,0)/xs.length:null}
 
-  function correctionScaleUsed(rec){
-    const doses=rec?.result?.correction_doses_u||{};
-    return ['breakfast','lunch','dinner'].some(k=>Number(doses[k])>0);
-  }
-
-  function prescribingPattern(rec,p){
-    const mealCarb={breakfast:50,lunch:70,dinner:60};
-    const rapidKeys=['breakfast_u','lunch_u','dinner_u'];
-    let rapidOver=0,rapidUnder=0,rapidNear=0;
-    for(const key of rapidKeys){
-      const meal=key.replace('_u','');
-      const intake=Number(rec?.intake?.[meal]);
-      const icr=Number(p?.icr_g_u);
-      const expected=Number.isFinite(intake)&&Number.isFinite(icr)&&icr>0?mealCarb[meal]*intake/icr:null;
-      // Prescribing skill is the scheduled meal dose chosen by the learner.
-      // Correction-scale insulin is rescue exposure and is tracked separately as scale dependence.
-      const scheduled=Number(rec?.order?.[key]||0);
-      if(expected==null)continue;
-      const delta=scheduled-expected;
-      if(delta>RAPID_ERROR_U)rapidOver++;
-      else if(delta<-RAPID_ERROR_U)rapidUnder++;
-      else rapidNear++;
-    }
-    const activeBasal=Number(rec?.activeBasal),baselineBasal=Number(p?.basal_u_day);
-    const basalDelta=Number.isFinite(activeBasal)&&Number.isFinite(baselineBasal)?activeBasal-baselineBasal:null;
-    return {
-      rapid_over:rapidOver,
-      rapid_under:rapidUnder,
-      rapid_near:rapidNear,
-      basal_over:basalDelta!=null&&basalDelta>BASAL_ERROR_U,
-      basal_under:basalDelta!=null&&basalDelta<-BASAL_ERROR_U,
-      scale_used:correctionScaleUsed(rec)
-    };
-  }
-
-  function daySummary(rec,caseId,p){
+  function daySummary(rec,caseId){
     const bg=rec?.result?.bg||{};
     const poc=['pre_breakfast','pre_lunch','pre_dinner','bedtime'].map(k=>Number(bg[k]));
     const mn=Number(rec?.result?.min),mx=Number(rec?.result?.max);
     const safe=Number.isFinite(mn)&&Number.isFinite(mx)&&mn>=70&&mx<=400;
-    // Discharge-grade intentionally still requires the scale to be switched OFF,
-    // while scale dependence below means actual correction insulin was delivered.
     const dischargeGrade=safe&&!rec?.result?.correction_scale&&poc.every(v=>Number.isFinite(v)&&v>=80&&v<=180)&&mn>=70&&mx<=250;
-    const feedbackTags=Array.isArray(rec?.education_feedback?.tags)?[...new Set(rec.education_feedback.tags.filter(x=>typeof x==='string'))]:[];
+    const feedbackTags=feedbackTagsOf(rec);
+    const usedScale=correctionScaleUsed(rec);
     return {
       key:`${caseId}:${rec.day}`,
       case_id:caseId,
       day:Number(rec.day),
       safe,
       discharge_grade:dischargeGrade,
-      used_scale:correctionScaleUsed(rec),
+      used_scale:usedScale,
       min:mn,
       max:mx,
-      prescribing:prescribingPattern(rec,p),
+      prescribing:prescribingFromTags(feedbackTags,usedScale),
+      prescribing_source:'feedback_tags_v1',
       feedback_tags:feedbackTags,
       recorded_at:new Date().toISOString()
     };
@@ -114,7 +127,7 @@
     if(!s?.history?.length)return next;
     const rec=s.history[s.history.length-1];
     const caseId=s.case?.case_id||'unknown';
-    const d=daySummary(rec,caseId,s.p);
+    const d=daySummary(rec,caseId);
     const old=next.days.findIndex(x=>x.key===d.key);
     if(old>=0)next.days[old]=d;else next.days.push(d);
     next.days=next.days.slice(-MAX_DAYS);
@@ -242,7 +255,7 @@
     if(s.basalOver)problems.push(`basal過量 ${s.basalOver}/${s.n}日`);
     if(s.basalUnder)problems.push(`basal不足 ${s.basalUnder}/${s.n}日`);
     if(s.scale)problems.push(`scale依存 ${s.scale}/${s.n}日`);
-    return problems.length?`直近${s.n}日の処方傾向：${problems.join(' ／ ')}`:`直近${s.n}日：rapid・basalとも大きな過不足は目立ちません。`;
+    return problems.length?`直近${s.n}日の結果ベース処方傾向：${problems.join(' ／ ')}`:`直近${s.n}日：結果からみてrapid・basalの同方向課題は目立ちません。`;
   }
 
   function recurrenceText(days){
@@ -271,15 +284,8 @@
     if(!trend.ready)return `<div class="micro-note">4症例完了すると、初期症例群と最近症例群で調整課題の発生率を比較します（現在 ${trend.n}症例）。</div>`;
     const fmtRate=x=>x==null?'—':`${Math.round(100*x)}%`;
     const fmtDelta=x=>x==null?'—':`${x>0?'+':''}${Math.round(x)}pt`;
-    const cards=trend.domains.map(d=>`
-      <div class="prev-dose">
-        <div class="name">${d.label}</div>
-        <div class="value" style="font-size:15px">${fmtRate(d.early_rate)} → ${fmtRate(d.recent_rate)}</div>
-        <div class="micro-note">${fmtDelta(d.delta_pp)}</div>
-      </div>`).join('');
-    return `
-      <div class="micro-note" style="margin-top:9px">症例単位の学習変化（初期${trend.group_n}症例 → 最近${trend.group_n}症例、課題が出た日率）</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px">${cards}</div>`;
+    const cards=trend.domains.map(d=>`<div class="prev-dose"><div class="name">${d.label}</div><div class="value" style="font-size:15px">${fmtRate(d.early_rate)} → ${fmtRate(d.recent_rate)}</div><div class="micro-note">${fmtDelta(d.delta_pp)}</div></div>`).join('');
+    return `<div class="micro-note" style="margin-top:9px">症例単位の学習変化（初期${trend.group_n}症例 → 最近${trend.group_n}症例、課題が出た日率）</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px">${cards}</div>`;
   }
 
   function render(){
@@ -288,19 +294,7 @@
     const data=load(),days=data.days,cases=data.cases,s=windowStats(days);
     const completed=cases.length,discharged=cases.filter(x=>x.outcome==='discharged').length;
     const completedDays=cases.map(x=>Number(x.days)).filter(Number.isFinite);
-    el.innerHTML=`
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
-        <div class="prev-dose"><div class="name">記録日</div><div class="value">${s.n}</div></div>
-        <div class="prev-dose"><div class="name">安全日</div><div class="value">${pct(s.safe,s.n)}</div></div>
-        <div class="prev-dose"><div class="name">退院水準日</div><div class="value">${pct(s.grade,s.n)}</div></div>
-        <div class="prev-dose"><div class="name">退院成功</div><div class="value">${pct(discharged,completed)}</div></div>
-      </div>
-      <div class="micro-note" style="margin-top:9px">${trendText(days)}</div>
-      <div class="micro-note">${prescribingText(days)}</div>
-      <div class="micro-note">${recurrenceText(days)}</div>
-      <div class="micro-note">${objectiveText(data)}</div>
-      ${caseTrendHtml(data)}
-      ${completedDays.length?`<div class="micro-note">完了症例の平均日数：${mean(completedDays).toFixed(1)}日（${completed}症例）</div>`:''}`;
+    el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px"><div class="prev-dose"><div class="name">記録日</div><div class="value">${s.n}</div></div><div class="prev-dose"><div class="name">安全日</div><div class="value">${pct(s.safe,s.n)}</div></div><div class="prev-dose"><div class="name">退院水準日</div><div class="value">${pct(s.grade,s.n)}</div></div><div class="prev-dose"><div class="name">退院成功</div><div class="value">${pct(discharged,completed)}</div></div></div><div class="micro-note" style="margin-top:9px">${trendText(days)}</div><div class="micro-note">${prescribingText(days)}</div><div class="micro-note">${recurrenceText(days)}</div><div class="micro-note">${objectiveText(data)}</div>${caseTrendHtml(data)}${completedDays.length?`<div class="micro-note">完了症例の平均日数：${mean(completedDays).toFixed(1)}日（${completed}症例）</div>`:''}`;
   }
 
   function mount(){
@@ -322,7 +316,7 @@
     render();
   }
 
-  const api={load,save,render,recordLatest,applyLatest,daySummary,correctionScaleUsed,recurrenceStats,caseDomainSummary,completedCaseSummaries,caseDomainTrend,objectiveText,version:'1.9.0'};
+  const api={load,save,render,recordLatest,applyLatest,daySummary,correctionScaleUsed,feedbackTagsOf,prescribingFromTags,recurrenceStats,caseDomainSummary,completedCaseSummaries,caseDomainTrend,objectiveText,version:'2.0.0'};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof window!=='undefined')window.LearningCurve=api;
   if(typeof document!=='undefined'){
