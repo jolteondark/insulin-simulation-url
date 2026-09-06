@@ -63,8 +63,10 @@
   function buildHtml(rec){
     const x=summaryData(rec);
     if(!x)return '';
+    const day=Number(rec?.day);
+    const title=Number.isFinite(day)?`DAY ${day}：結果 → 次の1点`:'結果 → 次の1点';
     return `<div class="result-glance" aria-label="本日の血糖結果と実投与の要約">
-      <div class="result-glance-title">今日の結果を一目で確認</div>
+      <div class="result-glance-title">${title}</div>
       <div class="result-glance-bg-grid">
         ${bgCell('朝前',x.bg.pre_breakfast)}
         ${bgCell('昼前',x.bg.pre_lunch)}
@@ -103,7 +105,7 @@
   function compactLegacyNonterminal(panel){
     if(!panel?.querySelector('#nextDayBtn'))return;
     Array.from(panel.children).forEach(el=>{
-      if(el.classList?.contains('result-text'))el.classList.add('result-glance-legacy-hidden');
+      if(el.classList?.contains('result-text')||el.classList?.contains('result-title')||el.classList?.contains('result-kicker'))el.classList.add('result-glance-legacy-hidden');
     });
   }
 
@@ -131,7 +133,7 @@
     submit.addEventListener('click',annotateLatest);
   }
 
-  const api={summaryData,buildHtml,compactLegacyNonterminal,annotateLatest,mount,version:'1.3.0'};
+  const api={summaryData,buildHtml,compactLegacyNonterminal,annotateLatest,mount,version:'1.4.0'};
   if(root)root.ResultGlanceSummary=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
