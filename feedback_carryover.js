@@ -14,13 +14,20 @@
     hidden_high_excursion:'hidden高血糖：食後高血糖を残していないか確認'
   };
 
+  function storedLearningData(){
+    try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')}catch{return {}}
+  }
+
   function storedTerminalFeedback(){
-    try{
-      const data=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
-      const x=data?.last_terminal_feedback;
-      if(!x?.text)return null;
-      return {case_id:x.case_id||null,day:Number(x.day)||null,tag:x.primary_tag||null,text:String(x.text)};
-    }catch{return null}
+    const data=storedLearningData();
+    const x=data?.last_terminal_feedback;
+    if(!x?.text)return null;
+    return {case_id:x.case_id||null,day:Number(x.day)||null,tag:x.primary_tag||null,text:String(x.text)};
+  }
+
+  function activeFocusTag(){
+    const objective=storedLearningData()?.active_objective;
+    return objective?.focus_tag||null;
   }
 
   function latestCarryover(){
@@ -45,13 +52,17 @@
     }catch{return null}
   }
 
-  function shouldDisplay(carry,focusVisible){
+  function shouldDisplay(carry,focusVisible,focusTag=null){
     if(!carry)return false;
     // A prospective LEARNING FOCUS is already the actionable handoff from the
     // prior debrief. Repeating the old terminal sentence beneath it adds
     // cognitive load without adding a new decision. Keep previous-case
     // feedback only as a fallback when no focus was created.
     if(carry.source==='previous_case'&&focusVisible)return false;
+    // On later days, keep yesterday's point unless LEARNING FOCUS is visibly
+    // giving the exact same directional instruction. Exact tag matching is
+    // deliberate: domain-only matching could hide an opposite-dose warning.
+    if(carry.source==='previous_day'&&focusVisible&&carry.tag&&focusTag&&carry.tag===focusTag)return false;
     return true;
   }
 
@@ -85,7 +96,7 @@
     const title=el.querySelector('.learning-focus-title');
     const kicker=el.querySelector('.learning-focus-kicker');
     const carry=latestCarryover();
-    if(!shouldDisplay(carry,learningFocusVisible())){
+    if(!shouldDisplay(carry,learningFocusVisible(),activeFocusTag())){
       el.classList.add('hidden');
       if(body)body.textContent='';
       return;
@@ -115,7 +126,7 @@
     if(newCase)newCase.addEventListener('click',()=>queueMicrotask(render));
   }
 
-  const api={storedTerminalFeedback,latestCarryover,shouldDisplay,compactCarryText,render,version:'1.3.0'};
+  const api={storedTerminalFeedback,activeFocusTag,latestCarryover,shouldDisplay,compactCarryText,render,version:'1.4.0'};
   if(root)root.FeedbackCarryover=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
