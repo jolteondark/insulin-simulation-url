@@ -65,6 +65,8 @@
       longitudinal_recent_rate:finite(selection.longitudinal_recent_rate),
       longitudinal_reference_rate:finite(selection.longitudinal_reference_rate),
       longitudinal_delta:finite(selection.longitudinal_delta),
+      tendency_recent_cases:finite(selection.tendency_recent_cases),
+      tendency_case_hits:finite(selection.tendency_case_hits),
       selected_seed:selection.selected_seed??null,
       standard_seed:selection.standard_seed??null,
       selected_score:Number.isFinite(Number(selection.selected_score))?Number(selection.selected_score):null,
@@ -126,6 +128,11 @@
     return '';
   }
   function triggerLabel(record){
+    if(record?.selection_reason==='recent_tendency_adaptive'){
+      const recent=Math.max(0,Math.round(Number(record.tendency_recent_cases)||0));
+      const hits=Math.max(0,Math.round(Number(record.tendency_case_hits)||0));
+      return `直近${recent||3}症例中${hits||3}症例で同方向の処方feedbackが継続したため重点化`;
+    }
     if(record?.selection_reason!=='longitudinal')return '';
     const recent=record.longitudinal_recent_rate??record.objective_source_rate;
     const reference=record.longitudinal_reference_rate;
@@ -162,5 +169,5 @@
     root.document.querySelector('#resultPanel')?.addEventListener('click',e=>{if(e.target?.closest?.('#restartBtn'))captureAfterStart(root)});
   }
 
-  return {practiceRecord,attachPractice,getCapturedSelection,lifecycle,scoredObjective,statusLabel,domainLabel,lifecycleLabel,triggerLabel,currentState,render,persist,mount,version:'1.5.0'};
+  return {practiceRecord,attachPractice,getCapturedSelection,lifecycle,scoredObjective,statusLabel,domainLabel,lifecycleLabel,triggerLabel,currentState,render,persist,mount,version:'1.6.0'};
 });
