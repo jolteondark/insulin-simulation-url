@@ -13,6 +13,26 @@
     return [...document.querySelectorAll(selector)].map(text).filter(Boolean);
   }
 
+  function normalizeMeaning(value){
+    return String(value||'')
+      .toLowerCase()
+      .replace(/[\s\u3000、。・,:：;；()（）\[\]【】「」『』!！?？/／_-]+/g,'');
+  }
+
+  function focusMeaning(focus){
+    if(!focus)return '';
+    return normalizeMeaning([focus.title,focus.body,focus.status].filter(Boolean).join(' '));
+  }
+
+  function alreadyCoveredByFocus(value,focus){
+    const needle=normalizeMeaning(value);
+    const haystack=focusMeaning(focus);
+    // Conservative one-way deduplication: only remove a short source item when
+    // the active focus already contains that whole item. Never suppress richer
+    // feedback merely because it happens to contain the shorter focus text.
+    return Boolean(needle&&needle.length>=3&&haystack&&haystack.includes(needle));
+  }
+
   function previousDoseSnapshot(){
     return [...document.querySelectorAll('#prevDoseGrid .prev-dose')].map(card=>{
       const value=text(card.querySelector('.value'));
@@ -50,6 +70,15 @@
       context,
       focus:focusSnapshot(),
       feedback:feedbackVisible?feedback:''
+    };
+  }
+
+  function compactSnapshot(s){
+    if(!s.focus)return s;
+    return {
+      ...s,
+      context:s.context.filter(value=>!alreadyCoveredByFocus(value,s.focus)),
+      feedback:alreadyCoveredByFocus(s.feedback,s.focus)?'':s.feedback
     };
   }
 
@@ -150,7 +179,8 @@
   function render(){
     const strip=ensureStrip();
     if(!strip)return;
-    const s=snapshot();
+    const raw=snapshot();
+    const s=compactSnapshot(raw);
     const html=[
       focusBlock(s.focus),
       row('病態',s.context,'context'),
@@ -163,12 +193,13 @@
     strip.innerHTML=html;
     strip.classList.toggle('hidden',!html);
     setFocusMirrored(Boolean(s.focus));
-    setFeedbackMirrored(Boolean(s.feedback));
+    // Hide the source feedback whenever it is either mirrored in the strip or
+    // intentionally deduplicated because today's focus already covers it.
+    setFeedbackMirrored(Boolean(raw.feedback));
     bindDetails();
-    // Compact each source independently once its decision-critical content is
-    // mirrored. This avoids keeping today's meal card duplicated merely because
-    // another source (for example previous dose on day 1) is not available yet.
-    setMirroredSourcesCompacted(s);
+    // Source-card compaction depends on the raw mirrored state, not the
+    // presentation-level deduplication above.
+    setMirroredSourcesCompacted(raw);
   }
 
   function installStyles(){
@@ -218,5 +249,5 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.PrescriptionDecisionStrip={snapshot,focusSnapshot,previousDoseSnapshot,render,setFeedbackMirrored,setFocusMirrored,setSourcesCompacted,setMirroredSourcesCompacted,version:'1.6.0'};
+  window.PrescriptionDecisionStrip={snapshot,compactSnapshot,focusSnapshot,previousDoseSnapshot,normalizeMeaning,alreadyCoveredByFocus,render,setFeedbackMirrored,setFocusMirrored,setSourcesCompacted,setMirroredSourcesCompacted,version:'1.7.0'};
 })();
