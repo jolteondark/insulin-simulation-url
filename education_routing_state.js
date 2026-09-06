@@ -50,7 +50,7 @@
     for(let i=xs.length-1;i>=0;i--){const x=xs[i];if(!sameObjectiveDirection(x,domainId,focusTag)||x?.status!=='not_resolved')break;n++}
     return n;
   }
-  function persistentFromObjectiveHistory(data,domainId,focusTag=null){const streak=objectiveFailureStreak(data,domainId,focusTag);return isPersistentStreak(streak)?{domain_id:domainId,label:DOMAIN_LABELS[domainId]||domainId,focus_tag:focusTag,focus_label:TAG_LABELS[focusTag]||null,streak}:null}
+  function persistentFromObjectiveHistory(data,domainId,focusTag=null){const streak=objectiveFailureStreak(data,domainId,focusTag);return isPersistentStreak(streak)?{domain_id:domainId,label:DOMAIN_LABELS[domainId]||domainId,focus_tag:focusTag||null,focus_label:TAG_LABELS[focusTag]||null,streak}:null}
   function makePersistentObjective(input){
     const streak=Math.max(0,Number(input?.streak)||0);if(!input?.domain_id||!isPersistentStreak(streak))return null;
     return {domain_id:input.domain_id,label:input.label||DOMAIN_LABELS[input.domain_id]||input.domain_id,focus_tag:input.focus_tag||null,focus_label:input.focus_label||TAG_LABELS[input.focus_tag]||null,source_case_id:input.source_case_id||null,source_rate:Number.isFinite(Number(input.source_rate))?Number(input.source_rate):null,created_at:input.created_at||new Date().toISOString(),persistent_streak:streak,emphasis:'high',selection_reason:'persistent',prior_cases_with_issue:streak,routing_source:input.routing_source||'objective_history'};
