@@ -25,19 +25,22 @@
     setTimeout(integrate,0);
   }
 
+  function onClick(event){
+    if(event?.target?.id==='submitBtn')schedule();
+  }
+
   function mount(){
     if(typeof document==='undefined'||document.documentElement?.dataset?.resultFeedbackIntegrationMounted)return;
     if(document.documentElement)document.documentElement.dataset.resultFeedbackIntegrationMounted='1';
     ensureStyle();
-    const submit=document.querySelector('#submitBtn');
-    if(submit)submit.addEventListener('click',schedule);
-    document.addEventListener('click',event=>{
-      if(event?.target?.id==='submitBtn')schedule();
-    });
+    // Keep a single delegated submit owner. The submit button is stable today,
+    // but delegation also survives future button replacement without adding a
+    // second listener that schedules the same integration task twice.
+    document.addEventListener('click',onClick);
     integrate();
   }
 
-  const api={ensureStyle,integrate,mount,version:'1.1.0'};
+  const api={ensureStyle,integrate,schedule,onClick,mount,version:'1.2.0'};
   if(root)root.ResultFeedbackIntegration=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
