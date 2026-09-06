@@ -3,6 +3,7 @@
 (function(){
   const STRIP_ID='prescriptionDecisionStrip';
   const MIRRORED_CLASS='feedback-mirrored-in-decision-strip';
+  const FOCUS_MIRRORED_CLASS='focus-mirrored-in-decision-strip';
   const COMPACTED_CLASS='decision-strip-source-compacted';
   const DETAILS_ID='prescriptionContextDetailsBtn';
 
@@ -23,6 +24,17 @@
     }).filter(Boolean);
   }
 
+  function focusSnapshot(){
+    const section=document.getElementById('learningFocus');
+    const visible=section&&!section.classList.contains('hidden');
+    if(!visible)return null;
+    const title=text(document.getElementById('learningFocusTitle'));
+    const body=text(document.getElementById('learningFocusBody'));
+    const status=text(document.getElementById('learningFocusStatus'));
+    if(!title&&!body&&!status)return null;
+    return {title,body,status};
+  }
+
   function snapshot(){
     const glucose=collect('#bgGrid .bg-card').map(x=>x.replace(/mg\/dL/gi,'').trim());
     const meals=collect('#todayMealGrid .meal-card');
@@ -31,7 +43,14 @@
     const feedback=text(document.getElementById('previousFeedbackBody'));
     const feedbackSection=document.getElementById('previousFeedback');
     const feedbackVisible=feedbackSection&&!feedbackSection.classList.contains('hidden')&&Boolean(feedback);
-    return {glucose,meals,previousDoses,context,feedback:feedbackVisible?feedback:''};
+    return {
+      glucose,
+      meals,
+      previousDoses,
+      context,
+      focus:focusSnapshot(),
+      feedback:feedbackVisible?feedback:''
+    };
   }
 
   function row(label,values,kind=''){
@@ -56,6 +75,14 @@
     const section=document.getElementById('previousFeedback');
     if(!section)return;
     section.classList.toggle(MIRRORED_CLASS,Boolean(mirrored));
+    if(mirrored)section.setAttribute('aria-hidden','true');
+    else section.removeAttribute('aria-hidden');
+  }
+
+  function setFocusMirrored(mirrored){
+    const section=document.getElementById('learningFocus');
+    if(!section)return;
+    section.classList.toggle(FOCUS_MIRRORED_CLASS,Boolean(mirrored));
     if(mirrored)section.setAttribute('aria-hidden','true');
     else section.removeAttribute('aria-hidden');
   }
@@ -112,11 +139,20 @@
     });
   }
 
+  function focusBlock(focus){
+    if(!focus)return '';
+    const title=focus.title||'今回見る1点';
+    const body=focus.body?`<span class="decision-strip-focus-body">${focus.body}</span>`:'';
+    const status=focus.status?`<span class="decision-strip-focus-status">${focus.status}</span>`:'';
+    return `<div class="decision-strip-focus"><span class="decision-strip-label">今日の焦点</span><div><strong>${title}</strong>${body}${status}</div></div>`;
+  }
+
   function render(){
     const strip=ensureStrip();
     if(!strip)return;
     const s=snapshot();
     const html=[
+      focusBlock(s.focus),
       row('病態',s.context,'context'),
       row('直近4検',s.glucose,'glucose'),
       row('今日の食事',s.meals,'meal'),
@@ -126,6 +162,7 @@
     ].filter(Boolean).join('');
     strip.innerHTML=html;
     strip.classList.toggle('hidden',!html);
+    setFocusMirrored(Boolean(s.focus));
     setFeedbackMirrored(Boolean(s.feedback));
     bindDetails();
     // Compact each source independently once its decision-critical content is
@@ -146,17 +183,21 @@
       .decision-strip-values span{min-width:0;padding:5px 3px;border-radius:8px;background:#fff;text-align:center;font-size:13px;line-height:1.2;font-weight:780;color:#343b45;overflow:hidden;text-overflow:ellipsis}
       .decision-strip-row.glucose .decision-strip-values span{font-size:15px;font-weight:850;font-variant-numeric:tabular-nums}
       .decision-strip-row.context .decision-strip-values,.decision-strip-row.meal .decision-strip-values{grid-template-columns:repeat(3,minmax(0,1fr))}
-      .decision-strip-feedback{display:grid;grid-template-columns:82px minmax(0,1fr);gap:8px;padding-top:8px;border-top:1px solid #e4e7ec;font-size:13px;line-height:1.4;color:#404853}
+      .decision-strip-focus,.decision-strip-feedback{display:grid;grid-template-columns:82px minmax(0,1fr);gap:8px;padding-bottom:8px;border-bottom:1px solid #e4e7ec;font-size:13px;line-height:1.4;color:#404853}
+      .decision-strip-focus strong{display:block;color:#252b33;font-size:14px}
+      .decision-strip-focus-body,.decision-strip-focus-status{display:block;margin-top:2px}
+      .decision-strip-focus-status{font-size:12px;color:#6f7782;font-weight:750}
+      .decision-strip-feedback{padding-top:8px;padding-bottom:0;border-top:1px solid #e4e7ec;border-bottom:0}
       .decision-strip-details-btn{justify-self:end;border:0;background:transparent;padding:6px 2px;font:inherit;font-size:12px;font-weight:800;color:#5e6875;text-decoration:underline;text-underline-offset:2px;cursor:pointer;min-height:32px}
-      #previousFeedback.${MIRRORED_CLASS}{display:none!important}
+      #previousFeedback.${MIRRORED_CLASS},#learningFocus.${FOCUS_MIRRORED_CLASS}{display:none!important}
       .${COMPACTED_CLASS}{display:none!important}
       @media(max-width:430px){
         .prescription-decision-strip{margin-bottom:10px;padding:10px}
-        .decision-strip-row,.decision-strip-feedback{grid-template-columns:76px minmax(0,1fr);gap:6px}
+        .decision-strip-row,.decision-strip-focus,.decision-strip-feedback{grid-template-columns:76px minmax(0,1fr);gap:6px}
         .decision-strip-values{gap:4px}
         .decision-strip-values span{font-size:12px;padding:5px 2px}
         .decision-strip-row.glucose .decision-strip-values span{font-size:15px}
-        .decision-strip-feedback{font-size:13px}
+        .decision-strip-focus,.decision-strip-feedback{font-size:13px}
         .decision-strip-details-btn{font-size:12px;min-height:36px}
       }
     `;
@@ -171,11 +212,11 @@
   function boot(){
     installStyles();
     render();
-    ['bgGrid','todayMealGrid','prevDoseGrid','contextBadges','previousFeedback','previousFeedbackBody','doseGrid'].forEach(observe);
+    ['learningFocus','learningFocusTitle','learningFocusBody','learningFocusStatus','bgGrid','todayMealGrid','prevDoseGrid','contextBadges','previousFeedback','previousFeedbackBody','doseGrid'].forEach(observe);
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.PrescriptionDecisionStrip={snapshot,previousDoseSnapshot,render,setFeedbackMirrored,setSourcesCompacted,setMirroredSourcesCompacted,version:'1.5.0'};
+  window.PrescriptionDecisionStrip={snapshot,focusSnapshot,previousDoseSnapshot,render,setFeedbackMirrored,setFocusMirrored,setSourcesCompacted,setMirroredSourcesCompacted,version:'1.6.0'};
 })();
