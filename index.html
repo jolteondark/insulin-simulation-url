@@ -17,7 +17,7 @@
     <section id="learningFocus" class="learning-focus hidden" aria-live="polite"><div class="learning-focus-kicker">LEARNING FOCUS</div><div class="learning-focus-row"><div><div id="learningFocusTitle" class="learning-focus-title">今回見る1点</div><div id="learningFocusBody" class="learning-focus-body"></div></div><div id="learningFocusStatus" class="learning-focus-status"></div></div></section>
     <section id="prescriptionContext" class="record-card"><div class="record-title-row"><div><div class="section-kicker">LATEST</div><h2>直近の4検</h2></div><div class="record-caption">4検・食事・前回処方</div></div><div class="time-head"><div></div><div>朝</div><div>昼</div><div>夕</div><div>眠前</div></div><div class="record-row"><div class="row-label">血糖</div><div id="bgGrid" class="record-values bg-grid"></div></div><div class="record-row"><div class="row-label">食事</div><div id="mealGrid" class="record-values meal-grid"></div></div><div class="record-row last"><div class="row-label">Ins</div><div id="prevDoseGrid" class="record-values dose-summary"></div></div></section>
     <section class="record-card"><div class="record-title-row"><div><div class="section-kicker">TODAY'S MEALS</div><h2>今日の食事量</h2></div><div class="record-caption">処方前に確認できます</div></div><div id="todayMealGrid" class="record-values meal-grid"></div><div class="micro-note">この食事量を見て、朝・昼・夕のrapidを決めてください。</div></section>
-    <section id="previousFeedback" class="learning-focus hidden" aria-live="polite"><div class="learning-focus-kicker">YESTERDAY → TODAY</div><div class="learning-focus-row"><div><div class="learning-focus-title">前日の1点</div><div id="previousFeedbackBody" class="learning-focus-body"></div></div><div class="learning-focus-status">処方前に再確認</div></div></section>
+    <section id="previousFeedback" class="learning-focus hidden" aria-live="polite"><div class="learning-focus-kicker">YESTERDAY → TODAY</div><div class="learning-focus-row"><div><div class="learning-focus-title">前日の1点</div><div id="previousFeedbackBody" class="learning-focus-body"></div></div><div id="previousFeedbackStatus" class="learning-focus-status">処方前に再確認</div></div></section>
     <section class="order-card"><div class="order-head"><div><div class="section-kicker">ORDER</div><h2>今日の処方</h2></div><div class="order-note">当院：整数 U</div></div><div id="doseGrid" class="dose-grid"></div><button id="submitBtn" class="primary-btn">この処方で1日進める</button></section>
     <section id="resultPanel" class="result-panel hidden" aria-live="polite"></section>
     <section id="runHistory" class="section-block" style="margin-top:24px"><div class="section-title"><span>H</span> この患者の全履歴</div><div id="runHistoryBody"></div></section>
@@ -28,7 +28,7 @@
 <script src="patient_generator.js?v=20260831-prior90"></script>
 <script src="adaptive_case_selection.js?v=b1539d548441"></script>
 <script src="education_routing_state.js?v=20260903-routing6"></script>
-<script src="recent_tendency_routing.js?v=14b3770e4f5d"></script>
+<script src="recent_tendency_routing.js?v=0f123e785100"></script>
 <script src="app.js?v=20260818-2305"></script>
 <script src="session_checkpoint.js?v=20260902-session1"></script>
 <script src="dose_adjust_controls.js?v=89a89f8fd644"></script>
@@ -53,7 +53,7 @@
 <script src="adaptive_practice_history.js?v=324355197def"></script>
 <script src="learning_momentum.js?v=315eee1a09f6"></script>
 <script src="learning_run_progress.js?v=9fb2f427f7e4"></script>
-<script src="case_completion_transaction.js?v=0f889e7269f5"></script>
+<script src="case_completion_transaction.js?v=2c41ed780b56"></script>
 <script src="case_learning_trace.js?v=20260903-trace1"></script>
 <script src="case_transition_cta.js?v=0432b497b2fa"></script>
 <script src="repeat_play_action_dock.js?v=0e28ad3c6a7c"></script>
