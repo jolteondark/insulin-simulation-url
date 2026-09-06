@@ -8,12 +8,13 @@
   function normalize(raw){
     const x=raw&&typeof raw==='object'?raw:{};
     return {
-      schema_version:3,
+      schema_version:4,
       exported_at:new Date().toISOString(),
       days:Array.isArray(x.days)?x.days:[],
       cases:Array.isArray(x.cases)?x.cases:[],
       objectives:Array.isArray(x.objectives)?x.objectives:[],
-      active_objective:x.active_objective||null
+      active_objective:x.active_objective||null,
+      completion_records:x.completion_records&&typeof x.completion_records==='object'?x.completion_records:{}
     };
   }
 
@@ -29,12 +30,19 @@
     return debrief.build(report);
   }
 
+  function routingOutcomes(snapshot){
+    const routing=typeof window!=='undefined'?window.WardRoutingLearningOutcomes:null;
+    if(!routing||typeof routing.summarize!=='function')return null;
+    return routing.summarize(snapshot);
+  }
+
   function load(){
     let data;
     try{data=normalize(JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'))}
     catch{data=normalize({})}
     data.education_report=educationReport(data);
     data.final_debrief=finalDebrief(data.education_report);
+    data.routing_outcomes=routingOutcomes(data);
     return data;
   }
 
@@ -105,7 +113,7 @@
     box.style.marginTop='16px';
     box.innerHTML=`
       <div class="section-title"><span>E</span> 学習データ</div>
-      <div class="micro-note">JSONには日次・症例履歴、画面と同じeducation_report、100症例debriefを含めます。患者個人情報は含みません。</div>
+      <div class="micro-note">JSONには日次・症例履歴、completion record、画面と同じeducation_report、100症例debrief、重点化／解除のrouting outcomeを含めます。患者個人情報は含みません。</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
         <button type="button" class="ghost-btn" id="exportLearningJson">JSONを保存</button>
         <button type="button" class="ghost-btn" id="exportLearningCsv">日次CSVを保存</button>
@@ -115,7 +123,7 @@
     box.querySelector('#exportLearningCsv')?.addEventListener('click',exportCsv);
   }
 
-  window.WardLearningDataExport={load,normalize,educationReport,finalDebrief,dayRow,daysCsv,exportJson,exportCsv,installUI,version:'3.0.0'};
+  window.WardLearningDataExport={load,normalize,educationReport,finalDebrief,routingOutcomes,dayRow,daysCsv,exportJson,exportCsv,installUI,version:'4.0.0'};
   if(typeof document!=='undefined'){
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installUI,{once:true});
     else installUI();
