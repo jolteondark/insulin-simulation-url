@@ -9,10 +9,15 @@
   }
 
   function returnToPrescription(){
-    requestAnimationFrame(()=>{
-      const el=target();
-      if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
-    });
+    // RepeatPlayNavigation owns repeat-play positioning. Reuse it when present
+    // so next-day flow has one navigation policy and does not schedule a later
+    // smooth scroll that can override the immediate throughput jump.
+    const nav=window.RepeatPlayNavigation;
+    if(nav?.moveToPrescriptionContext)return nav.moveToPrescriptionContext();
+    const el=target();
+    if(!el)return false;
+    el.scrollIntoView({behavior:'auto',block:'start'});
+    return true;
   }
 
   function bindNextDayButton(){
@@ -49,5 +54,5 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.NextDayThroughput={target,returnToPrescription,bindNextDayButton,typingTarget,handleShortcut,version:'1.1.0',module:MODULE};
+  window.NextDayThroughput={target,returnToPrescription,bindNextDayButton,typingTarget,handleShortcut,version:'1.2.0',module:MODULE};
 })();
