@@ -9,6 +9,7 @@
   const STORAGE_KEY='ward_glucose_learning_curve_v1';
   const RECENT_CASES=3;
   const MIN_CASE_HITS=2;
+  const ADAPTIVE_MIN_CASE_HITS=3;
   const TAG_DOMAIN={
     basal_excess:'basal',basal_deficit:'basal',
     breakfast_rapid_excess:'breakfast_rapid',breakfast_rapid_deficit:'breakfast_rapid',
@@ -24,6 +25,7 @@
     scale_dependence:'scale依存'
   };
   const PROTECTED_REASONS=new Set(['safety','persistent','longitudinal']);
+  const RECENT_REASONS=new Set(['recent_tendency','recent_tendency_adaptive']);
 
   function completedCases(data){
     return (Array.isArray(data?.cases)?data.cases:[]).filter(c=>c?.case_id&&['discharged','game_over'].includes(c.outcome));
@@ -44,18 +46,24 @@
     }).filter(x=>x.hits>=MIN_CASE_HITS).sort((a,b)=>b.hits-a.hits||b.last-a.last||(b.mean_rate??0)-(a.mean_rate??0)||a.tag.localeCompare(b.tag));
     return rows[0]||null;
   }
+  function shouldEscalate(w){return Boolean(w&&w.recent_n>=RECENT_CASES&&w.hits>=ADAPTIVE_MIN_CASE_HITS)}
   function makeObjective(w){
     if(!w)return null;
-    return {domain_id:w.domain_id,label:w.label,focus_tag:w.tag,focus_label:w.label,source_case_id:w.source_case_id,source_rate:w.mean_rate,created_at:new Date().toISOString(),persistent_streak:0,emphasis:'normal',selection_reason:'recent_tendency',prior_cases_with_issue:w.hits,routing_source:'recent_prescribing_tendency',tendency_recent_cases:w.recent_n,tendency_case_hits:w.hits};
+    const adaptive=shouldEscalate(w);
+    return {domain_id:w.domain_id,label:w.label,focus_tag:w.tag,focus_label:w.label,source_case_id:w.source_case_id,source_rate:w.mean_rate,created_at:new Date().toISOString(),persistent_streak:0,emphasis:adaptive?'high':'normal',selection_reason:adaptive?'recent_tendency_adaptive':'recent_tendency',prior_cases_with_issue:w.hits,routing_source:'recent_prescribing_tendency',tendency_recent_cases:w.recent_n,tendency_case_hits:w.hits,adaptive_escalated:adaptive};
   }
   function apply(data,routed){
     const out=routed&&typeof routed==='object'?{...routed}:{objective:data?.active_objective||null,reason:'existing',changed:false};
     const current=out.objective||data?.active_objective||null;
     if(current&&PROTECTED_REASONS.has(current.selection_reason))return {...out,tendency:directionalWeakness(data)};
-    const tendency=directionalWeakness(data);if(!tendency)return {...out,tendency:null};
-    if(current?.focus_tag===tendency.tag)return {...out,tendency};
+    const tendency=directionalWeakness(data);
+    if(!tendency){
+      if(current&&RECENT_REASONS.has(current.selection_reason))return {...out,objective:null,reason:'recent_tendency_released',tendency:null,changed:true};
+      return {...out,tendency:null};
+    }
     const objective=makeObjective(tendency);
-    return {...out,objective,reason:'recent_directional_tendency',tendency,changed:JSON.stringify(current)!==JSON.stringify(objective)};
+    if(current?.focus_tag===objective.focus_tag&&current?.selection_reason===objective.selection_reason)return {...out,tendency};
+    return {...out,objective,reason:objective.selection_reason==='recent_tendency_adaptive'?'recent_directional_tendency_adaptive':'recent_directional_tendency',tendency,changed:JSON.stringify(current)!==JSON.stringify(objective)};
   }
   function install(root){
     const routing=root?.WardEducationRoutingState;if(!routing||routing.__recentTendencyInstalled)return false;
@@ -72,5 +80,5 @@
     routing.__recentTendencyInstalled=true;
     return true;
   }
-  return {completedCases,caseDays,tagRate,directionalWeakness,makeObjective,apply,install,TAG_DOMAIN,TAG_LABELS,PROTECTED_REASONS,RECENT_CASES,MIN_CASE_HITS,version:'1.0.0'};
+  return {completedCases,caseDays,tagRate,directionalWeakness,shouldEscalate,makeObjective,apply,install,TAG_DOMAIN,TAG_LABELS,PROTECTED_REASONS,RECENT_REASONS,RECENT_CASES,MIN_CASE_HITS,ADAPTIVE_MIN_CASE_HITS,version:'1.1.0'};
 });
