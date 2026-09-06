@@ -30,7 +30,7 @@
     lunch_rapid_excess:'low',lunch_rapid_deficit:'high',
     dinner_rapid_excess:'low',dinner_rapid_deficit:'high'
   };
-  function isAdaptiveObjective(o){return Boolean(o&&(Number(o.persistent_streak)>=MIN_STREAK||o.selection_reason==='longitudinal'))}
+  function isAdaptiveObjective(o){return Boolean(o&&(Number(o.persistent_streak)>=MIN_STREAK||o.selection_reason==='longitudinal'||o.selection_reason==='recent_tendency_adaptive'))}
   function recentFocusTag(data,objective){
     const allowed=DOMAIN_TAGS[objective?.domain_id]||[];if(!allowed.length)return null;
     const cases=(Array.isArray(data?.cases)?data.cases:[]).filter(c=>c?.case_id&&['discharged','game_over'].includes(c.outcome)).slice(-3);
@@ -59,7 +59,9 @@
       objective_source_rate:finiteNumber(objective?.source_rate),
       longitudinal_recent_rate:finiteNumber(objective?.longitudinal_recent_rate),
       longitudinal_reference_rate:finiteNumber(objective?.longitudinal_reference_rate),
-      longitudinal_delta:finiteNumber(objective?.longitudinal_delta)
+      longitudinal_delta:finiteNumber(objective?.longitudinal_delta),
+      tendency_recent_cases:finiteNumber(objective?.tendency_recent_cases),
+      tendency_case_hits:finiteNumber(objective?.tendency_case_hits)
     };
   }
   function select(generate,seed,objective){
@@ -67,8 +69,8 @@
     const focusTag=typeof objective?.focus_tag==='string'?objective.focus_tag:null;
     const xs=[];for(let i=0;i<POOL;i++){const s=(seed+i*0x9E3779B9)>>>0;try{const b=generate(s);xs.push({b,s,v:score(b,objective.domain_id,focusTag),focus:focusMeasure(b,objective.domain_id,focusTag)})}catch{}}
     if(!xs.length)throw new Error('No safe generated candidate available');const standard=xs[0];for(const x of xs)x.drift=driftFromStandard(x.b,standard.b);const eligible=xs.filter(x=>x.drift.allowed);eligible.sort((a,b)=>a.v-b.v||a.s-b.s);const pick=eligible[0]||standard;
-    return {...pick.b,adaptive_selection:{domain_id:objective.domain_id,focus_tag:focusTag,persistent_streak:Number(objective.persistent_streak)||0,...routingContext(objective),pool_size:xs.length,eligible_pool_size:eligible.length,selected_seed:pick.s,standard_seed:standard.s,fallback_to_standard:pick.s===standard.s&&eligible.length===1,selected_score:pick.v,standard_score:standard.v,selected_focus:pick.focus,standard_focus:standard.focus,selected_drift:pick.drift,drift_limits:{...MAX_DRIFT},policy:'standard generator outputs only; persistent or longitudinally detected education objectives may bias selection toward a moderate visible prior-day signal in the matching POC domain and, when recent outcome feedback supplies a direction, preserve that high/low direction; every candidate retains normal physiology/safety gates and bounded drift from the standard same-seed case'}};
+    return {...pick.b,adaptive_selection:{domain_id:objective.domain_id,focus_tag:focusTag,persistent_streak:Number(objective.persistent_streak)||0,...routingContext(objective),pool_size:xs.length,eligible_pool_size:eligible.length,selected_seed:pick.s,standard_seed:standard.s,fallback_to_standard:pick.s===standard.s&&eligible.length===1,selected_score:pick.v,standard_score:standard.v,selected_focus:pick.focus,standard_focus:standard.focus,selected_drift:pick.drift,drift_limits:{...MAX_DRIFT},policy:'standard generator outputs only; persistent, longitudinal, or sustained 3-of-3 recent-tendency education objectives may bias selection toward a moderate visible prior-day signal in the matching POC domain; directional feedback is preserved when available; every candidate retains normal physiology/safety gates and bounded drift from the standard same-seed case'}};
   }
   function selectStored(generate,seed){return select(generate,seed,loadObjective())}
-  return {select,selectStored,loadObjective,recentFocusTag,isAdaptiveObjective,score,focusMeasure,directionalTarget,driftFromStandard,routingContext,MAX_DRIFT,DOMAIN_FOCUS,DOMAIN_TAGS,FEEDBACK_DIRECTION,MIN_STREAK,POOL,version:'1.4.0'};
+  return {select,selectStored,loadObjective,recentFocusTag,isAdaptiveObjective,score,focusMeasure,directionalTarget,driftFromStandard,routingContext,MAX_DRIFT,DOMAIN_FOCUS,DOMAIN_TAGS,FEEDBACK_DIRECTION,MIN_STREAK,POOL,version:'1.5.0'};
 });
