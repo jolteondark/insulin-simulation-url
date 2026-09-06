@@ -186,10 +186,8 @@ $('#submitBtn').onclick=()=>{
       state.day++;
       state.currentIntake=sampleVisibleIntake(state.day);
       render();
-      window.scrollTo({top:0,behavior:'smooth'});
     };
   }
-  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
 };
 
 startGenerated();
