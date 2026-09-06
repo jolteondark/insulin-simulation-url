@@ -13,6 +13,7 @@
       .filter(x=>x.domain_id&&['resolved','improved','not_resolved'].includes(x.objective_status)).slice(-LIMIT).reverse();
   }
   function triggerText(x){
+    if(x.selection_reason==='recent_tendency_adaptive')return '直近3症例で同方向の処方feedbackが継続したため重点化';
     if(x.selection_reason!=='longitudinal')return '';
     const recent=x.longitudinal_recent_rate??x.objective_source_rate;
     return `傾向 ${pct(recent)} vs ${pct(x.longitudinal_reference_rate)}（${delta(x.longitudinal_delta)}）`;
@@ -41,5 +42,5 @@
     root.document.querySelector('#resultPanel')?.addEventListener('click',e=>{if(e.target?.closest?.('#restartBtn'))setTimeout(()=>refresh(root),0)});
     setTimeout(()=>refresh(root),0);
   }
-  return {load,rows,triggerText,rowText,render,refresh,mount,LIMIT,version:'1.0.0'};
+  return {load,rows,triggerText,rowText,render,refresh,mount,LIMIT,version:'1.1.0'};
 });
