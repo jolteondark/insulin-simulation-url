@@ -14,17 +14,31 @@
     {id:'scale_dependence',label:'scale依存',tags:['scale_dependence']},
     {id:'hidden_awareness',label:'hidden excursion',tags:['hidden_low_near_miss','hidden_high_excursion']}
   ];
+  const TAG_LABELS={
+    basal_excess:'basal過量',basal_deficit:'basal不足',
+    breakfast_rapid_excess:'朝rapid過量',breakfast_rapid_deficit:'朝rapid不足',
+    lunch_rapid_excess:'昼rapid過量',lunch_rapid_deficit:'昼rapid不足',
+    dinner_rapid_excess:'夕rapid過量',dinner_rapid_deficit:'夕rapid不足',
+    scale_dependence:'scale依存',hidden_low_near_miss:'hidden低血糖',hidden_high_excursion:'hidden高血糖'
+  };
 
+  function caseDays(days,caseId){return days.filter(d=>d.case_id===caseId)}
+  function tagRateFor(days,caseId,tag){
+    const xs=caseDays(days,caseId);if(!xs.length)return null;
+    return xs.filter(d=>new Set(Array.isArray(d.feedback_tags)?d.feedback_tags:[]).has(tag)).length/xs.length;
+  }
   function rateFor(days,caseId,def){
-    const xs=days.filter(d=>d.case_id===caseId);
-    if(!xs.length)return null;
-    const issue=xs.filter(d=>{
-      const tags=new Set(Array.isArray(d.feedback_tags)?d.feedback_tags:[]);
-      return def.tags.some(t=>tags.has(t));
-    }).length;
+    const xs=caseDays(days,caseId);if(!xs.length)return null;
+    const issue=xs.filter(d=>{const tags=new Set(Array.isArray(d.feedback_tags)?d.feedback_tags:[]);return def.tags.some(t=>tags.has(t))}).length;
     return issue/xs.length;
   }
-
+  function dominantFocusTag(days,caseId,def){
+    const xs=caseDays(days,caseId);if(!xs.length||!def?.tags?.length)return null;
+    const rows=def.tags.map(tag=>({tag,count:0,last:-1}));
+    xs.forEach((d,i)=>{const tags=new Set(Array.isArray(d.feedback_tags)?d.feedback_tags:[]);for(const row of rows)if(tags.has(row.tag)){row.count++;row.last=i}});
+    rows.sort((a,b)=>b.count-a.count||b.last-a.last||a.tag.localeCompare(b.tag));
+    return rows[0]?.count>0?rows[0].tag:null;
+  }
   function caseRates(days,caseId){const out={};for(const def of DOMAIN_DEFS)out[def.id]=rateFor(days,caseId,def);return out}
   function priorReference(days,cases,currentCaseId){
     const prior=cases.filter(c=>c.case_id!==currentCaseId).slice(-3),out={};
@@ -36,7 +50,10 @@
   function analyze(data,currentCaseId){
     const days=Array.isArray(data?.days)?data.days:[],cases=Array.isArray(data?.cases)?data.cases:[];
     const currentCase=cases.find(c=>c.case_id===currentCaseId)||null,current=caseRates(days,currentCaseId),reference=priorReference(days,cases,currentCaseId);
-    const domains=DOMAIN_DEFS.map(def=>{const now=current[def.id],before=reference.rates[def.id];return {id:def.id,label:def.label,current_rate:now,prior_rate:before,delta_pp:now==null||before==null?null:100*(now-before),prior_cases_with_issue:recurrenceCount(days,cases,currentCaseId,def)}});
+    const domains=DOMAIN_DEFS.map(def=>{
+      const now=current[def.id],before=reference.rates[def.id],focusTag=dominantFocusTag(days,currentCaseId,def),focusRate=focusTag?tagRateFor(days,currentCaseId,focusTag):null;
+      return {id:def.id,label:def.label,current_rate:now,prior_rate:before,delta_pp:now==null||before==null?null:100*(now-before),prior_cases_with_issue:recurrenceCount(days,cases,currentCaseId,def),focus_tag:focusTag,focus_label:TAG_LABELS[focusTag]||null,current_focus_rate:focusRate};
+    });
     const measurable=domains.filter(d=>d.current_rate!=null);
     const improved=measurable.filter(d=>d.delta_pp!=null&&d.delta_pp<=-20).sort((a,b)=>a.delta_pp-b.delta_pp);
     const recurred=measurable.filter(d=>d.current_rate>0&&d.prior_cases_with_issue>=1).sort((a,b)=>b.prior_cases_with_issue-a.prior_cases_with_issue||b.current_rate-a.current_rate);
@@ -49,12 +66,14 @@
   function scoreObjective(data,objective,completedCaseId){
     if(!objective||!completedCaseId||completedCaseId===objective.source_case_id)return null;
     const def=domainById(objective.domain_id);if(!def)return null;
-    const currentRate=rateFor(Array.isArray(data?.days)?data.days:[],completedCaseId,def);if(currentRate==null)return null;
+    const days=Array.isArray(data?.days)?data.days:[];
+    const focusTag=typeof objective.focus_tag==='string'&&def.tags.includes(objective.focus_tag)?objective.focus_tag:null;
+    const currentRate=focusTag?tagRateFor(days,completedCaseId,focusTag):rateFor(days,completedCaseId,def);if(currentRate==null)return null;
     const baseline=Number(objective.source_rate);let status='not_resolved';if(currentRate===0)status='resolved';else if(Number.isFinite(baseline)&&currentRate<baseline)status='improved';
-    return {...objective,target_case_id:completedCaseId,target_rate:currentRate,status,scored_at:new Date().toISOString()};
+    return {...objective,target_case_id:completedCaseId,target_rate:currentRate,status,score_basis:focusTag?'feedback_direction':'domain_legacy',scored_at:new Date().toISOString()};
   }
-  function failedObjectiveStreak(data,domainId){return routingState?.objectiveFailureStreak?routingState.objectiveFailureStreak(data,domainId):0}
-  function persistentFailure(data,domainId){return routingState?.persistentFromObjectiveHistory?routingState.persistentFromObjectiveHistory(data,domainId):null}
+  function failedObjectiveStreak(data,domainId,focusTag=null){return routingState?.objectiveFailureStreak?routingState.objectiveFailureStreak(data,domainId,focusTag):0}
+  function persistentFailure(data,domainId,focusTag=null){return routingState?.persistentFromObjectiveHistory?routingState.persistentFromObjectiveHistory(data,domainId,focusTag):null}
   function isPersistent(streak){return routingState?.isPersistentStreak?routingState.isPersistentStreak(streak):false}
 
   function applyCompletion(data,currentCaseId,model){
@@ -66,25 +85,28 @@
       scored=scoreObjective(next,next.active_objective,currentCaseId);
       if(scored){next.objectives.push(scored);next.objectives=next.objectives.slice(-MAX_OBJECTIVES);next.active_objective=null}
     }
-    const persistent=scored?.status==='not_resolved'?persistentFailure(next,scored.domain_id):null;
+    const persistent=scored?.status==='not_resolved'?persistentFailure(next,scored.domain_id,scored.focus_tag||null):null;
     if(persistent){
       scored.persistent_streak=persistent.streak;next.objectives[next.objectives.length-1]=scored;
-      next.active_objective=routingState.makePersistentObjective({domain_id:persistent.domain_id,label:persistent.label,source_case_id:currentCaseId,source_rate:scored.target_rate,streak:persistent.streak,routing_source:'objective_history'});
+      next.active_objective=routingState.makePersistentObjective({domain_id:persistent.domain_id,label:persistent.label,focus_tag:persistent.focus_tag||scored.focus_tag||null,source_case_id:currentCaseId,source_rate:scored.target_rate,streak:persistent.streak,routing_source:'objective_history'});
     }else if(model?.priority){
-      next.active_objective={domain_id:model.priority.id,label:model.priority.label,source_case_id:currentCaseId,source_rate:model.priority.current_rate,created_at:new Date().toISOString(),persistent_streak:0,emphasis:model.priority_reason==='safety'?'high':'normal',selection_reason:model.priority_reason||'current',prior_cases_with_issue:Number(model.priority.prior_cases_with_issue)||0};
+      const focusTag=model.priority.focus_tag||null;
+      next.active_objective={domain_id:model.priority.id,label:model.priority.label,focus_tag:focusTag,focus_label:model.priority.focus_label||TAG_LABELS[focusTag]||null,source_case_id:currentCaseId,source_rate:focusTag&&Number.isFinite(Number(model.priority.current_focus_rate))?Number(model.priority.current_focus_rate):model.priority.current_rate,created_at:new Date().toISOString(),persistent_streak:0,emphasis:model.priority_reason==='safety'?'high':'normal',selection_reason:model.priority_reason||'current',prior_cases_with_issue:Number(model.priority.prior_cases_with_issue)||0};
     }
     next.completion_records[currentCaseId]={scored:scored||null,persistent:persistent||null,active_objective:next.active_objective||null,completed_at:new Date().toISOString()};
     return {data:next,scored,persistent,active_objective:next.active_objective||null,reused:false};
   }
 
   function pct(x){return x==null?'—':`${Math.round(100*x)}%`}
-  function objectiveScoreText(scored){if(!scored)return '';const status=scored.status==='resolved'?'達成':scored.status==='improved'?'改善':'未達';const persistent=isPersistent(scored.persistent_streak)?` ／ ${scored.persistent_streak}症例連続未達のため重点継続`:'';return `<div class="micro-note"><b>前症例の目標：</b>${scored.label} ${pct(scored.source_rate)}→${pct(scored.target_rate)}（${status}${persistent}）</div>`}
+  function objectiveDisplayLabel(x){return x?.focus_label||TAG_LABELS[x?.focus_tag]||x?.label||x?.domain_id||'学習目標'}
+  function objectiveScoreText(scored){if(!scored)return '';const status=scored.status==='resolved'?'達成':scored.status==='improved'?'改善':'未達';const persistent=isPersistent(scored.persistent_streak)?` ／ ${scored.persistent_streak}症例連続未達のため重点継続`:'';return `<div class="micro-note"><b>前症例の目標：</b>${objectiveDisplayLabel(scored)} ${pct(scored.source_rate)}→${pct(scored.target_rate)}（${status}${persistent}）</div>`}
   function priorityText(model,scored){
-    if(isPersistent(scored?.persistent_streak))return `「${scored.label}」が${scored.persistent_streak}症例連続未達のため、次症例も同じ領域を重点継続します。正解単位ではなく、対応する血糖と実投与量の方向を毎日確認します。`;
+    if(isPersistent(scored?.persistent_streak))return `「${objectiveDisplayLabel(scored)}」が${scored.persistent_streak}症例連続未達のため、次症例も同じ方向を重点継続します。正解単位ではなく、対応する血糖と実投与量の方向を毎日確認します。`;
     if(!model?.priority)return '次症例では現在の安全な処方判断を維持し、hidden excursionとscale救済の有無を確認してください。';
-    if(model.priority_reason==='safety')return `hidden safety signalを優先し、次症例では「${model.priority.label}」を最優先で確認してください。対応する血糖と実投与量の方向を毎日確認します。`;
-    if(model.priority_reason==='recurrent')return `「${model.priority.label}」は今回に加えて過去${model.priority.prior_cases_with_issue}症例でも出現しています。単発の最大エラーより反復弱点を優先し、次症例の1目標として確認してください。`;
-    return `次症例では「${model.priority.label}」を最優先で確認してください。正解単位を当てに行くのではなく、対応する血糖と実投与量の方向を毎日確認します。`;
+    const label=model.priority.focus_label||model.priority.label;
+    if(model.priority_reason==='safety')return `hidden safety signalを優先し、次症例では「${label}」を最優先で確認してください。対応する血糖と実投与量の方向を毎日確認します。`;
+    if(model.priority_reason==='recurrent')return `「${label}」は今回に加えて過去${model.priority.prior_cases_with_issue}症例でも出現しています。単発の最大エラーより反復弱点を優先し、次症例の1目標として確認してください。`;
+    return `次症例では「${label}」を最優先で確認してください。正解単位を当てに行くのではなく、対応する血糖と実投与量の方向を毎日確認します。`;
   }
   function renderModel(model,scored){if(!model)return '';const improved=model.improved.length?model.improved.map(d=>`${d.label} ${pct(d.prior_rate)}→${pct(d.current_rate)}`).join(' ／ '):'比較可能な明確な改善はまだありません。';const recurred=model.recurred.length?model.recurred.map(d=>`${d.label}（今回${pct(d.current_rate)}、過去${d.prior_cases_with_issue}症例でも出現）`).join(' ／ '):'過去症例から繰り返した調整課題は目立ちません。';return `${objectiveScoreText(scored)}<div class="micro-note"><b>改善：</b>${improved}</div><div class="micro-note"><b>反復：</b>${recurred}</div><div class="micro-note" style="margin-top:5px"><b>次症例：</b>${priorityText(model,scored)}</div>`}
 
@@ -99,8 +121,8 @@
     if(typeof document==='undefined')return;const el=document.querySelector('#learningFocus');if(!el)return;const objective=data?.active_objective;
     if(!objective||objective.source_case_id===caseId){el.classList.add('hidden');el.classList.remove('persistent');return}
     const streak=Number(objective.persistent_streak)||0,recurrentN=Number(objective.prior_cases_with_issue)||0,title=el.querySelector('#learningFocusTitle'),body=el.querySelector('#learningFocusBody'),status=el.querySelector('#learningFocusStatus');
-    if(title)title.textContent=objective.label||objective.domain_id||'今回の学習目標';
-    if(body){if(objective.selection_reason==='recurrent')body.textContent=`過去${recurrentN}症例でも出た反復弱点です。対応する血糖と実投与量の方向を確認してから処方し、症例終了時に改善を判定します。`;else if(objective.selection_reason==='safety')body.textContent='前症例のhidden safety signalを優先して追います。対応する血糖と実投与量の方向を確認してから処方します。';else body.textContent='対応する血糖と実投与量の方向を確認してから処方します。症例終了時にこの1領域の改善を判定します。'}
+    if(title)title.textContent=objectiveDisplayLabel(objective);
+    if(body){if(objective.selection_reason==='recurrent')body.textContent=`過去${recurrentN}症例でも出た反復弱点です。対応する血糖と実投与量の方向を確認してから処方し、症例終了時に改善を判定します。`;else if(objective.selection_reason==='safety')body.textContent='前症例のhidden safety signalを優先して追います。対応する血糖と実投与量の方向を確認してから処方します。';else body.textContent='対応する血糖と実投与量の方向を確認してから処方します。症例終了時にこの1方向の改善を判定します。'}
     if(status)status.textContent=isPersistent(streak)?`${streak}症例連続未達`:objective.selection_reason==='safety'?'安全優先':objective.selection_reason==='recurrent'?`反復 ${recurrentN}症例`:'今回の1目標';el.classList.toggle('persistent',isPersistent(streak)||objective.selection_reason==='safety');el.classList.remove('hidden');
   }
   function renderCompletion(data,caseId){
@@ -121,5 +143,5 @@
     const result=document.querySelector('#resultPanel');if(result&&!result.dataset.caseDebriefTransitionMounted){result.dataset.caseDebriefTransitionMounted='1';result.addEventListener('click',event=>{const restart=event.target?.closest?.('#restartBtn');if(restart)refresh()})}refresh();
   }
   if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount()}
-  return {analyze,renderModel,caseRates,scoreObjective,applyCompletion,failedObjectiveStreak,persistentFailure,renderActiveFocus,renderCompletion,priorityText,refresh,DOMAIN_DEFS,version:'1.5.0'};
+  return {analyze,renderModel,caseRates,tagRateFor,dominantFocusTag,scoreObjective,applyCompletion,failedObjectiveStreak,persistentFailure,renderActiveFocus,renderCompletion,priorityText,refresh,DOMAIN_DEFS,TAG_LABELS,version:'1.6.0'};
 });
