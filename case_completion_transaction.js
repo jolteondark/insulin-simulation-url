@@ -56,6 +56,30 @@
     return {data:resolved?.data||data,routing:resolved||null};
   }
 
+  function routingTransition(beforeObjective,routing){
+    if(!routing)return null;
+    const before=beforeObjective?.selection_reason||null;
+    const after=routing.objective?.selection_reason||null;
+    if(before==='recent_tendency_adaptive'&&after==='recent_tendency'){
+      const recent=Math.max(0,Math.round(Number(routing.tendency?.recent_n)||3));
+      const hits=Math.max(0,Math.round(Number(routing.tendency?.hits)||2));
+      return {kind:'recent_tendency_downgraded',before,after,focus_tag:routing.objective?.focus_tag||beforeObjective?.focus_tag||null,recent_cases:recent,case_hits:hits,message:`重点練習後、同方向の処方feedbackは直近${recent}症例中${hits}症例まで減少。重点症例選択を解除し、通常のlearning focusへ戻しました。`};
+    }
+    if((before==='recent_tendency_adaptive'||before==='recent_tendency')&&!after&&routing.reason==='recent_tendency_released'){
+      return {kind:'recent_tendency_released',before,after:null,focus_tag:beforeObjective?.focus_tag||null,recent_cases:3,case_hits:routing.tendency?.hits??0,message:'同方向の処方feedbackが直近3症例で反復基準を下回ったため、このlearning focusを解除しました。'};
+    }
+    return null;
+  }
+
+  function renderRoutingTransition(root,transition){
+    if(!root?.document)return;
+    const body=root.document.querySelector('#caseDebriefBody');
+    if(!body)return;
+    body.querySelector('#routingTransitionOutcome')?.remove();
+    if(!transition?.message)return;
+    body.insertAdjacentHTML('beforeend',`<div id="routingTransitionOutcome" class="micro-note" style="margin-top:8px"><b>学習routing更新：</b>${transition.message}</div>`);
+  }
+
   function refreshTerminalUi(root,data=null,caseId=null){
     root.CaseTransitionCta?.refresh?.();
     root.WardLearningMomentum?.refresh?.(root,data,caseId);
@@ -67,6 +91,7 @@
     debrief?.renderCompletion?.(data,caseId);
     const practice=data?.cases?.find?.(c=>c.case_id===caseId)?.adaptive_practice||null;
     if(practice)tracking?.render?.(root,practice);
+    renderRoutingTransition(root,data?.completion_records?.[caseId]?.routing_transition||null);
     learning?.render?.();
     root.CaseLearningProgress?.refresh?.();
     refreshTerminalUi(root,data,caseId);
@@ -87,7 +112,7 @@
       const priorCommitted=completedRecord(before,caseId);
       if(priorCommitted){
         const practice=renderCommitted(root,before,caseId);
-        return {data:before,model:null,scored:priorCommitted.scored||null,practice,routing:null,reused:true};
+        return {data:before,model:null,scored:priorCommitted.scored||null,practice,routing:null,routing_transition:priorCommitted.routing_transition||null,reused:true};
       }
 
       const withBase=learning.applyLatest(before,s);
@@ -95,19 +120,23 @@
       const applied=debrief.applyCompletion(withBase,caseId,model);
       const selection=tracking.getCapturedSelection(caseId);
       const attached=tracking.attachPractice(applied.data,caseId,selection);
+      const beforeObjective=attached.data?.active_objective||null;
       const routed=resolveNextObjective(root,attached.data);
       const next=routed.data;
+      const transition=routingTransition(beforeObjective,routed.routing);
       const feedback=terminalFeedback(s);
       if(feedback)next.last_terminal_feedback=feedback;
       const prior=next.completion_records?.[caseId]||{};
       next.completion_records={...(next.completion_records||{}),[caseId]:{
         ...prior,
+        routing_transition:transition,
         completion_transaction:{
-          version:8,
+          version:9,
           learning_curve_attached:true,
           adaptive_practice_attached:Boolean(attached.record),
           terminal_feedback_attached:Boolean(feedback),
           next_objective_resolved:Boolean(routed.routing),
+          routing_transition_attached:Boolean(transition),
           learning_run_refreshed:Boolean(root?.WardLearningRunProgress?.refresh),
           momentum_feedback_ready:true,
           write_count:1,
@@ -118,10 +147,11 @@
       save(root,next);
       debrief.renderCompletion?.(next,caseId);
       if(attached.record)tracking.render?.(root,attached.record);
+      renderRoutingTransition(root,transition);
       learning.render?.();
       root.CaseLearningProgress?.refresh?.();
       refreshTerminalUi(root,next,caseId);
-      return {data:next,model,scored:applied.scored||null,practice:attached.record||null,routing:routed.routing,terminal_feedback:feedback,reused:false};
+      return {data:next,model,scored:applied.scored||null,practice:attached.record||null,routing:routed.routing,routing_transition:transition,terminal_feedback:feedback,reused:false};
     }catch(e){
       console.error('case completion transaction',e);
       return null;
@@ -135,5 +165,5 @@
     completeAfterTerminal(root);
   }
 
-  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,terminalFeedback,resolveNextObjective,refreshTerminalUi,mount,version:'1.7.0'};
+  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,terminalFeedback,resolveNextObjective,routingTransition,renderRoutingTransition,refreshTerminalUi,mount,version:'1.8.0'};
 });
