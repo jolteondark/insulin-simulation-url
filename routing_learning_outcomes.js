@@ -41,42 +41,60 @@
       relief:downgraded+released,
       downgraded,
       released,
+      unresolved:Math.max(0,targeted.length-(downgraded+released)),
       focuses
     };
   }
 
-  function renderHtml(summary){
+  function renderHtml(summary,options={}){
     if(!summary?.ready)return '';
+    const id=options.id||'routingLearningOutcomes';
+    const title=options.title||'反復傾向の学習成果';
     const byFocus=summary.focuses?.length
       ? `<br><span>${summary.focuses.map(x=>`${x.focus_tag}: 重点${x.attempts}／解除${x.relief}${x.full_release?`（完全解除${x.full_release}）`:''}`).join(' ／ ')}</span>`
       : '';
-    return `<div id="routingLearningOutcomes" class="micro-note" style="margin-top:7px"><b>反復傾向の学習成果：</b>重点症例 ${summary.targeted}回 ／ 改善で重点解除 ${summary.relief}回（通常focusへ ${summary.downgraded}、focus完全解除 ${summary.released}）。${byFocus}</div>`;
+    return `<div id="${id}" class="micro-note" style="margin-top:7px"><b>${title}：</b>重点症例 ${summary.targeted}回 ／ 改善で重点解除 ${summary.relief}回（通常focusへ ${summary.downgraded}、focus完全解除 ${summary.released}）${summary.unresolved?` ／ 未解除 ${summary.unresolved}回`:''}。${byFocus}</div>`;
+  }
+
+  function renderFinalHtml(summary){
+    return renderHtml(summary,{id:'finalRoutingLearningOutcomes',title:'重点学習の到達点'});
   }
 
   function refresh(root){
     if(!root?.document)return;
-    const host=root.document.querySelector('#caseLearningProgress');
-    if(!host)return;
-    host.querySelector('#routingLearningOutcomes')?.remove();
-    const html=renderHtml(summarize(load(root)));
-    if(html)host.insertAdjacentHTML('beforeend',html);
+    const summary=summarize(load(root));
+    const progress=root.document.querySelector('#caseLearningProgress');
+    if(progress){
+      progress.querySelector('#routingLearningOutcomes')?.remove();
+      const html=renderHtml(summary);
+      if(html)progress.insertAdjacentHTML('beforeend',html);
+    }
+    const finalBody=root.document.querySelector('#finalLearningDebriefBody');
+    if(finalBody){
+      finalBody.querySelector('#finalRoutingLearningOutcomes')?.remove();
+      const html=renderFinalHtml(summary);
+      if(html)finalBody.insertAdjacentHTML('beforeend',html);
+    }
+  }
+
+  function wrapRefresh(api,key,root){
+    if(!api?.refresh||api.refresh[key])return;
+    const original=api.refresh.bind(api);
+    const wrapped=function(...args){
+      const out=original(...args);
+      refresh(root);
+      return out;
+    };
+    wrapped[key]=true;
+    api.refresh=wrapped;
   }
 
   function mount(root){
     if(!root?.document)return;
-    const progress=root.CaseLearningProgress;
-    if(progress?.refresh&&!progress.refresh.__routingLearningOutcomesWrapped){
-      const original=progress.refresh.bind(progress);
-      const wrapped=function(...args){
-        const out=original(...args);
-        refresh(root);
-        return out;
-      };
-      wrapped.__routingLearningOutcomesWrapped=true;
-      progress.refresh=wrapped;
-    }
+    wrapRefresh(root.CaseLearningProgress,'__routingLearningOutcomesWrapped',root);
+    wrapRefresh(root.WardFinalLearningDebrief,'__routingLearningOutcomesFinalWrapped',root);
     refresh(root);
   }
 
-  return {load,focusKey,summarize,renderHtml,refresh,mount,version:'1.0.0'};
+  return {load,focusKey,summarize,renderHtml,renderFinalHtml,refresh,mount,version:'1.1.0'};
 });
