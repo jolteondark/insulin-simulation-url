@@ -56,6 +56,20 @@
     return {data:resolved?.data||data,routing:resolved||null};
   }
 
+  function releaseTransition(beforeObjective,routing){
+    if(!beforeObjective||!routing?.release)return null;
+    const released=routing.release;
+    const sameDomain=released?.domain_id===beforeObjective?.domain_id;
+    const sameDirection=!beforeObjective?.focus_tag||!released?.focus_tag||released.focus_tag===beforeObjective.focus_tag;
+    if(!sameDomain||!sameDirection)return null;
+    const focusTag=beforeObjective.focus_tag||released.focus_tag||null;
+    const before=beforeObjective.selection_reason||null;
+    if(before==='persistent')return {kind:'persistent_released',before,after:routing.objective?.selection_reason||null,domain_id:beforeObjective.domain_id,focus_tag:focusTag,message:'重点練習で同方向の課題が改善したため、persistent focusを解除しました。'};
+    if(before==='longitudinal')return {kind:'longitudinal_released',before,after:routing.objective?.selection_reason||null,domain_id:beforeObjective.domain_id,focus_tag:focusTag,message:'縦断的な弱点が改善したため、このlongitudinal focusを解除しました。'};
+    if(['resolved','improved'].includes(released?.status))return {kind:'objective_released',before,after:routing.objective?.selection_reason||null,domain_id:beforeObjective.domain_id,focus_tag:focusTag,message:'今回のlearning objectiveが改善したため、同方向のfocusを次症例へ持ち越しません。'};
+    return null;
+  }
+
   function routingTransition(beforeObjective,routing){
     if(!routing)return null;
     const before=beforeObjective?.selection_reason||null;
@@ -63,12 +77,12 @@
     if(before==='recent_tendency_adaptive'&&after==='recent_tendency'){
       const recent=Math.max(0,Math.round(Number(routing.tendency?.recent_n)||3));
       const hits=Math.max(0,Math.round(Number(routing.tendency?.hits)||2));
-      return {kind:'recent_tendency_downgraded',before,after,focus_tag:routing.objective?.focus_tag||beforeObjective?.focus_tag||null,recent_cases:recent,case_hits:hits,message:`重点練習後、同方向の処方feedbackは直近${recent}症例中${hits}症例まで減少。重点症例選択を解除し、通常のlearning focusへ戻しました。`};
+      return {kind:'recent_tendency_downgraded',before,after,domain_id:beforeObjective?.domain_id||null,focus_tag:routing.objective?.focus_tag||beforeObjective?.focus_tag||null,recent_cases:recent,case_hits:hits,message:`重点練習後、同方向の処方feedbackは直近${recent}症例中${hits}症例まで減少。重点症例選択を解除し、通常のlearning focusへ戻しました。`};
     }
     if((before==='recent_tendency_adaptive'||before==='recent_tendency')&&!after&&routing.reason==='recent_tendency_released'){
-      return {kind:'recent_tendency_released',before,after:null,focus_tag:beforeObjective?.focus_tag||null,recent_cases:3,case_hits:routing.tendency?.hits??0,message:'同方向の処方feedbackが直近3症例で反復基準を下回ったため、このlearning focusを解除しました。'};
+      return {kind:'recent_tendency_released',before,after:null,domain_id:beforeObjective?.domain_id||null,focus_tag:beforeObjective?.focus_tag||null,recent_cases:3,case_hits:routing.tendency?.hits??0,message:'同方向の処方feedbackが直近3症例で反復基準を下回ったため、このlearning focusを解除しました。'};
     }
-    return null;
+    return releaseTransition(beforeObjective,routing);
   }
 
   function renderRoutingTransition(root,transition){
@@ -131,7 +145,7 @@
         ...prior,
         routing_transition:transition,
         completion_transaction:{
-          version:9,
+          version:10,
           learning_curve_attached:true,
           adaptive_practice_attached:Boolean(attached.record),
           terminal_feedback_attached:Boolean(feedback),
@@ -165,5 +179,5 @@
     completeAfterTerminal(root);
   }
 
-  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,terminalFeedback,resolveNextObjective,routingTransition,renderRoutingTransition,refreshTerminalUi,mount,version:'1.8.0'};
+  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,terminalFeedback,resolveNextObjective,releaseTransition,routingTransition,renderRoutingTransition,refreshTerminalUi,mount,version:'1.9.0'};
 });
