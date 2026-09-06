@@ -10,8 +10,7 @@
 
   function returnToPrescription(){
     // RepeatPlayNavigation owns repeat-play positioning. Reuse it when present
-    // so next-day flow has one navigation policy and does not schedule a later
-    // smooth scroll that can override the immediate throughput jump.
+    // so next-day flow has one navigation policy.
     const nav=window.RepeatPlayNavigation;
     if(nav?.moveToPrescriptionContext)return nav.moveToPrescriptionContext();
     const el=target();
@@ -20,11 +19,16 @@
     return true;
   }
 
-  function bindNextDayButton(){
+  function bindFallbackNextDayButton(){
+    // The canonical RepeatPlayNavigation click delegate handles dynamically
+    // rendered next-day buttons. Do not attach a second direct click listener
+    // when that delegate is available, otherwise one click scrolls twice.
+    if(window.RepeatPlayNavigation?.moveToPrescriptionContext)return false;
     const btn=document.getElementById('nextDayBtn');
-    if(!btn||btn.dataset.nextDayThroughputBound==='1')return;
-    btn.dataset.nextDayThroughputBound='1';
+    if(!btn||btn.dataset.nextDayThroughputFallbackBound==='1')return false;
+    btn.dataset.nextDayThroughputFallbackBound='1';
     btn.addEventListener('click',returnToPrescription);
+    return true;
   }
 
   function typingTarget(el){
@@ -39,6 +43,8 @@
     const btn=document.getElementById('nextDayBtn');
     if(!btn||btn.disabled||btn.offsetParent===null)return false;
     event.preventDefault();
+    // Click the real CTA so the same canonical navigation path is used for
+    // keyboard and pointer activation.
     btn.click();
     return true;
   }
@@ -46,13 +52,16 @@
   function boot(){
     const panel=document.getElementById('resultPanel');
     if(!panel)return;
-    bindNextDayButton();
-    new MutationObserver(bindNextDayButton).observe(panel,{subtree:true,childList:true});
+    const canonicalNavigationAvailable=!!window.RepeatPlayNavigation?.moveToPrescriptionContext;
+    if(!canonicalNavigationAvailable){
+      bindFallbackNextDayButton();
+      new MutationObserver(bindFallbackNextDayButton).observe(panel,{subtree:true,childList:true});
+    }
     document.addEventListener('keydown',handleShortcut);
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.NextDayThroughput={target,returnToPrescription,bindNextDayButton,typingTarget,handleShortcut,version:'1.2.0',module:MODULE};
+  window.NextDayThroughput={target,returnToPrescription,bindFallbackNextDayButton,typingTarget,handleShortcut,version:'1.3.0',module:MODULE};
 })();
