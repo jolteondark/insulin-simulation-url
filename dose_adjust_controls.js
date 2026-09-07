@@ -34,6 +34,17 @@
     return focusElement(doseInputs()[0],{select:true});
   }
 
+  function focusPreferredDose(){
+    // When the previous day's feedback maps to a concrete dose, preserve that
+    // pedagogic handoff instead of overwriting it with the generic first field.
+    try{
+      const target=window.ActionableDoseTarget?.currentTarget?.();
+      const input=target?.inputId?document.getElementById(target.inputId):null;
+      if(input&&!input.disabled)return focusElement(input,{select:true});
+    }catch{}
+    return focusFirstDose();
+  }
+
   function nextDoseInput(input){
     const inputs=doseInputs();
     const index=inputs.indexOf(input);
@@ -159,8 +170,9 @@
     const id=event?.target?.id;
     if(!['nextDayBtn','caseNextCta','restartBtn'].includes(id))return;
     // The destination state is rendered before the click bubbles here. Defer
-    // once so navigation can position the page, then return focus to dosing.
-    setTimeout(focusFirstDose,0);
+    // once so navigation can position the page, then prefer the actionable dose
+    // selected by the prior day's feedback. Fall back to breakfast on a fresh case.
+    setTimeout(focusPreferredDose,0);
   }
 
   function installStyles(){
@@ -196,5 +208,5 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.DoseAdjustControls={clampDose,isUsableAction,doseInputs,nextDoseInput,focusFirstDose,focusResultAction,shouldRefocusInput,previousScheduledDose,doseDeltaText,updateDoseChangeHint,submitCurrentDoses,submitFromDoseInput,steps:[...STEPS],version:'1.9.0'};
+  window.DoseAdjustControls={clampDose,isUsableAction,doseInputs,nextDoseInput,focusFirstDose,focusPreferredDose,focusResultAction,shouldRefocusInput,previousScheduledDose,doseDeltaText,updateDoseChangeHint,submitCurrentDoses,submitFromDoseInput,steps:[...STEPS],version:'2.0.0'};
 })();
