@@ -14,6 +14,7 @@
     dinner_rapid_excess:{inputId:'dose_dinner_u',label:'夕 rapid'},
     dinner_rapid_deficit:{inputId:'dose_dinner_u',label:'夕 rapid'}
   };
+  let lastAutoFocusKey='';
 
   function currentTarget(){
     try{
@@ -23,6 +24,36 @@
       // is hidden because LEARNING FOCUS duplicates the same instruction.
       return tagTargets[carry.tag]?{...tagTargets[carry.tag],tag:carry.tag}:null;
     }catch{return null}
+  }
+
+  function currentDayKey(target){
+    const day=(document.getElementById('dayNo')?.textContent||'').trim();
+    return day&&target?.tag?day+':'+target.tag:'';
+  }
+
+  function resultIsVisible(){
+    const panel=document.getElementById('resultPanel');
+    return Boolean(panel&&!panel.classList.contains('hidden'));
+  }
+
+  function autoFocusTarget(target,input){
+    if(!target||!input||resultIsVisible())return;
+    const key=currentDayKey(target);
+    if(!key||key===lastAutoFocusKey)return;
+    // Wait until the next-day navigation has finished restoring the order panel.
+    // Focus only once per day/tag so later DOM updates never steal focus while typing.
+    queueMicrotask(()=>{
+      if(resultIsVisible())return;
+      const current=currentTarget();
+      if(!current||current.inputId!==target.inputId||current.tag!==target.tag)return;
+      const liveInput=document.getElementById(target.inputId);
+      if(!liveInput||liveInput.disabled)return;
+      lastAutoFocusKey=key;
+      try{
+        liveInput.focus({preventScroll:false});
+        if(typeof liveInput.select==='function')liveInput.select();
+      }catch{}
+    });
   }
 
   function removeStaleTargets(targetInputId=null){
@@ -63,6 +94,7 @@
     let badge=document.querySelector('.'+BADGE_CLASS);
     if(!feedback){
       if(badge)badge.remove();
+      autoFocusTarget(target,input);
       return;
     }
     if(badge&&badge.parentElement!==feedback){badge.remove();badge=null;}
@@ -73,6 +105,7 @@
       feedback.appendChild(badge);
     }
     if(badge.textContent!==expected)badge.textContent=expected;
+    autoFocusTarget(target,input);
   }
 
   function installStyles(){
@@ -97,10 +130,10 @@
   function boot(){
     installStyles();
     applyTarget();
-    ['previousFeedback','previousFeedbackBody','learningFocus','prescriptionDecisionStrip','doseGrid','resultPanel'].forEach(observe);
+    ['previousFeedback','previousFeedbackBody','learningFocus','prescriptionDecisionStrip','doseGrid','resultPanel','dayNo'].forEach(observe);
   }
 
-  const api={currentTarget,applyTarget,tagTargets,version:'1.0.1'};
+  const api={currentTarget,currentDayKey,resultIsVisible,autoFocusTarget,applyTarget,tagTargets,version:'1.1.0'};
   if(root)root.ActionableDoseTarget=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
