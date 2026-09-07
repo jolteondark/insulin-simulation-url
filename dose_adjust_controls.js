@@ -85,22 +85,28 @@
     return !(Number(event?.detail)>0);
   }
 
-  function submitFromDoseInput(event){
-    if(event.key!=='Enter'||event.isComposing)return false;
-    const input=event.currentTarget||event.target;
-    const next=nextDoseInput(input);
-    event.preventDefault();
-    if(next){
-      focusElement(next,{select:true});
-      return 'next';
-    }
+  function submitCurrentDoses(){
     const submit=document.getElementById('submitBtn');
     if(!submit||submit.disabled)return false;
     submit.click();
     // app.js and education modules update the result panel synchronously.
     // Move keyboard focus to the resulting action without changing scroll.
     setTimeout(focusResultAction,0);
-    return 'submit';
+    return true;
+  }
+
+  function submitFromDoseInput(event){
+    if(event.key!=='Enter'||event.isComposing)return false;
+    const input=event.currentTarget||event.target;
+    const fastSubmit=Boolean(event.ctrlKey||event.metaKey);
+    const next=fastSubmit?null:nextDoseInput(input);
+    event.preventDefault();
+    if(next){
+      focusElement(next,{select:true});
+      return 'next';
+    }
+    if(!submitCurrentDoses())return false;
+    return fastSubmit?'fast-submit':'submit';
   }
 
   function stepLabel(delta){
@@ -139,7 +145,7 @@
 
   function refreshInputTitles(){
     const inputs=doseInputs();
-    inputs.forEach((input,index)=>input.setAttribute('title',index===inputs.length-1?'Enterで処方を実行':'Enterで次の投与量へ'));
+    inputs.forEach((input,index)=>input.setAttribute('title',index===inputs.length-1?'Enterで処方を実行 / Ctrl+Enter・⌘Enterで即実行':'Enterで次の投与量へ / Ctrl+Enter・⌘Enterで即実行'));
   }
 
   function decorate(){
@@ -190,5 +196,5 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.DoseAdjustControls={clampDose,isUsableAction,doseInputs,nextDoseInput,focusFirstDose,focusResultAction,shouldRefocusInput,previousScheduledDose,doseDeltaText,updateDoseChangeHint,submitFromDoseInput,steps:[...STEPS],version:'1.8.0'};
+  window.DoseAdjustControls={clampDose,isUsableAction,doseInputs,nextDoseInput,focusFirstDose,focusResultAction,shouldRefocusInput,previousScheduledDose,doseDeltaText,updateDoseChangeHint,submitCurrentDoses,submitFromDoseInput,steps:[...STEPS],version:'1.9.0'};
 })();
