@@ -116,6 +116,19 @@
     return {state,improved,worsened,curriculum_status:curriculumStatus,focus:t.curriculum?.focus||null};
   }
 
+  function currentClosingFocus(longitudinal){
+    const blocks=Array.isArray(longitudinal?.blocks)?longitudinal.blocks:[];
+    return blocks.at(-1)?.closing_focus||null;
+  }
+
+  function focusHandoffHtml(longitudinal){
+    const t=longitudinal?.latest_transition;
+    const previous=t?.curriculum?.focus||null;
+    const current=currentClosingFocus(longitudinal);
+    if(!previous||t?.curriculum?.status!=='improved'||!current||current.domain_id===previous.domain_id)return '';
+    return ` 改善済みfocus「${previous.label||previous.domain_id}」は解除され、現在の未解決focusは「${current.label||current.domain_id}」へ切り替わっています。`;
+  }
+
   function blockConsistencyHtml(longitudinal){
     const c=blockLearningConsistency(longitudinal);
     if(c.state==='insufficient')return '';
@@ -125,7 +138,8 @@
     const priority=c.focus&&c.curriculum_status!=='improved'
       ? ` 次blockのrouting上の最優先は、未解決carryover focus「${c.focus.label||c.focus.domain_id}」の継続練習です。`
       : '';
-    return `<div id="blockLearningRoutingConsistency" class="micro-note" style="margin-top:7px"><b>block間教育ループ整合：</b>${label}。core 3指標とcarryover focusの実際の改善を同じ結論にそろえます。${guard}${priority}</div>`;
+    const handoff=focusHandoffHtml(longitudinal);
+    return `<div id="blockLearningRoutingConsistency" class="micro-note" style="margin-top:7px"><b>block間教育ループ整合：</b>${label}。core 3指標とcarryover focusの実際の改善を同じ結論にそろえます。${guard}${priority}${handoff}</div>`;
   }
 
   function renderFinalHtml(summary,learningSummary=null){
@@ -187,5 +201,5 @@
     refresh(root);
   }
 
-  return {load,loadArchives,focusKey,summarize,renderHtml,renderFinalHtml,routingDelta,learningRoutingConsistency,consistencyHtml,blockLearningConsistency,blockConsistencyHtml,longitudinal,refresh,mount,TARGET_REASONS,RELIEF_KINDS,FULL_RELEASE_KINDS,CORE_LEARNING_IDS,version:'1.6.0'};
+  return {load,loadArchives,focusKey,summarize,renderHtml,renderFinalHtml,routingDelta,learningRoutingConsistency,consistencyHtml,blockLearningConsistency,currentClosingFocus,focusHandoffHtml,blockConsistencyHtml,longitudinal,refresh,mount,TARGET_REASONS,RELIEF_KINDS,FULL_RELEASE_KINDS,CORE_LEARNING_IDS,version:'1.7.0'};
 });
