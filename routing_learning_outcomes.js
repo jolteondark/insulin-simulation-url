@@ -10,6 +10,7 @@
   const TARGET_REASONS=new Set(['recent_tendency_adaptive','persistent','longitudinal']);
   const RELIEF_KINDS=new Set(['recent_tendency_downgraded','recent_tendency_released','persistent_released','longitudinal_released','objective_released']);
   const FULL_RELEASE_KINDS=new Set(['recent_tendency_released','persistent_released','longitudinal_released','objective_released']);
+  const CORE_LEARNING_IDS=['feedback_action_alignment_rate','same_feedback_next_day_rate','objective_success_rate'];
 
   function load(root){
     try{
@@ -66,13 +67,43 @@
     return `<div id="${id}" class="micro-note" style="margin-top:7px"><b>${title}：</b>重点症例 ${summary.targeted}回 ／ 改善で重点解除 ${summary.relief}回（downgrade ${summary.downgraded}、完全解除 ${summary.released}）${releaseDetail}${summary.unresolved?` ／ 未解除 ${summary.unresolved}回`:''}。${byFocus}</div>`;
   }
 
-  function renderFinalHtml(summary){
-    return renderHtml(summary,{id:'finalRoutingLearningOutcomes',title:'重点学習の到達点'});
+  function routingDelta(learningSummary){
+    const e=learningSummary?.groups?.early,l=learningSummary?.groups?.late;
+    if(!e||!l||!e.routing_targeted_n||!l.routing_targeted_n||e.routing_relief_rate==null||l.routing_relief_rate==null)return null;
+    return l.routing_relief_rate-e.routing_relief_rate;
+  }
+
+  function learningRoutingConsistency(learningSummary){
+    const metrics=Array.isArray(learningSummary?.metrics)?learningSummary.metrics:[];
+    const core=CORE_LEARNING_IDS.map(id=>metrics.find(m=>m.id===id)).filter(m=>m?.change);
+    if(!core.length)return {state:'insufficient',routing_delta:routingDelta(learningSummary),improved:0,worsened:0};
+    const improved=core.filter(m=>m.change.improvement>0).length;
+    const worsened=core.filter(m=>m.change.improvement<0).length;
+    const delta=routingDelta(learningSummary);
+    let state=worsened===0&&improved>0?'improving':improved===0&&worsened>0?'warning':worsened===0?'stable':'mixed';
+    if(state==='improving'&&delta!=null&&delta<0)state='mixed';
+    return {state,routing_delta:delta,improved,worsened};
+  }
+
+  function consistencyHtml(learningSummary){
+    const c=learningRoutingConsistency(learningSummary);
+    if(c.state==='insufficient')return '';
+    const label=c.state==='improving'?'改善傾向':c.state==='warning'?'要注意':c.state==='stable'?'横ばい':'混在';
+    const guard=c.routing_delta!=null&&c.routing_delta<0
+      ? ' core learning指標だけなら改善方向でも、重点focus解除率が低下しているため改善とは確定しません。'
+      : '';
+    return `<div id="finalLearningRoutingConsistency" class="micro-note" style="margin-top:7px"><b>教育ループ整合：</b>${label}。LEARNING RESPONSEと同じrouting guardで最終debriefを解釈します。${guard}</div>`;
+  }
+
+  function renderFinalHtml(summary,learningSummary=null){
+    return `${renderHtml(summary,{id:'finalRoutingLearningOutcomes',title:'重点学習の到達点'})}${consistencyHtml(learningSummary)}`;
   }
 
   function refresh(root){
     if(!root?.document)return;
-    const summary=summarize(load(root));
+    const data=load(root);
+    const summary=summarize(data);
+    const learningSummary=root.WardLearningAnalysis?.summarize?.(data)||null;
     const progress=root.document.querySelector('#caseLearningProgress');
     if(progress){
       progress.querySelector('#routingLearningOutcomes')?.remove();
@@ -82,7 +113,8 @@
     const finalBody=root.document.querySelector('#finalLearningDebriefBody');
     if(finalBody){
       finalBody.querySelector('#finalRoutingLearningOutcomes')?.remove();
-      const html=renderFinalHtml(summary);
+      finalBody.querySelector('#finalLearningRoutingConsistency')?.remove();
+      const html=renderFinalHtml(summary,learningSummary);
       if(html)finalBody.insertAdjacentHTML('beforeend',html);
     }
   }
@@ -106,5 +138,5 @@
     refresh(root);
   }
 
-  return {load,focusKey,summarize,renderHtml,renderFinalHtml,refresh,mount,TARGET_REASONS,RELIEF_KINDS,FULL_RELEASE_KINDS,version:'1.2.0'};
+  return {load,focusKey,summarize,renderHtml,renderFinalHtml,routingDelta,learningRoutingConsistency,consistencyHtml,refresh,mount,TARGET_REASONS,RELIEF_KINDS,FULL_RELEASE_KINDS,CORE_LEARNING_IDS,version:'1.3.0'};
 });
