@@ -181,13 +181,15 @@
     if(!strip)return;
     const raw=snapshot();
     const s=compactSnapshot(raw);
+    // Put the actionable handoff first. The learner should see yesterday's
+    // prescribing lesson before scanning raw glucose/meal/dose context.
     const html=[
       focusBlock(s.focus),
+      s.feedback?`<div class="decision-strip-feedback"><span class="decision-strip-label">前日の1点</span><span>${s.feedback}</span></div>`:'',
       row('病態',s.context,'context'),
       row('直近4検',s.glucose,'glucose'),
       row('今日の食事',s.meals,'meal'),
       row('前回実投与',s.previousDoses,'dose'),
-      s.feedback?`<div class="decision-strip-feedback"><span class="decision-strip-label">前日の1点</span><span>${s.feedback}</span></div>`:'',
       detailsButton()
     ].filter(Boolean).join('');
     strip.innerHTML=html;
@@ -218,7 +220,7 @@
       .decision-strip-focus strong{display:block;color:#252b33;font-size:14px}
       .decision-strip-focus-body,.decision-strip-focus-status{display:block;margin-top:2px}
       .decision-strip-focus-status{font-size:12px;color:#6f7782;font-weight:750}
-      .decision-strip-feedback{padding-top:8px;padding-bottom:0;border-top:1px solid #e4e7ec;border-bottom:0}
+      .decision-strip-feedback{padding-top:0;padding-bottom:8px;border-top:0;border-bottom:1px solid #e4e7ec}
       .decision-strip-details-btn{justify-self:end;border:0;background:transparent;padding:6px 2px;font:inherit;font-size:12px;font-weight:800;color:#5e6875;text-decoration:underline;text-underline-offset:2px;cursor:pointer;min-height:32px}
       #previousFeedback.${MIRRORED_CLASS},#learningFocus.${FOCUS_MIRRORED_CLASS}{display:none!important}
       .${COMPACTED_CLASS}{display:none!important}
@@ -249,5 +251,5 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.PrescriptionDecisionStrip={snapshot,compactSnapshot,focusSnapshot,previousDoseSnapshot,normalizeMeaning,alreadyCoveredByFocus,render,setFeedbackMirrored,setFocusMirrored,setSourcesCompacted,setMirroredSourcesCompacted,version:'1.7.0'};
+  window.PrescriptionDecisionStrip={snapshot,compactSnapshot,focusSnapshot,previousDoseSnapshot,normalizeMeaning,alreadyCoveredByFocus,render,setFeedbackMirrored,setFocusMirrored,setSourcesCompacted,setMirroredSourcesCompacted,version:'1.8.0'};
 })();
