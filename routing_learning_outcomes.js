@@ -122,7 +122,10 @@
     const label=c.state==='improving'?'改善傾向':c.state==='warning'?'要注意':c.state==='stable'?'横ばい':'混在';
     const guarded=c.state==='mixed'&&c.focus&&c.improved>0&&c.worsened===0;
     const guard=guarded?` core 3指標は改善方向ですが、前blockからの重点「${c.focus.label||c.focus.domain_id}」が${c.curriculum_status==='not_practiced'?'まだ重点練習されていない':'未改善'}ため、block間の改善とは確定しません。`:'';
-    return `<div id="blockLearningRoutingConsistency" class="micro-note" style="margin-top:7px"><b>block間教育ループ整合：</b>${label}。core 3指標とcarryover focusの実際の改善を同じ結論にそろえます。${guard}</div>`;
+    const priority=c.focus&&c.curriculum_status!=='improved'
+      ? ` 次blockのrouting上の最優先は、未解決carryover focus「${c.focus.label||c.focus.domain_id}」の継続練習です。`
+      : '';
+    return `<div id="blockLearningRoutingConsistency" class="micro-note" style="margin-top:7px"><b>block間教育ループ整合：</b>${label}。core 3指標とcarryover focusの実際の改善を同じ結論にそろえます。${guard}${priority}</div>`;
   }
 
   function renderFinalHtml(summary,learningSummary=null){
@@ -184,5 +187,5 @@
     refresh(root);
   }
 
-  return {load,loadArchives,focusKey,summarize,renderHtml,renderFinalHtml,routingDelta,learningRoutingConsistency,consistencyHtml,blockLearningConsistency,blockConsistencyHtml,longitudinal,refresh,mount,TARGET_REASONS,RELIEF_KINDS,FULL_RELEASE_KINDS,CORE_LEARNING_IDS,version:'1.5.0'};
+  return {load,loadArchives,focusKey,summarize,renderHtml,renderFinalHtml,routingDelta,learningRoutingConsistency,consistencyHtml,blockLearningConsistency,blockConsistencyHtml,longitudinal,refresh,mount,TARGET_REASONS,RELIEF_KINDS,FULL_RELEASE_KINDS,CORE_LEARNING_IDS,version:'1.6.0'};
 });
