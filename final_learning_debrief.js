@@ -3,7 +3,7 @@
   const RATE_THRESHOLD=0.05;
   const DAYS_THRESHOLD=0.5;
   const ARCHIVE_KEY='ward_glucose_learning_cycle_archives_v1';
-  const CORE_LEARNING_IDS=['correction_share_of_rapid','same_feedback_next_day_rate','feedback_action_alignment_rate'];
+  const CORE_LEARNING_IDS=['feedback_action_alignment_rate','same_feedback_next_day_rate','objective_success_rate'];
   const BLOCK_METRIC_IDS=['safe_day_rate','discharge_rate','scale_day_rate','rapid_error_rate','basal_error_day_rate',...CORE_LEARNING_IDS];
 
   function threshold(metric){return metric.id==='mean_completion_days'?DAYS_THRESHOLD:RATE_THRESHOLD}
@@ -49,12 +49,12 @@
     const remainingCore=coreLearning.filter(m=>m.classification==='worsened');
     const stableCore=coreLearning.filter(m=>m.classification==='stable');
     return {
-      schema_version:2,
+      schema_version:3,
       target_cases:TARGET_CASES,
       case_count:Number(s.case_count||0),
       complete:Number(s.case_count||0)>=TARGET_CASES,
       analysis_ready:Boolean(s.ready),
-      method:'descriptive early-to-late educational debrief using WardLearningAnalysis; not a clinical competency pass/fail threshold',
+      method:'descriptive early-to-late educational debrief using the canonical WardLearningAnalysis core learning contract; not a clinical competency pass/fail threshold',
       headline:{
         discharge_rate:discharge?{early:discharge.early,late:discharge.late,classification:discharge.classification}:null,
         mean_completion_days:completion?{early:completion.early,late:completion.late,classification:completion.classification}:null,
@@ -136,8 +136,8 @@
     for(let i=1;i<blocks.length;i++)transitions.push({from_block:blocks[i-1].block_number,to_block:blocks[i].block_number,metrics:compareBlockMetrics(blocks[i-1],blocks[i]),curriculum:buildCurriculumTransition(blocks[i-1],blocks[i])});
     const latest=transitions.at(-1)||null;
     return {
-      schema_version:3,
-      method:'late-phase to late-phase comparison across archived 100-case learning blocks using the existing WardLearningAnalysis metrics; curriculum linkage uses stored active_objective and adaptive_practice status without adding a new learning metric',
+      schema_version:4,
+      method:'late-phase to late-phase comparison across archived 100-case learning blocks using the canonical WardLearningAnalysis core learning contract; curriculum linkage uses stored active_objective and adaptive_practice status without adding a new learning metric',
       block_count:blocks.length,
       blocks:blocks.map(({snapshot,...rest})=>rest),
       transitions,
@@ -226,6 +226,6 @@
   function refresh(){const x=load(),box=ensureUI(),body=box?.querySelector('#finalLearningDebriefBody'),longBody=box?.querySelector('#longitudinalLearningDebriefBody');if(body&&x)body.innerHTML=renderHtml(x.report,x.summary);if(longBody&&x)longBody.innerHTML=renderLongitudinalHtml(x.longitudinal)}
   function mount(){refresh();const submit=document.querySelector('#submitBtn'),next=document.querySelector('#newCaseBtn');if(submit&&!submit.dataset.finalDebriefMounted){submit.dataset.finalDebriefMounted='1';submit.addEventListener('click',()=>setTimeout(refresh,0))}if(next&&!next.dataset.finalDebriefMounted){next.dataset.finalDebriefMounted='1';next.addEventListener('click',()=>setTimeout(refresh,0))}}
 
-  window.WardFinalLearningDebrief={build,analyze,normalizeFocus,practiceRows,summarizeFocusPractice,summarizeBlock,compareBlockMetrics,buildCurriculumTransition,buildCurriculumHistory,buildLongitudinal,renderHtml,renderCurriculumHistoryHtml,renderLongitudinalHtml,refresh,classifyMetric,TARGET_CASES,CORE_LEARNING_IDS,BLOCK_METRIC_IDS,version:'1.4.0'};
+  window.WardFinalLearningDebrief={build,analyze,normalizeFocus,practiceRows,summarizeFocusPractice,summarizeBlock,compareBlockMetrics,buildCurriculumTransition,buildCurriculumHistory,buildLongitudinal,renderHtml,renderCurriculumHistoryHtml,renderLongitudinalHtml,refresh,classifyMetric,TARGET_CASES,CORE_LEARNING_IDS,BLOCK_METRIC_IDS,version:'1.5.0'};
   if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount()}
 })();
