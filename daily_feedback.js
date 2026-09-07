@@ -159,9 +159,9 @@
       if(terminal)return;
       const panel=document.querySelector('#resultPanel');
       if(!panel||panel.querySelector('.daily-feedback'))return;
-      const button=panel.querySelector('.next-btn');
-      if(button)button.insertAdjacentHTML('beforebegin',renderHtml(analysis));
-      else panel.insertAdjacentHTML('beforeend',renderHtml(analysis));
+      const kicker=panel.querySelector('.result-kicker');
+      if(kicker)kicker.insertAdjacentHTML('afterend',renderHtml(analysis));
+      else panel.insertAdjacentHTML('afterbegin',renderHtml(analysis));
     }catch(e){console.error('daily feedback',e)}
   }
 
@@ -173,7 +173,7 @@
     submit.addEventListener('click',annotateLatest);
   }
 
-  const api={analyze,emphasizeForObjective,selectPrimary,compactDisplayText,renderHtml,annotateLatest,usedCorrectionDose,version:'1.7.0'};
+  const api={analyze,emphasizeForObjective,selectPrimary,compactDisplayText,renderHtml,annotateLatest,usedCorrectionDose,version:'1.8.0'};
   if(root)root.DailyFeedback=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
