@@ -3,6 +3,7 @@
   const BUTTON_ID='repeatPlayActionButton';
   const FEEDBACK_ID='repeatPlayActionFeedback';
   let viewportRefreshQueued=false;
+  let actionInFlight=false;
 
   function doc(){return root?.document||(typeof document!=='undefined'?document:null)}
   function visible(el){
@@ -154,6 +155,25 @@
     return true;
   }
 
+  function beginAction(target,btn){
+    if(actionInFlight||!target||typeof target.click!=='function')return false;
+    actionInFlight=true;
+    if(btn)btn.disabled=true;
+    try{target.click()}
+    catch(e){
+      actionInFlight=false;
+      if(btn)btn.disabled=false;
+      throw e;
+    }
+    return true;
+  }
+
+  function finishAction(btn){
+    actionInFlight=false;
+    if(btn)btn.disabled=false;
+    return true;
+  }
+
   function ensureDock(){
     const d=doc();
     if(!d)return null;
@@ -172,15 +192,19 @@
     btn.addEventListener('click',()=>{
       const target=actionTarget();
       if(!target)return refresh();
-      target.click();
+      if(!beginAction(target,btn))return false;
       // Let the canonical handler finish rendering the next decision state
       // before deciding whether the dock should remain visible or change role.
       // On mobile the canonical CTA is intentionally CSS-hidden while the dock
       // proxies it, so keep keyboard/accessibility focus on the visible proxy.
+      // The one-task lock also prevents a rapid double tap from submitting the
+      // same day twice before the canonical UI has finished changing state.
       setTimeout(()=>{
         refresh();
+        finishAction(btn);
         focusDockAction();
       },0);
+      return true;
     });
     dock.appendChild(feedback);
     dock.appendChild(btn);
@@ -247,7 +271,7 @@
     refresh();
   }
 
-  const api={actionTarget,feedbackAlreadyInResultGlance,decisionStripVisibleInViewport,prescriptionMealContext,prescriptionLearningFocusText,prescriptionReminderText,terminalLearningFocusText,primaryFeedbackText,isNarrowViewport,focusDockAction,refresh,scheduleViewportRefresh,mount,version:'1.9.0',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
+  const api={actionTarget,feedbackAlreadyInResultGlance,decisionStripVisibleInViewport,prescriptionMealContext,prescriptionLearningFocusText,prescriptionReminderText,terminalLearningFocusText,primaryFeedbackText,isNarrowViewport,focusDockAction,beginAction,finishAction,refresh,scheduleViewportRefresh,mount,version:'1.10.0',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
   if(root)root.RepeatPlayActionDock=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();
