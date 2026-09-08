@@ -19,6 +19,7 @@
   const LONGITUDINAL_RECENT_CASES=3;
   const LONGITUDINAL_MIN_RECENT_RATE=.34;
   const LONGITUDINAL_MIN_DELTA=.15;
+  const EVIDENCE_SOURCE_REASONS=new Set(['recent_tendency','recent_tendency_adaptive']);
   const DOMAIN_LABELS={
     basal:'basal',
     breakfast_rapid:'朝rapid',
@@ -70,7 +71,7 @@
   }
   function isSafetyObjective(objective){return objective?.selection_reason==='safety'||objective?.domain_id==='hidden_awareness'&&objective?.emphasis==='high'}
   function completionObjectiveRelief(data,current){
-    if(!current?.source_case_id||!current?.domain_id||isSafetyObjective(current))return null;
+    if(!current?.source_case_id||!current?.domain_id||isSafetyObjective(current)||EVIDENCE_SOURCE_REASONS.has(current?.selection_reason))return null;
     const scored=data?.completion_records?.[current.source_case_id]?.scored||null;
     if(!scored||!['resolved','improved'].includes(scored.status))return null;
     if(!sameObjectiveDirection(scored,current.domain_id,current.focus_tag||null))return null;
@@ -137,5 +138,5 @@
   }
   function resolveData(data){const base={...(data||{}),cases:Array.isArray(data?.cases)?data.cases:[]};const routed=routedObjective(base),before=base.active_objective||null,changed=JSON.stringify(before)!==JSON.stringify(routed.objective);return {data:{...base,active_objective:routed.objective},objective:routed.objective,reason:routed.reason,repeated:routed.repeated,longitudinal:routed.longitudinal,release:routed.release,changed}}
   function resolveStored(root){try{const raw=JSON.parse(root.localStorage.getItem(STORAGE_KEY)||'{}'),out=resolveData(raw);if(out.changed)root.localStorage.setItem(STORAGE_KEY,JSON.stringify(out.data));return out}catch{return {data:null,objective:null,reason:'storage_error',repeated:[],longitudinal:null,release:null,changed:false}}}
-  return {scoredPracticeRows,trailingUnresolved,repeatedUnmet,practiceLifecycle,isPersistentStreak,objectiveFailureStreak,persistentFromObjectiveHistory,makePersistentObjective,isSafetyObjective,completionObjectiveRelief,completedCases,latestPersistentPracticeRelease,latestLongitudinalRelease,activeLongitudinalRelease,caseIssueRate,longitudinalWeakness,makeLongitudinalObjective,routedObjective,resolveData,resolveStored,REPEATED_UNMET_N,LONGITUDINAL_MIN_CASES,LONGITUDINAL_RECENT_CASES,LONGITUDINAL_MIN_RECENT_RATE,LONGITUDINAL_MIN_DELTA,DOMAIN_LABELS,DOMAIN_TAGS,TAG_LABELS,version:'1.8.0'};
+  return {scoredPracticeRows,trailingUnresolved,repeatedUnmet,practiceLifecycle,isPersistentStreak,objectiveFailureStreak,persistentFromObjectiveHistory,makePersistentObjective,isSafetyObjective,completionObjectiveRelief,completedCases,latestPersistentPracticeRelease,latestLongitudinalRelease,activeLongitudinalRelease,caseIssueRate,longitudinalWeakness,makeLongitudinalObjective,routedObjective,resolveData,resolveStored,REPEATED_UNMET_N,LONGITUDINAL_MIN_CASES,LONGITUDINAL_RECENT_CASES,LONGITUDINAL_MIN_RECENT_RATE,LONGITUDINAL_MIN_DELTA,EVIDENCE_SOURCE_REASONS,DOMAIN_LABELS,DOMAIN_TAGS,TAG_LABELS,version:'1.8.1'};
 });
