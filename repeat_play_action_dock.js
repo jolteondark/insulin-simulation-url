@@ -72,6 +72,25 @@
     return items.length?`今日の食事 ${items.join(' / ')}`:'';
   }
 
+  function prescriptionLearningFocusText(){
+    const d=doc();
+    if(!d)return '';
+    const panel=d.querySelector('#resultPanel');
+    if(visible(panel))return '';
+    const section=d.querySelector('#learningFocus');
+    if(!visible(section))return '';
+    const title=d.querySelector('#learningFocusTitle');
+    const text=title?.textContent?.replace(/\s+/g,' ')?.trim()||'';
+    return text?`重点：${text}`:'';
+  }
+
+  function prescriptionReminderText(){
+    const focus=prescriptionLearningFocusText();
+    const meal=prescriptionMealContext();
+    if(focus&&meal)return `${focus} / ${meal}`;
+    return focus||meal;
+  }
+
   function terminalLearningFocusText(){
     const d=doc();
     if(!d)return '';
@@ -87,10 +106,12 @@
     if(!d)return '';
     const panel=d.querySelector('#resultPanel');
     if(!visible(panel)){
-      // The prescription decision strip already mirrors today's meal context
-      // beside the dose controls. Keep the fixed dock silent while that strip is
-      // actually on screen, then restore the meal reminder after it scrolls away.
-      return decisionStripVisibleInViewport()?'':prescriptionMealContext();
+      // The prescription decision strip already mirrors the current learning
+      // focus and today's meal context beside the dose controls. Keep the fixed
+      // dock silent while that strip is on screen. Once it scrolls away, retain
+      // both the learning target and meal reminder so the repeated prescribing
+      // loop does not lose its educational objective at the point of action.
+      return decisionStripVisibleInViewport()?'':prescriptionReminderText();
     }
     // At terminal completion the fixed action is intentionally the shortest path
     // into the next case. Keep the selected next learning focus on that same dock
@@ -226,7 +247,7 @@
     refresh();
   }
 
-  const api={actionTarget,feedbackAlreadyInResultGlance,decisionStripVisibleInViewport,prescriptionMealContext,terminalLearningFocusText,primaryFeedbackText,isNarrowViewport,focusDockAction,refresh,scheduleViewportRefresh,mount,version:'1.8.0',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
+  const api={actionTarget,feedbackAlreadyInResultGlance,decisionStripVisibleInViewport,prescriptionMealContext,prescriptionLearningFocusText,prescriptionReminderText,terminalLearningFocusText,primaryFeedbackText,isNarrowViewport,focusDockAction,refresh,scheduleViewportRefresh,mount,version:'1.9.0',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
   if(root)root.RepeatPlayActionDock=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();
