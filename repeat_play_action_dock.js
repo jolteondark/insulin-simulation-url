@@ -72,6 +72,16 @@
     return items.length?`今日の食事 ${items.join(' / ')}`:'';
   }
 
+  function terminalLearningFocusText(){
+    const d=doc();
+    if(!d)return '';
+    const cta=d.querySelector('#caseNextCta');
+    if(!visible(cta))return '';
+    const title=d.querySelector('#caseNextChallenge .learning-focus-title');
+    const text=title?.textContent?.replace(/\s+/g,' ')?.trim()||'';
+    return text?`次の重点：${text}`:'';
+  }
+
   function primaryFeedbackText(){
     const d=doc();
     if(!d)return '';
@@ -82,6 +92,12 @@
       // actually on screen, then restore the meal reminder after it scrolls away.
       return decisionStripVisibleInViewport()?'':prescriptionMealContext();
     }
+    // At terminal completion the fixed action is intentionally the shortest path
+    // into the next case. Keep the selected next learning focus on that same dock
+    // so the learner does not have to scroll back into the debrief just to learn
+    // what the next repetition is targeting.
+    const terminalFocus=terminalLearningFocusText();
+    if(terminalFocus)return terminalFocus;
     if(!panel.querySelector('#nextDayBtn'))return '';
     // The compact result card now owns the normal result-review teaching text.
     // Repeating the same sentence in the fixed dock consumes scarce mobile
@@ -210,7 +226,7 @@
     refresh();
   }
 
-  const api={actionTarget,feedbackAlreadyInResultGlance,decisionStripVisibleInViewport,prescriptionMealContext,primaryFeedbackText,isNarrowViewport,focusDockAction,refresh,scheduleViewportRefresh,mount,version:'1.7.1',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
+  const api={actionTarget,feedbackAlreadyInResultGlance,decisionStripVisibleInViewport,prescriptionMealContext,terminalLearningFocusText,primaryFeedbackText,isNarrowViewport,focusDockAction,refresh,scheduleViewportRefresh,mount,version:'1.8.0',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
   if(root)root.RepeatPlayActionDock=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();
