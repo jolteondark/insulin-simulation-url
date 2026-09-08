@@ -72,6 +72,13 @@
     dinner_rapid_excess:'夕rapid過量',dinner_rapid_deficit:'夕rapid不足',
     scale_dependence:'scale依存',hidden_low_near_miss:'hidden低血糖',hidden_high_excursion:'hidden高血糖'
   };
+  const TENDENCY_ISSUES=[
+    {id:'rapid_over',label:'rapid過量',target:'rapidを下げる判断を優先',hit:d=>Number(d?.prescribing?.rapid_over||0)>0},
+    {id:'rapid_under',label:'rapid不足',target:'rapid不足を補う判断を優先',hit:d=>Number(d?.prescribing?.rapid_under||0)>0},
+    {id:'basal_over',label:'basal過量',target:'overnightを見てbasal過量を減らす',hit:d=>Boolean(d?.prescribing?.basal_over)},
+    {id:'basal_under',label:'basal不足',target:'overnightを見てbasal不足を補う',hit:d=>Boolean(d?.prescribing?.basal_under)},
+    {id:'scale_dependence',label:'correction依存',target:'correctionよりscheduled doseの調整を優先',hit:d=>Boolean(d?.used_scale)}
+  ];
 
   function pooledStats(data,cases,metric){
     const xs=cases.map(c=>caseMetric(data,c.case_id,metric)).filter(v=>v!=null);
@@ -99,8 +106,17 @@
     if(under>over)return '不足flag寄り';
     return '過量・不足flag同程度';
   }
+  function issueRate(days,issue){return days.length?mean(days.map(d=>issue.hit(d)?1:0)):null}
+  function issueTrendLabel(deltaPp){
+    if(deltaPp==null)return '比較前';
+    if(deltaPp<=-10)return `改善 ${Math.round(deltaPp)}pt`;
+    if(deltaPp>=10)return `悪化 +${Math.round(deltaPp)}pt`;
+    const n=Math.round(deltaPp);
+    return `ほぼ維持 ${n>0?'+':''}${n}pt`;
+  }
   function summarizePrescribingTendency(data){
-    const recent=completedCases(data).slice(-GROUP_N);
+    const completed=completedCases(data);
+    const recent=completed.slice(-GROUP_N);
     if(!recent.length)return {ready:false,n:0,days:0};
     const days=recent.flatMap(c=>caseDays(data,c.case_id));
     let rapidOver=0,rapidUnder=0,basalOver=0,basalUnder=0,scaleDays=0;
@@ -112,6 +128,21 @@
       if(p.basal_under)basalUnder++;
       if(d.used_scale)scaleDays++;
     }
+    const comparable=completed.length>=4;
+    const groupN=comparable?Math.min(GROUP_N,Math.floor(completed.length/2)):0;
+    const earlyCases=comparable?completed.slice(0,groupN):[];
+    const recentCases=comparable?completed.slice(-groupN):recent;
+    const earlyDays=earlyCases.flatMap(c=>caseDays(data,c.case_id));
+    const recentDays=recentCases.flatMap(c=>caseDays(data,c.case_id));
+    const issues=TENDENCY_ISSUES.map(issue=>{
+      const earlyRate=comparable?issueRate(earlyDays,issue):null;
+      const recentRate=issueRate(recentDays,issue);
+      const deltaPp=earlyRate==null||recentRate==null?null:100*(recentRate-earlyRate);
+      return {...issue,hit:undefined,early_rate:earlyRate,recent_rate:recentRate,delta_pp:deltaPp,trend:issueTrendLabel(deltaPp)};
+    });
+    const priority=issues
+      .filter(x=>x.recent_rate>0)
+      .sort((a,b)=>b.recent_rate-a.recent_rate||(b.delta_pp??-Infinity)-(a.delta_pp??-Infinity)||a.label.localeCompare(b.label,'ja'))[0]||null;
     return {
       ready:true,
       n:recent.length,
@@ -122,7 +153,11 @@
       basal_under:basalUnder,
       scale_days:scaleDays,
       rapid_tendency:tendencyLabel(rapidOver,rapidUnder),
-      basal_tendency:tendencyLabel(basalOver,basalUnder)
+      basal_tendency:tendencyLabel(basalOver,basalUnder),
+      comparable,
+      group_n:groupN,
+      issues,
+      priority
     };
   }
 
@@ -185,7 +220,12 @@
 
   function renderPrescribingTendencyHtml(summary){
     if(!summary?.ready)return '';
-    return `<div id="prescribingTendency" class="micro-note" style="margin-top:8px"><b>最近${summary.n}症例の処方傾向：</b>rapid 過量flag ${summary.rapid_over}／不足flag ${summary.rapid_under}（${summary.rapid_tendency}） ／ basal 過量flag ${summary.basal_over}日／不足flag ${summary.basal_under}日（${summary.basal_tendency}） ／ correction実投与 ${summary.scale_days}/${summary.days}日。<br><span>※モデル内部の正解量そのものではなく、結果feedbackに記録された方向性の集計です。</span></div>`;
+    const insight=summary.priority
+      ? summary.comparable
+        ? `<br><b>いまの癖：</b>${summary.priority.label} ${pct(summary.priority.early_rate)} → ${pct(summary.priority.recent_rate)}（${summary.priority.trend}） ／ <b>次の1点：</b>${summary.priority.target}。`
+        : `<br><b>いまの癖：</b>${summary.priority.label} ／ <b>次の1点：</b>${summary.priority.target}。4症例完了後から改善傾向も比較します。`
+      : '<br><b>いまの癖：</b>直近では明らかな反復flagなし。';
+    return `<div id="prescribingTendency" class="micro-note" style="margin-top:8px"><b>最近${summary.n}症例の処方傾向：</b>rapid 過量flag ${summary.rapid_over}／不足flag ${summary.rapid_under}（${summary.rapid_tendency}） ／ basal 過量flag ${summary.basal_over}日／不足flag ${summary.basal_under}日（${summary.basal_tendency}） ／ correction実投与 ${summary.scale_days}/${summary.days}日。${insight}<br><span>※モデル内部の正解量そのものではなく、結果feedbackに記録された方向性の集計です。</span></div>`;
   }
 
   function renderAdaptiveHtml(summary){
@@ -237,5 +277,5 @@
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);
     else mount();
   }
-  return {caseMetric,objectiveForCase,summarize,summarizePrescribingTendency,tendencyLabel,summarizeAdaptivePractice,practiceKey,practiceLabel,renderPrescribingTendencyHtml,renderAdaptiveHtml,renderHtml,refresh,METRICS,DOMAIN_LABELS,FOCUS_LABELS,REPEATED_UNMET_N,version:'1.7.0'};
+  return {caseMetric,objectiveForCase,summarize,summarizePrescribingTendency,tendencyLabel,issueRate,issueTrendLabel,summarizeAdaptivePractice,practiceKey,practiceLabel,renderPrescribingTendencyHtml,renderAdaptiveHtml,renderHtml,refresh,METRICS,DOMAIN_LABELS,FOCUS_LABELS,TENDENCY_ISSUES,REPEATED_UNMET_N,version:'1.8.0'};
 });
