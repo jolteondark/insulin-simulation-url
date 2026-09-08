@@ -4,6 +4,14 @@
   else{root.WardLearningMomentum=api;api.mount(root)}
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   const STORAGE_KEY='ward_glucose_learning_curve_v1';
+  const REFRESH_EVENTS=[
+    'ward:caseLearningHistoryUpdated',
+    'ward:caseDebriefUpdated',
+    'ward:caseLearningOutcomeUpdated',
+    'ward:learningObjectiveUpdated',
+    'ward:insulinStateChanged'
+  ];
+  const boundRoots=new WeakSet();
   const TAG_LABELS={
     basal_excess:'basal過量',basal_deficit:'basal不足',
     breakfast_rapid_excess:'朝rapid過量',breakfast_rapid_deficit:'朝rapid不足',
@@ -39,6 +47,21 @@
   function load(root){try{return JSON.parse(root?.localStorage?.getItem(STORAGE_KEY)||'{}')}catch{return {}}}
   function latestCompletedCaseId(data){const xs=Array.isArray(data?.cases)?data.cases.filter(c=>c?.case_id&&['discharged','game_over'].includes(c.outcome)):[];return xs.length?xs[xs.length-1].case_id:null}
   function refresh(root,dataArg,caseIdArg){const data=dataArg||load(root),caseId=caseIdArg||latestCompletedCaseId(data);return caseId?render(root,data,caseId):null}
-  function mount(root){if(!root?.document)return;setTimeout(()=>refresh(root),0)}
-  return {label,statusFromRecord,render,refresh,latestCompletedCaseId,mount,version:'1.0.0'};
+  function mount(root){
+    if(!root?.document)return;
+    let refreshQueued=false;
+    const scheduleRefresh=()=>{
+      if(refreshQueued)return;
+      refreshQueued=true;
+      setTimeout(()=>{refreshQueued=false;refresh(root)},0);
+    };
+    scheduleRefresh();
+    if(boundRoots.has(root))return;
+    boundRoots.add(root);
+    for(const eventName of REFRESH_EVENTS)root.addEventListener?.(eventName,scheduleRefresh);
+    root.addEventListener?.('storage',(event)=>{
+      if(!event?.key||event.key===STORAGE_KEY)scheduleRefresh();
+    });
+  }
+  return {label,statusFromRecord,render,refresh,latestCompletedCaseId,mount,version:'1.0.1'};
 });
