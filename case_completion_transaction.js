@@ -98,6 +98,7 @@
     root.CaseTransitionCta?.refresh?.();
     root.WardLearningMomentum?.refresh?.(root,data,caseId);
     root.WardLearningRunProgress?.refresh?.(root,data);
+    root.RepeatPlayActionDock?.refresh?.();
   }
 
   function renderCommitted(root,data,caseId){
@@ -179,5 +180,5 @@
     completeAfterTerminal(root);
   }
 
-  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,terminalFeedback,resolveNextObjective,releaseTransition,routingTransition,renderRoutingTransition,refreshTerminalUi,mount,version:'1.9.0'};
+  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,terminalFeedback,resolveNextObjective,releaseTransition,routingTransition,renderRoutingTransition,refreshTerminalUi,mount,version:'1.9.1'};
 });
