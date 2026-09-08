@@ -4,6 +4,14 @@
   else{root.WardLearningRunProgress=api;api.mount(root)}
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   const STORAGE_KEY='ward_glucose_learning_curve_v1';
+  const REFRESH_EVENTS=[
+    'ward:caseLearningHistoryUpdated',
+    'ward:caseDebriefUpdated',
+    'ward:caseLearningOutcomeUpdated',
+    'ward:learningObjectiveUpdated',
+    'ward:insulinStateChanged'
+  ];
+  const boundRoots=new WeakSet();
   const DOMAIN_LABELS={
     basal:'basal',breakfast_rapid:'朝rapid',lunch_rapid:'昼rapid',dinner_rapid:'夕rapid',
     scale_dependence:'scale依存',hidden_awareness:'hidden excursion'
@@ -174,12 +182,23 @@
 
   function mount(root){
     if(!root?.document)return;
-    const delayed=()=>setTimeout(()=>refresh(root),0);
-    root.document.querySelector('#submitBtn')?.addEventListener('click',delayed);
-    root.document.querySelector('#newCaseBtn')?.addEventListener('click',delayed);
-    root.document.querySelector('#resultPanel')?.addEventListener('click',e=>{if(e.target?.closest?.('#restartBtn'))delayed()});
-    delayed();
+    let refreshQueued=false;
+    const scheduleRefresh=()=>{
+      if(refreshQueued)return;
+      refreshQueued=true;
+      setTimeout(()=>{refreshQueued=false;refresh(root)},0);
+    };
+    scheduleRefresh();
+    if(boundRoots.has(root))return;
+    boundRoots.add(root);
+    for(const eventName of REFRESH_EVENTS)root.addEventListener?.(eventName,scheduleRefresh);
+    root.addEventListener?.('storage',(event)=>{
+      if(!event?.key||event.key===STORAGE_KEY)scheduleRefresh();
+    });
+    root.document.querySelector('#submitBtn')?.addEventListener('click',scheduleRefresh);
+    root.document.querySelector('#newCaseBtn')?.addEventListener('click',scheduleRefresh);
+    root.document.querySelector('#resultPanel')?.addEventListener('click',e=>{if(e.target?.closest?.('#restartBtn'))scheduleRefresh()});
   }
 
-  return {orderedCompletedCases,scoredStatus,improvementStreak,unresolvedStreak,nextFocusMeta,domainPracticeSummary,summarize,latestReward,latestStatusLabel,nextFocusLabel,domainProgressHtml,renderHtml,render,refresh,mount,version:'1.4.0'};
+  return {orderedCompletedCases,scoredStatus,improvementStreak,unresolvedStreak,nextFocusMeta,domainPracticeSummary,summarize,latestReward,latestStatusLabel,nextFocusLabel,domainProgressHtml,renderHtml,render,refresh,mount,version:'1.4.1'};
 });
