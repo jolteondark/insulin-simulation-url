@@ -19,6 +19,15 @@
     }catch(e){console.error('case transition navigation',e)}
   }
 
+  function scheduleCaseStartNavigation(){
+    // startGenerated() updates the prospective learning focus synchronously, while
+    // PrescriptionDecisionStrip mirrors/compacts that source through a MutationObserver.
+    // Defer one task so navigation targets the final visible decision surface instead
+    // of briefly jumping to a focus card that is immediately hidden after mirroring.
+    setTimeout(navigateCaseStart,0);
+    return true;
+  }
+
   function loadLearningData(){
     try{return JSON.parse(root?.localStorage?.getItem(STORAGE_KEY)||'{}')}
     catch{return {}}
@@ -100,7 +109,7 @@
     if(typeof root?.startGenerated!=='function')return false;
     root.startGenerated();
     try{root.WardCaseDebrief?.refresh?.()}catch(e){console.error('case transition debrief refresh',e)}
-    navigateCaseStart();
+    scheduleCaseStartNavigation();
     return true;
   }
 
@@ -180,7 +189,7 @@
     refresh();
   }
 
-  const api={ensureCta,refresh,mount,navigateCaseStart,loadLearningData,objectiveLabel,percent,percentagePointDelta,nextChallengeModel,renderPreview,startNextCase,isTypingTarget,handleKeydown,version:'1.5.0'};
+  const api={ensureCta,refresh,mount,navigateCaseStart,scheduleCaseStartNavigation,loadLearningData,objectiveLabel,percent,percentagePointDelta,nextChallengeModel,renderPreview,startNextCase,isTypingTarget,handleKeydown,version:'1.5.1'};
   if(root)root.CaseTransitionCta=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();
