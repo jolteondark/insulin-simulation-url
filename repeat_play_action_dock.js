@@ -102,6 +102,21 @@
     d.head.appendChild(style);
   }
 
+  function isNarrowViewport(){
+    if(typeof root?.matchMedia==='function')return Boolean(root.matchMedia('(max-width:700px)').matches);
+    return Number(root?.innerWidth)>0&&Number(root.innerWidth)<=700;
+  }
+
+  function focusDockAction(){
+    const d=doc();
+    if(!d||!isNarrowViewport())return false;
+    const dock=d.getElementById(DOCK_ID);
+    const btn=d.getElementById(BUTTON_ID);
+    if(!dock?.classList?.contains?.('active')||!visible(btn)||typeof btn.focus!=='function')return false;
+    try{btn.focus({preventScroll:true});}catch{btn.focus();}
+    return true;
+  }
+
   function ensureDock(){
     const d=doc();
     if(!d)return null;
@@ -123,7 +138,12 @@
       target.click();
       // Let the canonical handler finish rendering the next decision state
       // before deciding whether the dock should remain visible or change role.
-      setTimeout(refresh,0);
+      // On mobile the canonical CTA is intentionally CSS-hidden while the dock
+      // proxies it, so keep keyboard/accessibility focus on the visible proxy.
+      setTimeout(()=>{
+        refresh();
+        focusDockAction();
+      },0);
     });
     dock.appendChild(feedback);
     dock.appendChild(btn);
@@ -190,7 +210,7 @@
     refresh();
   }
 
-  const api={actionTarget,feedbackAlreadyInResultGlance,decisionStripVisibleInViewport,prescriptionMealContext,primaryFeedbackText,refresh,scheduleViewportRefresh,mount,version:'1.7.0',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
+  const api={actionTarget,feedbackAlreadyInResultGlance,decisionStripVisibleInViewport,prescriptionMealContext,primaryFeedbackText,isNarrowViewport,focusDockAction,refresh,scheduleViewportRefresh,mount,version:'1.7.1',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
   if(root)root.RepeatPlayActionDock=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();
