@@ -1,5 +1,5 @@
 const LatestInsulinSummary=(()=>{
-  function fmt(x){const n=Number(x)||0;return n.toFixed(n%1?1:0)}
+  function fmt(x){const n=Number(x);return Number.isFinite(n)?n.toFixed(n%1?1:0):'—'}
   function correctionFor(rec,key){
     const meal=key.replace('_u','');
     return Number(rec?.result?.correction_doses_u?.[meal])||0;
@@ -12,8 +12,10 @@ const LatestInsulinSummary=(()=>{
     return `<div class="prev-dose"><div class="name">${label}</div><div class="value">${fmt(total)} U</div><div style="font-size:8px;color:#8b919a;margin-top:2px">${detail}</div></div>`;
   }
   function basalCard(rec){
-    const dose=Number(rec?.order?.basal_u)||0;
-    return `<div class="prev-dose"><div class="name">眠前 basal</div><div class="value">${fmt(dose)} U</div><div style="font-size:8px;color:#8b919a;margin-top:2px">定時</div></div>`;
+    const active=fmt(rec?.activeBasal);
+    const ordered=fmt(rec?.order?.basal_u);
+    const next=ordered==='—'?'今夜処方 —':`今夜処方 ${ordered} U`;
+    return `<div class="prev-dose"><div class="name">実効 basal</div><div class="value">${active}${active==='—'?'':' U'}</div><div style="font-size:8px;color:#8b919a;margin-top:2px">${next}</div></div>`;
   }
   function buildHtml(rec){
     if(!rec)return '';
@@ -38,7 +40,7 @@ const LatestInsulinSummary=(()=>{
     render();
   }
   if(typeof window!=='undefined')install();
-  return {buildHtml,correctionFor};
+  return {buildHtml,correctionFor,basalCard,fmt};
 })();
 
 if(typeof module!=='undefined'&&module.exports)module.exports=LatestInsulinSummary;
