@@ -5,14 +5,14 @@
   const BADGE_CLASS='decision-strip-dose-target';
   const HINT_ID='actionableDoseTargetHint';
   const tagTargets={
-    basal_excess:{inputId:'dose_basal_u',label:'眠前 basal'},
-    basal_deficit:{inputId:'dose_basal_u',label:'眠前 basal'},
-    breakfast_rapid_excess:{inputId:'dose_breakfast_u',label:'朝 rapid'},
-    breakfast_rapid_deficit:{inputId:'dose_breakfast_u',label:'朝 rapid'},
-    lunch_rapid_excess:{inputId:'dose_lunch_u',label:'昼 rapid'},
-    lunch_rapid_deficit:{inputId:'dose_lunch_u',label:'昼 rapid'},
-    dinner_rapid_excess:{inputId:'dose_dinner_u',label:'夕 rapid'},
-    dinner_rapid_deficit:{inputId:'dose_dinner_u',label:'夕 rapid'}
+    basal_excess:{inputId:'dose_basal_u',label:'眠前 basal',direction:'↓'},
+    basal_deficit:{inputId:'dose_basal_u',label:'眠前 basal',direction:'↑'},
+    breakfast_rapid_excess:{inputId:'dose_breakfast_u',label:'朝 rapid',direction:'↓'},
+    breakfast_rapid_deficit:{inputId:'dose_breakfast_u',label:'朝 rapid',direction:'↑'},
+    lunch_rapid_excess:{inputId:'dose_lunch_u',label:'昼 rapid',direction:'↓'},
+    lunch_rapid_deficit:{inputId:'dose_lunch_u',label:'昼 rapid',direction:'↑'},
+    dinner_rapid_excess:{inputId:'dose_dinner_u',label:'夕 rapid',direction:'↓'},
+    dinner_rapid_deficit:{inputId:'dose_dinner_u',label:'夕 rapid',direction:'↑'}
   };
   let lastAutoFocusKey='';
 
@@ -84,13 +84,17 @@
     const input=document.getElementById(target.inputId);
     const card=input?.closest?.('.dose-input-card');
     if(card&&!card.classList.contains(TARGET_CLASS))card.classList.add(TARGET_CLASS);
-    if(card)card.dataset.actionableFeedbackTag=target.tag;
+    if(card){
+      card.dataset.actionableFeedbackTag=target.tag;
+      card.dataset.actionableDirection=target.direction;
+    }
     if(input&&input.getAttribute('aria-describedby')!==HINT_ID)input.setAttribute('aria-describedby',HINT_ID);
 
-    // Keep the mapping visible beside the existing "次に変える1点" text so the
-    // learner can move directly from feedback to the matching input below.
+    // Keep both target and direction beside the existing "次に変える1点" text.
+    // The direction is derived from the already-selected education feedback tag;
+    // this adds no new dosing rule or unit recommendation.
     const feedback=document.querySelector('#prescriptionDecisionStrip .decision-strip-feedback');
-    const expected='対象：'+target.label;
+    const expected='対象：'+target.label+' '+target.direction;
     let badge=document.querySelector('.'+BADGE_CLASS);
     if(!feedback){
       if(badge)badge.remove();
@@ -133,7 +137,7 @@
     ['previousFeedback','previousFeedbackBody','learningFocus','prescriptionDecisionStrip','doseGrid','resultPanel','dayNo'].forEach(observe);
   }
 
-  const api={currentTarget,currentDayKey,resultIsVisible,autoFocusTarget,applyTarget,tagTargets,version:'1.1.0'};
+  const api={currentTarget,currentDayKey,resultIsVisible,autoFocusTarget,applyTarget,tagTargets,version:'1.2.0'};
   if(root)root.ActionableDoseTarget=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
