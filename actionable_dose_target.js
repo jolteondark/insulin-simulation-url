@@ -16,13 +16,20 @@
   };
   let lastAutoFocusKey='';
 
+  function evidenceForCarry(carry){
+    const text=String(carry?.text||'');
+    const point=text.match(/(朝前|昼前|夕前|眠前)\s+(\d+)\s+mg\/dL/);
+    if(point)return `${point[1]} ${point[2]}`;
+    return '';
+  }
+
   function currentTarget(){
     try{
       const carry=root?.FeedbackCarryover?.latestCarryover?.();
       if(!carry?.tag)return null;
       // latestCarryover intentionally survives even when its separate text block
       // is hidden because LEARNING FOCUS duplicates the same instruction.
-      return tagTargets[carry.tag]?{...tagTargets[carry.tag],tag:carry.tag}:null;
+      return tagTargets[carry.tag]?{...tagTargets[carry.tag],tag:carry.tag,evidence:evidenceForCarry(carry)}:null;
     }catch{return null}
   }
 
@@ -62,6 +69,7 @@
       if(!targetInputId||input?.id!==targetInputId){
         card.classList.remove(TARGET_CLASS);
         delete card.dataset.actionableFeedbackTag;
+        delete card.dataset.actionableEvidence;
         if(input?.getAttribute('aria-describedby')===HINT_ID)input.removeAttribute('aria-describedby');
       }
     });
@@ -87,14 +95,17 @@
     if(card){
       card.dataset.actionableFeedbackTag=target.tag;
       card.dataset.actionableDirection=target.direction;
+      if(target.evidence)card.dataset.actionableEvidence=target.evidence;
+      else delete card.dataset.actionableEvidence;
     }
     if(input&&input.getAttribute('aria-describedby')!==HINT_ID)input.setAttribute('aria-describedby',HINT_ID);
 
-    // Keep both target and direction beside the existing "次に変える1点" text.
-    // The direction is derived from the already-selected education feedback tag;
-    // this adds no new dosing rule or unit recommendation.
+    // Keep the causal glucose point, target and direction beside the existing
+    // "次に変える1点" text. All three are derived from the already-selected
+    // education feedback, so this adds no new dosing rule or unit recommendation.
     const feedback=document.querySelector('#prescriptionDecisionStrip .decision-strip-feedback');
-    const expected='対象：'+target.label+' '+target.direction;
+    const action='対象：'+target.label+' '+target.direction;
+    const expected=target.evidence?target.evidence+' → '+action:action;
     let badge=document.querySelector('.'+BADGE_CLASS);
     if(!feedback){
       if(badge)badge.remove();
@@ -137,7 +148,7 @@
     ['previousFeedback','previousFeedbackBody','learningFocus','prescriptionDecisionStrip','doseGrid','resultPanel','dayNo'].forEach(observe);
   }
 
-  const api={currentTarget,currentDayKey,resultIsVisible,autoFocusTarget,applyTarget,tagTargets,version:'1.2.0'};
+  const api={currentTarget,currentDayKey,resultIsVisible,autoFocusTarget,applyTarget,evidenceForCarry,tagTargets,version:'1.3.0'};
   if(root)root.ActionableDoseTarget=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
