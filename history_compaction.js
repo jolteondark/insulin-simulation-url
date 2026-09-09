@@ -33,9 +33,47 @@
     return node&&node.nodeType===1&&!node.classList.contains('history-archive')&&!node.classList.contains('history-recent-label');
   }
 
+  function fmtDose(value){
+    const n=Number(value);
+    if(!Number.isFinite(n))return '—';
+    return n.toFixed(n%1?1:0);
+  }
+
+  function annotateBasalDelivery(body){
+    if(typeof state==='undefined'||!Array.isArray(state?.history))return 0;
+    const cards=Array.from(body.children).filter(isHistoryCard);
+    let updated=0;
+    cards.forEach((card,index)=>{
+      const rec=state.history[index];
+      if(!rec)return;
+      const doseHeading=Array.from(card.children).find(el=>el?.textContent?.trim()==='実投与');
+      const doseGrid=doseHeading?.nextElementSibling;
+      const basalCell=doseGrid?.children?.[3];
+      if(!basalCell)return;
+      const parts=basalCell.children;
+      if(!parts||parts.length<2)return;
+      const active=fmtDose(rec.activeBasal);
+      const ordered=fmtDose(rec.order?.basal_u);
+      parts[0].textContent='実効 basal';
+      parts[1].textContent=active;
+      if(parts[2])parts[2].textContent=`今夜処方 ${ordered} U`;
+      basalCell.setAttribute('data-effective-basal-u',active);
+      basalCell.setAttribute('data-ordered-basal-u',ordered);
+      updated++;
+    });
+    return updated;
+  }
+
   function compactHistory(){
     const body=document.getElementById(ROOT_ID);
-    if(!body||body.querySelector(':scope > .history-archive'))return;
+    if(!body)return;
+    // app.js stores the basal that actually drove today's glucose separately
+    // from the basal ordered tonight for the following day. The legacy history
+    // card rendered the latter under the "実投与" heading, which could teach the
+    // wrong cause-and-effect relationship. Correct the visible history before
+    // archiving cards, without changing simulation state or physiology.
+    annotateBasalDelivery(body);
+    if(body.querySelector(':scope > .history-archive'))return;
     const cards=Array.from(body.children).filter(isHistoryCard);
     if(cards.length<=RECENT_VISIBLE_DAYS)return;
 
@@ -112,6 +150,10 @@
     new MutationObserver(scheduleCompact).observe(body,{childList:true});
     compactHistory();
   }
+
+  // Small stable surface for education-loop regression tests. This intentionally
+  // exposes only presentation helpers; it does not expose or mutate physiology.
+  window.HistoryCompaction={annotateBasalDelivery,fmtDose};
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
