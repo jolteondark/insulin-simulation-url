@@ -7,6 +7,16 @@
   }
 })(typeof globalThis!=='undefined'?globalThis:this,function(root){
   const STORAGE_KEY='ward_glucose_learning_curve_v1';
+  const DOSE_FEEDBACK={
+    basal_excess:{dose_key:'basal_u',direction:-1,label:'basal↓'},
+    basal_deficit:{dose_key:'basal_u',direction:1,label:'basal↑'},
+    breakfast_rapid_excess:{dose_key:'breakfast_u',direction:-1,label:'朝rapid↓'},
+    breakfast_rapid_deficit:{dose_key:'breakfast_u',direction:1,label:'朝rapid↑'},
+    lunch_rapid_excess:{dose_key:'lunch_u',direction:-1,label:'昼rapid↓'},
+    lunch_rapid_deficit:{dose_key:'lunch_u',direction:1,label:'昼rapid↑'},
+    dinner_rapid_excess:{dose_key:'dinner_u',direction:-1,label:'夕rapid↓'},
+    dinner_rapid_deficit:{dose_key:'dinner_u',direction:1,label:'夕rapid↑'}
+  };
 
   function currentState(r){
     try{if(typeof state!=='undefined')return state}catch{}
@@ -68,10 +78,63 @@
       feedback:feedback(rec)
     };
   }
+
+  function feedbackAction(day,nextDay){
+    const tag=day?.feedback?.primary_tag;
+    const rule=DOSE_FEEDBACK[tag];
+    if(!rule||!nextDay)return null;
+    const before=finite(day?.prescribed_order_u?.[rule.dose_key]);
+    const after=finite(nextDay?.prescribed_order_u?.[rule.dose_key]);
+    if(before==null||after==null)return null;
+    const delta=after-before;
+    const followed=delta*rule.direction>0;
+    const unchanged=delta===0;
+    return {
+      feedback_tag:tag,
+      label:rule.label,
+      dose_key:rule.dose_key,
+      expected_direction:rule.direction,
+      before_u:before,
+      after_u:after,
+      delta_u:delta,
+      status:followed?'followed':unchanged?'unchanged':'opposite'
+    };
+  }
+
+  function feedbackFollowthrough(days){
+    const xs=Array.isArray(days)?days:[];
+    const actions=[];
+    for(let i=0;i<xs.length-1;i++){
+      const action=feedbackAction(xs[i],xs[i+1]);
+      if(action)actions.push(action);
+    }
+    const followed=actions.filter(x=>x.status==='followed').length;
+    const unchanged=actions.filter(x=>x.status==='unchanged').length;
+    const opposite=actions.filter(x=>x.status==='opposite').length;
+    const by_target={};
+    for(const action of actions){
+      const key=action.dose_key;
+      const x=by_target[key]||(by_target[key]={opportunities:0,followed:0,unchanged:0,opposite:0,rate:null});
+      x.opportunities++;
+      x[action.status]++;
+      x.rate=x.followed/x.opportunities;
+    }
+    return {
+      opportunities:actions.length,
+      followed,
+      unchanged,
+      opposite,
+      rate:actions.length?followed/actions.length:null,
+      by_target,
+      actions
+    };
+  }
+
   function buildCaseTrace(s){
     if(!s?.case?.case_id||!Array.isArray(s.history)||!s.history.length)return null;
+    const days=s.history.map(dayTrace);
     return {
-      version:1,
+      version:2,
       case_id:s.case.case_id,
       outcome:s.over?(s.history.some(r=>finite(r?.result?.min)<70||finite(r?.result?.max)>400)?'game_over':'discharged'):'incomplete',
       context:{
@@ -79,7 +142,8 @@
         infection_severity:finite(s.case?.infection_severity),
         prednisone_mg:finite(s.case?.prednisone_mg)
       },
-      days:s.history.map(dayTrace),
+      days,
+      feedback_followthrough:feedbackFollowthrough(days),
       recorded_at:new Date().toISOString()
     };
   }
@@ -97,7 +161,7 @@
     const records=data.completion_records&&typeof data.completion_records==='object'?data.completion_records:{};
     const prior=records[caseId]&&typeof records[caseId]==='object'?records[caseId]:{};
     const existing=prior.case_learning_trace;
-    if(existing?.version===1&&Array.isArray(existing.days)&&existing.days.length===trace.days.length)return existing;
+    if(existing?.version===2&&Array.isArray(existing.days)&&existing.days.length===trace.days.length)return existing;
     data.completion_records={...records,[caseId]:{...prior,case_learning_trace:trace}};
     save(r,data);
     return trace;
@@ -108,5 +172,5 @@
     r.document.querySelector('#submitBtn')?.addEventListener('click',()=>attachAfterTerminal(r));
     attachAfterTerminal(r);
   }
-  return {dayTrace,buildCaseTrace,attach,mount,version:'1.0.0'};
+  return {dayTrace,feedbackAction,feedbackFollowthrough,buildCaseTrace,attach,mount,DOSE_FEEDBACK,version:'2.0.0'};
 });
