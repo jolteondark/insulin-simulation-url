@@ -108,7 +108,13 @@
     if(model.priority_reason==='recurrent')return `「${label}」は今回に加えて過去${model.priority.prior_cases_with_issue}症例でも出現しています。単発の最大エラーより反復弱点を優先し、次症例の1目標として確認してください。`;
     return `次症例では「${label}」を最優先で確認してください。正解単位を当てに行くのではなく、対応する血糖と実投与量の方向を毎日確認します。`;
   }
-  function renderModel(model,scored){if(!model)return '';const improved=model.improved.length?model.improved.map(d=>`${d.label} ${pct(d.prior_rate)}→${pct(d.current_rate)}`).join(' ／ '):'比較可能な明確な改善はまだありません。';const recurred=model.recurred.length?model.recurred.map(d=>`${d.label}（今回${pct(d.current_rate)}、過去${d.prior_cases_with_issue}症例でも出現）`).join(' ／ '):'過去症例から繰り返した調整課題は目立ちません。';return `${objectiveScoreText(scored)}<div class="micro-note"><b>改善：</b>${improved}</div><div class="micro-note"><b>反復：</b>${recurred}</div><div class="micro-note" style="margin-top:5px"><b>次症例：</b>${priorityText(model,scored)}</div>`}
+  function renderModel(model,scored){
+    if(!model)return '';
+    const improved=model.improved.length?model.improved.map(d=>`${d.label} ${pct(d.prior_rate)}→${pct(d.current_rate)}`).join(' ／ '):'比較可能な明確な改善はまだありません。';
+    const recurred=model.recurred.length?model.recurred.map(d=>`${d.label}（今回${pct(d.current_rate)}、過去${d.prior_cases_with_issue}症例でも出現）`).join(' ／ '):'過去症例から繰り返した調整課題は目立ちません。';
+    const details=`${objectiveScoreText(scored)}<div class="micro-note"><b>改善：</b>${improved}</div><div class="micro-note"><b>反復：</b>${recurred}</div>`;
+    return `<div class="micro-note" data-debrief-next="1"><b>次症例の1点：</b>${priorityText(model,scored)}</div><details class="micro-note" data-debrief-details="1" style="margin-top:6px"><summary>振り返り詳細</summary>${details}</details>`;
+  }
 
   function load(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');return {...x,days:Array.isArray(x.days)?x.days:[],cases:Array.isArray(x.cases)?x.cases:[],objectives:Array.isArray(x.objectives)?x.objectives:[],completion_records:x.completion_records&&typeof x.completion_records==='object'?x.completion_records:{}}}catch{return {days:[],cases:[],objectives:[],completion_records:{}}}}
   function save(data){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}catch{}}
@@ -143,5 +149,5 @@
     const result=document.querySelector('#resultPanel');if(result&&!result.dataset.caseDebriefTransitionMounted){result.dataset.caseDebriefTransitionMounted='1';result.addEventListener('click',event=>{const restart=event.target?.closest?.('#restartBtn');if(restart)refresh()})}refresh();
   }
   if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount()}
-  return {analyze,renderModel,caseRates,tagRateFor,dominantFocusTag,scoreObjective,applyCompletion,failedObjectiveStreak,persistentFailure,renderActiveFocus,renderCompletion,priorityText,refresh,DOMAIN_DEFS,TAG_LABELS,version:'1.6.0'};
+  return {analyze,renderModel,caseRates,tagRateFor,dominantFocusTag,scoreObjective,applyCompletion,failedObjectiveStreak,persistentFailure,renderActiveFocus,renderCompletion,priorityText,refresh,DOMAIN_DEFS,TAG_LABELS,version:'1.7.0'};
 });
