@@ -20,18 +20,11 @@
   }
 
   function scheduleCaseStartNavigation(){
-    // startGenerated() updates the prospective learning focus synchronously, while
-    // PrescriptionDecisionStrip mirrors/compacts that source through a MutationObserver.
-    // Defer one task so navigation targets the final visible decision surface instead
-    // of briefly jumping to a focus card that is immediately hidden after mirroring.
     setTimeout(navigateCaseStart,0);
     return true;
   }
 
   function schedulePreferredDoseFocus(){
-    // Pointer activation already bubbles through DoseAdjustControls' click helper.
-    // Keyboard shortcuts bypass that click path, so explicitly hand focus to the same
-    // actionable/fallback dose after the new-case DOM has rendered.
     setTimeout(()=>{
       try{return root?.DoseAdjustControls?.focusPreferredDose?.()}
       catch(e){console.error('case transition dose focus',e)}
@@ -94,32 +87,15 @@
     return {label:objectiveLabel(objective),reason,streak:Number(run?.improvement_streak)||0,adaptive:true};
   }
 
-  function ensurePreview(body){
-    const d=doc();if(!d||!body)return null;
-    let el=body.querySelector('#'+PREVIEW_ID);
-    if(el)return el;
-    el=d.createElement('div');
-    el.id=PREVIEW_ID;
-    el.className='learning-focus';
-    el.style.marginTop='10px';
-    body.appendChild(el);
-    return el;
+  function removePreview(){
+    const d=doc();
+    d?.querySelector?.('#'+PREVIEW_ID)?.remove?.();
+    return true;
   }
 
   function renderPreview(dataArg){
-    const d=doc();if(!d)return null;
-    const body=d.querySelector('#caseDebriefBody');if(!body)return null;
-    const model=nextChallengeModel(dataArg);
-    const el=ensurePreview(body);if(!el)return model;
-    el.textContent='';
-    const kicker=d.createElement('div');kicker.className='learning-focus-kicker';kicker.textContent='NEXT CHALLENGE';
-    const title=d.createElement('div');title.className='learning-focus-title';title.textContent=model.label;
-    const reason=d.createElement('div');reason.className='learning-focus-body';reason.textContent=model.reason;
-    el.append(kicker,title,reason);
-    if(model.streak>=3){
-      const note=d.createElement('div');note.className='micro-note';note.style.marginTop='7px';note.textContent=`WARD RUN：${model.streak}症例連続で改善中。次も再現できれば学習の定着を確認できます。`;el.appendChild(note);
-    }
-    return model;
+    removePreview();
+    return nextChallengeModel(dataArg);
   }
 
   function startNextCase(){
@@ -135,7 +111,7 @@
     if(!d)return null;
     const body=d.querySelector('#caseDebriefBody');
     if(!body)return null;
-    renderPreview();
+    removePreview();
     let btn=body.querySelector('#'+CTA_ID);
     if(btn)return btn;
     btn=d.createElement('button');
@@ -164,8 +140,6 @@
     if(!event||event.ctrlKey||event.altKey||event.metaKey||isTypingTarget(event.target))return false;
     const key=String(event.key||'').toLowerCase();
     if(key!=='n'&&key!=='enter')return false;
-    // Enter on the focused CTA/button already produces a native click. Handling it
-    // here as well would start two generated cases from a single keypress.
     if(key==='enter'&&isNativeActivationTarget(event.target))return false;
     const d=doc();
     const s=root?.state||(typeof state!=='undefined'?state:null);
@@ -188,7 +162,7 @@
       const terminal=Boolean(s?.over)&&debrief&&!debrief.classList.contains('hidden');
       if(terminal){
         const btn=ensureCta();
-        renderPreview();
+        removePreview();
         if(original)original.style.display='none';
         if(btn&&!btn.dataset?.throughputFocused){
           try{btn.focus?.({preventScroll:true});if(btn.dataset)btn.dataset.throughputFocused='1'}catch{}
@@ -196,7 +170,7 @@
       }else{
         if(original)original.style.display='';
         d.querySelector('#'+CTA_ID)?.remove();
-        d.querySelector('#'+PREVIEW_ID)?.remove();
+        removePreview();
       }
     }catch(e){console.error('case transition CTA',e)}
   }
@@ -218,7 +192,7 @@
     refresh();
   }
 
-  const api={ensureCta,refresh,mount,navigateCaseStart,scheduleCaseStartNavigation,schedulePreferredDoseFocus,loadLearningData,objectiveLabel,finiteOrNull,percent,percentagePointDelta,nextChallengeModel,renderPreview,startNextCase,isTypingTarget,isNativeActivationTarget,handleKeydown,version:'1.7.0'};
+  const api={ensureCta,refresh,mount,navigateCaseStart,scheduleCaseStartNavigation,schedulePreferredDoseFocus,loadLearningData,objectiveLabel,finiteOrNull,percent,percentagePointDelta,nextChallengeModel,renderPreview,removePreview,startNextCase,isTypingTarget,isNativeActivationTarget,handleKeydown,version:'1.8.0'};
   if(root)root.CaseTransitionCta=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();
