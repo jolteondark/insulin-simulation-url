@@ -1,6 +1,6 @@
 (function(root){
   function num(x){const n=Number(x);return Number.isFinite(n)?n:0}
-  function nullableNum(x){const n=Number(x);return Number.isFinite(n)?n:null}
+  function nullableNum(x){if(x===null||x===undefined||x==='')return null;const n=Number(x);return Number.isFinite(n)?n:null}
   function fmt(x){const n=num(x);return Number.isInteger(n)?String(n):n.toFixed(1)}
   function correction(rec,key){return num(rec?.result?.correction_doses_u?.[key])}
   function actualRapid(rec,key){return num(rec?.order?.[`${key}_u`])+correction(rec,key)}
@@ -137,7 +137,7 @@
     submit.addEventListener('click',annotateLatest);
   }
 
-  const api={summaryData,buildHtml,basalDoseChip,compactLegacyNonterminal,annotateLatest,mount,version:'1.5.0'};
+  const api={summaryData,buildHtml,basalDoseChip,compactLegacyNonterminal,annotateLatest,mount,version:'1.5.1'};
   if(root)root.ResultGlanceSummary=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){

@@ -25,9 +25,18 @@
     {id:'hidden_awareness',label:'hidden excursion',tags:['hidden_low_near_miss','hidden_high_excursion']}
   ];
 
+  function finiteOrNull(value){
+    if(value===null||value===undefined||value==='')return null;
+    const n=Number(value);
+    return Number.isFinite(n)?n:null;
+  }
+
   function correctionScaleUsed(rec){
     const doses=rec?.result?.correction_doses_u||{};
-    return ['breakfast','lunch','dinner'].some(k=>Number(doses[k])>0);
+    return ['breakfast','lunch','dinner'].some(k=>{
+      const dose=finiteOrNull(doses[k]);
+      return dose!==null&&dose>0;
+    });
   }
 
   function feedbackTagsOf(rec){
@@ -99,18 +108,24 @@
 
   function daySummary(rec,caseId){
     const bg=rec?.result?.bg||{};
-    const poc=['pre_breakfast','pre_lunch','pre_dinner','bedtime'].map(k=>Number(bg[k]));
-    const mn=Number(rec?.result?.min),mx=Number(rec?.result?.max);
-    const safe=Number.isFinite(mn)&&Number.isFinite(mx)&&mn>=70&&mx<=400;
-    const dischargeGrade=safe&&!rec?.result?.correction_scale&&poc.every(v=>Number.isFinite(v)&&v>=80&&v<=180)&&mn>=70&&mx<=250;
+    const poc=['pre_breakfast','pre_lunch','pre_dinner','bedtime'].map(k=>finiteOrNull(bg[k]));
+    const mn=finiteOrNull(rec?.result?.min),mx=finiteOrNull(rec?.result?.max);
+    const safetyEvaluable=mn!==null&&mx!==null;
+    const pocEvaluable=poc.every(v=>v!==null);
+    const safe=safetyEvaluable?mn>=70&&mx<=400:null;
+    const dischargeGrade=safetyEvaluable&&pocEvaluable
+      ? safe===true&&!rec?.result?.correction_scale&&poc.every(v=>v>=80&&v<=180)&&mn>=70&&mx<=250
+      : null;
     const feedbackTags=feedbackTagsOf(rec);
     const usedScale=correctionScaleUsed(rec);
     return {
       key:`${caseId}:${rec.day}`,
       case_id:caseId,
-      day:Number(rec.day),
+      day:finiteOrNull(rec.day),
       safe,
+      safety_evaluable:safetyEvaluable,
       discharge_grade:dischargeGrade,
+      discharge_grade_evaluable:safetyEvaluable&&pocEvaluable,
       used_scale:usedScale,
       min:mn,
       max:mx,
@@ -133,11 +148,11 @@
     next.days=next.days.slice(-MAX_DAYS);
 
     if(s.over&&!next.cases.some(x=>x.case_id===caseId)){
-      const fatal=!d.safe;
+      const outcome=d.safe===false?'game_over':d.safe===true?'discharged':'unknown';
       next.cases.push({
         case_id:caseId,
-        outcome:fatal?'game_over':'discharged',
-        days:Number(rec.day),
+        outcome,
+        days:finiteOrNull(rec.day),
         recorded_at:new Date().toISOString()
       });
       next.cases=next.cases.slice(-100);
@@ -161,10 +176,14 @@
   }
 
   function windowStats(days){
+    const safetyEvaluable=days.filter(x=>x.safe===true||x.safe===false).length;
+    const gradeEvaluable=days.filter(x=>x.discharge_grade===true||x.discharge_grade===false).length;
     return {
       n:days.length,
-      safe:days.filter(x=>x.safe).length,
-      grade:days.filter(x=>x.discharge_grade).length,
+      safety_evaluable:safetyEvaluable,
+      grade_evaluable:gradeEvaluable,
+      safe:days.filter(x=>x.safe===true).length,
+      grade:days.filter(x=>x.discharge_grade===true).length,
       scale:days.filter(x=>x.used_scale).length
     };
   }
@@ -239,9 +258,13 @@
   function trendText(days){
     if(days.length<10)return '10日分たまると、直近5日とその前5日の変化を表示します。';
     const prev=windowStats(days.slice(-10,-5)),recent=windowStats(days.slice(-5));
-    const safeDelta=20*(recent.safe-prev.safe);
-    const gradeDelta=20*(recent.grade-prev.grade);
-    const sign=x=>x>0?`+${x}`:`${x}`;
+    const safeDelta=prev.safety_evaluable&&recent.safety_evaluable
+      ? Math.round(100*(recent.safe/recent.safety_evaluable-prev.safe/prev.safety_evaluable))
+      : null;
+    const gradeDelta=prev.grade_evaluable&&recent.grade_evaluable
+      ? Math.round(100*(recent.grade/recent.grade_evaluable-prev.grade/prev.grade_evaluable))
+      : null;
+    const sign=x=>x==null?'—':x>0?`+${x}`:`${x}`;
     return `直近5日 vs 前5日：安全日 ${sign(safeDelta)}pt ／ 退院水準日 ${sign(gradeDelta)}pt`;
   }
 
@@ -293,8 +316,8 @@
     if(!el)return;
     const data=load(),days=data.days,cases=data.cases,s=windowStats(days);
     const completed=cases.length,discharged=cases.filter(x=>x.outcome==='discharged').length;
-    const completedDays=cases.map(x=>Number(x.days)).filter(Number.isFinite);
-    el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px"><div class="prev-dose"><div class="name">記録日</div><div class="value">${s.n}</div></div><div class="prev-dose"><div class="name">安全日</div><div class="value">${pct(s.safe,s.n)}</div></div><div class="prev-dose"><div class="name">退院水準日</div><div class="value">${pct(s.grade,s.n)}</div></div><div class="prev-dose"><div class="name">退院成功</div><div class="value">${pct(discharged,completed)}</div></div></div><div class="micro-note" style="margin-top:9px">${trendText(days)}</div><div class="micro-note">${prescribingText(days)}</div><div class="micro-note">${recurrenceText(days)}</div><div class="micro-note">${objectiveText(data)}</div>${caseTrendHtml(data)}${completedDays.length?`<div class="micro-note">完了症例の平均日数：${mean(completedDays).toFixed(1)}日（${completed}症例）</div>`:''}`;
+    const completedDays=cases.map(x=>finiteOrNull(x.days)).filter(x=>x!==null);
+    el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px"><div class="prev-dose"><div class="name">記録日</div><div class="value">${s.n}</div></div><div class="prev-dose"><div class="name">安全日</div><div class="value">${pct(s.safe,s.safety_evaluable)}</div></div><div class="prev-dose"><div class="name">退院水準日</div><div class="value">${pct(s.grade,s.grade_evaluable)}</div></div><div class="prev-dose"><div class="name">退院成功</div><div class="value">${pct(discharged,completed)}</div></div></div><div class="micro-note" style="margin-top:9px">${trendText(days)}</div><div class="micro-note">${prescribingText(days)}</div><div class="micro-note">${recurrenceText(days)}</div><div class="micro-note">${objectiveText(data)}</div>${caseTrendHtml(data)}${completedDays.length?`<div class="micro-note">完了症例の平均日数：${mean(completedDays).toFixed(1)}日（${completed}症例）</div>`:''}`;
   }
 
   function mount(){
@@ -316,7 +339,7 @@
     render();
   }
 
-  const api={load,save,render,recordLatest,applyLatest,daySummary,correctionScaleUsed,feedbackTagsOf,prescribingFromTags,recurrenceStats,caseDomainSummary,completedCaseSummaries,caseDomainTrend,objectiveText,version:'2.0.0'};
+  const api={load,save,render,recordLatest,applyLatest,daySummary,finiteOrNull,correctionScaleUsed,feedbackTagsOf,prescribingFromTags,recurrenceStats,caseDomainSummary,completedCaseSummaries,caseDomainTrend,objectiveText,version:'2.0.1'};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof window!=='undefined')window.LearningCurve=api;
   if(typeof document!=='undefined'){

@@ -60,6 +60,13 @@
 
   function moveToCaseStartContext(){
     if(typeof document==='undefined')return false;
+    // At a new-case boundary, PrescriptionDecisionStrip can already mirror the
+    // prospective learning focus beside the first dose inputs. Prefer that
+    // integrated surface so the learner does not have to read a separate focus
+    // card and then scroll again before prescribing. If the strip has not
+    // mounted/settled, keep the dedicated focus card as the graceful fallback.
+    const strip=document.querySelector(DECISION_STRIP_SELECTOR);
+    if(visible(strip))return moveToElement(strip);
     const focus=document.querySelector(LEARNING_FOCUS_SELECTOR);
     if(visible(focus))return moveTo(LEARNING_FOCUS_SELECTOR);
     return moveToPrescriptionContext();
@@ -88,7 +95,8 @@
     }
     if(id==='restartBtn'){
       // A new case may carry a prospective learning objective from the prior
-      // debrief. Surface it once at the case boundary before the first order.
+      // debrief. Surface it once at the case boundary, preferably inside the
+      // integrated decision strip when that surface is available.
       moveToCaseStartContext();
     }
   }
@@ -113,7 +121,7 @@
     orderCardSelector:ORDER_CARD_SELECTOR,
     learningFocusSelector:LEARNING_FOCUS_SELECTOR,
     resultGlanceSelector:RESULT_GLANCE_SELECTOR,
-    version:'1.4.0'
+    version:'1.5.0'
   };
   if(root)root.RepeatPlayNavigation=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;

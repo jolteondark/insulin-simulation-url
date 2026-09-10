@@ -19,6 +19,8 @@
   const LONGITUDINAL_RECENT_CASES=3;
   const LONGITUDINAL_MIN_RECENT_RATE=.34;
   const LONGITUDINAL_MIN_DELTA=.15;
+  const FOLLOWTHROUGH_MIN_OPPORTUNITIES=2;
+  const FOLLOWTHROUGH_MAX_RATE=.5;
   const EVIDENCE_SOURCE_REASONS=new Set(['recent_tendency','recent_tendency_adaptive']);
   const DOMAIN_LABELS={
     basal:'basal',
@@ -36,6 +38,7 @@
     scale_dependence:['scale_dependence'],
     hidden_awareness:['hidden_low_near_miss','hidden_high_excursion']
   };
+  const DOSE_KEY_DOMAIN={basal_u:'basal',breakfast_u:'breakfast_rapid',lunch_u:'lunch_rapid',dinner_u:'dinner_rapid'};
   const TAG_LABELS={
     basal_excess:'basal過量',basal_deficit:'basal不足',
     breakfast_rapid_excess:'朝rapid過量',breakfast_rapid_deficit:'朝rapid不足',
@@ -102,20 +105,47 @@
     for(const id of caseIds){const hit=days.some(d=>d?.case_id===id&&(Array.isArray(d.feedback_tags)?d.feedback_tags:[]).some(t=>tags.includes(t)));if(hit)issue++}
     return issue/caseIds.length;
   }
-  function longitudinalWeakness(data){
+  function followthroughWeakness(data){
+    const cases=completedCases(data),recent=cases.slice(-LONGITUDINAL_RECENT_CASES);if(!recent.length)return null;
+    const rows=new Map();
+    recent.forEach((c,caseIndex)=>{
+      const actions=data?.completion_records?.[c.case_id]?.case_learning_trace?.feedback_followthrough?.actions;
+      if(!Array.isArray(actions))return;
+      actions.forEach((a,actionIndex)=>{
+        const domainId=DOSE_KEY_DOMAIN[a?.dose_key],status=a?.status;
+        if(!domainId||!['followed','unchanged','opposite'].includes(status))return;
+        let row=rows.get(domainId);
+        if(!row){row={domain_id:domainId,label:DOMAIN_LABELS[domainId]||domainId,opportunities:0,followed:0,unchanged:0,opposite:0,last_case_index:-1,last_action_index:-1,source_case_id:null,tag_rows:new Map()};rows.set(domainId,row)}
+        row.opportunities++;row[status]++;
+        if(caseIndex>row.last_case_index||caseIndex===row.last_case_index&&actionIndex>row.last_action_index){row.last_case_index=caseIndex;row.last_action_index=actionIndex;row.source_case_id=c.case_id}
+        if(status!=='followed'&&typeof a?.feedback_tag==='string'){
+          const tr=row.tag_rows.get(a.feedback_tag)||{tag:a.feedback_tag,count:0,last_case_index:-1,last_action_index:-1};tr.count++;
+          if(caseIndex>tr.last_case_index||caseIndex===tr.last_case_index&&actionIndex>tr.last_action_index){tr.last_case_index=caseIndex;tr.last_action_index=actionIndex}row.tag_rows.set(a.feedback_tag,tr);
+        }
+      });
+    });
+    const candidates=[...rows.values()].map(row=>{
+      const rate=row.opportunities?row.followed/row.opportunities:null,failureRate=row.opportunities?(row.unchanged+row.opposite)/row.opportunities:null;
+      const tags=[...row.tag_rows.values()].sort((a,b)=>b.count-a.count||b.last_case_index-a.last_case_index||b.last_action_index-a.last_action_index||a.tag.localeCompare(b.tag));
+      return {...row,tag_rows:undefined,followthrough_rate:rate,recent_rate:failureRate,reference_rate:null,delta:null,focus_tag:tags[0]?.tag||null,focus_label:TAG_LABELS[tags[0]?.tag]||null,prior_cases_with_issue:row.unchanged+row.opposite,evidence_type:'followthrough'};
+    }).filter(x=>x.opportunities>=FOLLOWTHROUGH_MIN_OPPORTUNITIES&&x.followthrough_rate<=FOLLOWTHROUGH_MAX_RATE&&!activeLongitudinalRelease(data,x.domain_id,cases)).sort((a,b)=>a.followthrough_rate-b.followthrough_rate||b.opposite-a.opposite||b.unchanged-a.unchanged||b.opportunities-a.opportunities||b.last_case_index-a.last_case_index||a.label.localeCompare(b.label,'ja'));
+    return candidates[0]||null;
+  }
+  function recurringFeedbackWeakness(data){
     const cases=completedCases(data);
     if(cases.length<LONGITUDINAL_MIN_CASES)return null;
     const recent=cases.slice(-LONGITUDINAL_RECENT_CASES),reference=cases.slice(0,-LONGITUDINAL_RECENT_CASES);if(!reference.length)return null;
     const recentIds=recent.map(c=>c.case_id),referenceIds=reference.map(c=>c.case_id),lastCase=recent[recent.length-1]?.case_id||null;
     const rows=Object.keys(DOMAIN_TAGS).filter(id=>id!=='hidden_awareness'&&!activeLongitudinalRelease(data,id,cases)).map(domainId=>{
       const recentRate=caseIssueRate(data,recentIds,domainId),referenceRate=caseIssueRate(data,referenceIds,domainId),delta=(recentRate??0)-(referenceRate??0);
-      return {domain_id:domainId,label:DOMAIN_LABELS[domainId]||domainId,recent_rate:recentRate,reference_rate:referenceRate,delta,source_case_id:lastCase,prior_cases_with_issue:Math.round((referenceRate||0)*referenceIds.length)};
+      return {domain_id:domainId,label:DOMAIN_LABELS[domainId]||domainId,recent_rate:recentRate,reference_rate:referenceRate,delta,source_case_id:lastCase,prior_cases_with_issue:Math.round((referenceRate||0)*referenceIds.length),evidence_type:'recurring_feedback'};
     }).filter(x=>x.recent_rate>=LONGITUDINAL_MIN_RECENT_RATE&&x.delta>=LONGITUDINAL_MIN_DELTA).sort((a,b)=>b.recent_rate-a.recent_rate||b.delta-a.delta||a.label.localeCompare(b.label,'ja'));
     return rows[0]||null;
   }
+  function longitudinalWeakness(data){return followthroughWeakness(data)||recurringFeedbackWeakness(data)}
   function makeLongitudinalObjective(w){
     if(!w)return null;
-    return {domain_id:w.domain_id,label:w.label,source_case_id:w.source_case_id,source_rate:w.recent_rate,created_at:new Date().toISOString(),persistent_streak:0,emphasis:'normal',selection_reason:'longitudinal',prior_cases_with_issue:w.prior_cases_with_issue,routing_source:'longitudinal_learning',longitudinal_reference_rate:w.reference_rate,longitudinal_recent_rate:w.recent_rate,longitudinal_delta:w.delta};
+    return {domain_id:w.domain_id,label:w.label,focus_tag:w.focus_tag||null,focus_label:w.focus_label||null,source_case_id:w.source_case_id,source_rate:w.recent_rate,created_at:new Date().toISOString(),persistent_streak:0,emphasis:'normal',selection_reason:'longitudinal',prior_cases_with_issue:w.prior_cases_with_issue,routing_source:w.evidence_type==='followthrough'?'followthrough_learning':'longitudinal_learning',longitudinal_reference_rate:w.reference_rate,longitudinal_recent_rate:w.recent_rate,longitudinal_delta:w.delta,followthrough_opportunities:Number.isFinite(Number(w.opportunities))?Number(w.opportunities):null,followthrough_rate:Number.isFinite(Number(w.followthrough_rate))?Number(w.followthrough_rate):null,followthrough_unchanged:Number.isFinite(Number(w.unchanged))?Number(w.unchanged):null,followthrough_opposite:Number.isFinite(Number(w.opposite))?Number(w.opposite):null};
   }
   function routedObjective(data){
     let current=data?.active_objective||null;
@@ -138,5 +168,5 @@
   }
   function resolveData(data){const base={...(data||{}),cases:Array.isArray(data?.cases)?data.cases:[]};const routed=routedObjective(base),before=base.active_objective||null,changed=JSON.stringify(before)!==JSON.stringify(routed.objective);return {data:{...base,active_objective:routed.objective},objective:routed.objective,reason:routed.reason,repeated:routed.repeated,longitudinal:routed.longitudinal,release:routed.release,changed}}
   function resolveStored(root){try{const raw=JSON.parse(root.localStorage.getItem(STORAGE_KEY)||'{}'),out=resolveData(raw);if(out.changed)root.localStorage.setItem(STORAGE_KEY,JSON.stringify(out.data));return out}catch{return {data:null,objective:null,reason:'storage_error',repeated:[],longitudinal:null,release:null,changed:false}}}
-  return {scoredPracticeRows,trailingUnresolved,repeatedUnmet,practiceLifecycle,isPersistentStreak,objectiveFailureStreak,persistentFromObjectiveHistory,makePersistentObjective,isSafetyObjective,completionObjectiveRelief,completedCases,latestPersistentPracticeRelease,latestLongitudinalRelease,activeLongitudinalRelease,caseIssueRate,longitudinalWeakness,makeLongitudinalObjective,routedObjective,resolveData,resolveStored,REPEATED_UNMET_N,LONGITUDINAL_MIN_CASES,LONGITUDINAL_RECENT_CASES,LONGITUDINAL_MIN_RECENT_RATE,LONGITUDINAL_MIN_DELTA,EVIDENCE_SOURCE_REASONS,DOMAIN_LABELS,DOMAIN_TAGS,TAG_LABELS,version:'1.8.1'};
+  return {scoredPracticeRows,trailingUnresolved,repeatedUnmet,practiceLifecycle,isPersistentStreak,objectiveFailureStreak,persistentFromObjectiveHistory,makePersistentObjective,isSafetyObjective,completionObjectiveRelief,completedCases,latestPersistentPracticeRelease,latestLongitudinalRelease,activeLongitudinalRelease,caseIssueRate,followthroughWeakness,recurringFeedbackWeakness,longitudinalWeakness,makeLongitudinalObjective,routedObjective,resolveData,resolveStored,REPEATED_UNMET_N,LONGITUDINAL_MIN_CASES,LONGITUDINAL_RECENT_CASES,LONGITUDINAL_MIN_RECENT_RATE,LONGITUDINAL_MIN_DELTA,FOLLOWTHROUGH_MIN_OPPORTUNITIES,FOLLOWTHROUGH_MAX_RATE,EVIDENCE_SOURCE_REASONS,DOMAIN_LABELS,DOMAIN_TAGS,DOSE_KEY_DOMAIN,TAG_LABELS,version:'1.9.0'};
 });

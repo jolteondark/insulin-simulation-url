@@ -12,6 +12,13 @@
   const RELIEF_KINDS=new Set(['recent_tendency_downgraded','recent_tendency_released','persistent_released','longitudinal_released','objective_released']);
   const FULL_RELEASE_KINDS=new Set(['recent_tendency_released','persistent_released','longitudinal_released','objective_released']);
   const CORE_LEARNING_IDS=['feedback_action_alignment_rate','same_feedback_next_day_rate','objective_success_rate'];
+  const FOCUS_LABELS={
+    basal_excess:'basal過量',basal_deficit:'basal不足',
+    breakfast_rapid_excess:'朝rapid過量',breakfast_rapid_deficit:'朝rapid不足',
+    lunch_rapid_excess:'昼rapid過量',lunch_rapid_deficit:'昼rapid不足',
+    dinner_rapid_excess:'夕rapid過量',dinner_rapid_deficit:'夕rapid不足',
+    scale_dependence:'scale依存',hidden_low_near_miss:'hidden低血糖',hidden_high_excursion:'hidden高血糖'
+  };
 
   function load(root){
     try{
@@ -26,6 +33,7 @@
   }
 
   function focusKey(x){return x?.focus_tag||x?.domain_id||'unknown'}
+  function focusLabel(x){const key=typeof x==='string'?x:focusKey(x);return FOCUS_LABELS[key]||key}
 
   function summarize(data){
     const cases=Array.isArray(data?.cases)?data.cases:[];
@@ -33,11 +41,14 @@
       .map(c=>({case_id:c.case_id,...(c.adaptive_practice||{})}))
       .filter(x=>TARGET_REASONS.has(x.selection_reason));
     const targetedIds=new Set(targeted.map(x=>x.case_id).filter(Boolean));
-    const transitions=Object.entries(data?.completion_records||{})
-      .filter(([caseId])=>targetedIds.has(caseId))
+    const completionEntries=Object.entries(data?.completion_records||{}).filter(([caseId])=>targetedIds.has(caseId));
+    const transitions=completionEntries
       .map(([,record])=>record?.routing_transition)
       .filter(Boolean)
       .filter(x=>RELIEF_KINDS.has(x.kind));
+    const mastery=completionEntries
+      .map(([caseId,record])=>({case_id:caseId,...(record?.followthrough_objective_release||{})}))
+      .filter(x=>x.action_status==='followed'&&x.domain_id);
     const downgraded=transitions.filter(x=>x.kind==='recent_tendency_downgraded').length;
     const released=transitions.filter(x=>FULL_RELEASE_KINDS.has(x.kind)).length;
     const persistentReleased=transitions.filter(x=>x.kind==='persistent_released').length;
@@ -47,16 +58,26 @@
       const attempts=targeted.filter(x=>focusKey(x)===key).length;
       const relief=transitions.filter(x=>focusKey(x)===key).length;
       const full_release=transitions.filter(x=>focusKey(x)===key&&FULL_RELEASE_KINDS.has(x.kind)).length;
-      return {focus_tag:key,attempts,relief,full_release};
+      return {focus_tag:key,label:focusLabel(key),attempts,relief,full_release};
     }).sort((a,b)=>b.attempts-a.attempts||b.relief-a.relief||a.focus_tag.localeCompare(b.focus_tag));
+    const masteredFocuses=[...new Set(mastery.map(x=>x.focus_tag||x.domain_id).filter(Boolean))].map(key=>({
+      focus_tag:key,
+      label:focusLabel(key),
+      episodes:mastery.filter(x=>(x.focus_tag||x.domain_id)===key).length,
+      reacquired:mastery.some(x=>(x.focus_tag||x.domain_id)===key&&(x.reacquired===true||Number(x.mastery_episode)>1))
+    }));
+    const reacquired=mastery.filter(x=>x.reacquired===true||Number(x.mastery_episode)>1).length;
     return {
-      ready:targeted.length>0||transitions.length>0,
+      ready:targeted.length>0||transitions.length>0||mastery.length>0,
       targeted:targeted.length,
       relief:downgraded+released,
       downgraded,
       released,
       persistent_released:persistentReleased,
       longitudinal_released:longitudinalReleased,
+      followthrough_mastered:mastery.length,
+      followthrough_reacquired:reacquired,
+      mastered_focuses:masteredFocuses,
       unresolved:Math.max(0,targeted.length-(downgraded+released)),
       focuses
     };
@@ -69,10 +90,13 @@
     const releaseDetail=(summary.persistent_released||summary.longitudinal_released)
       ? ` ／ persistent解除 ${summary.persistent_released}、longitudinal解除 ${summary.longitudinal_released}`
       : '';
-    const byFocus=summary.focuses?.length
-      ? `<br><span>${summary.focuses.map(x=>`${x.focus_tag}: 重点${x.attempts}／解除${x.relief}${x.full_release?`（完全解除${x.full_release}）`:''}`).join(' ／ ')}</span>`
+    const masteryDetail=summary.followthrough_mastered
+      ? ` ／ feedbackを次処方へ反映して克服 ${summary.followthrough_mastered}回${summary.followthrough_reacquired?`（うち再克服 ${summary.followthrough_reacquired}回）`:''}${summary.mastered_focuses?.length?`（${summary.mastered_focuses.map(x=>`${x.label}${x.episodes>1?`×${x.episodes}`:''}`).join('・')}）`:''}`
       : '';
-    return `<div id="${id}" class="micro-note" style="margin-top:7px"><b>${title}：</b>重点症例 ${summary.targeted}回 ／ 改善で重点解除 ${summary.relief}回（downgrade ${summary.downgraded}、完全解除 ${summary.released}）${releaseDetail}${summary.unresolved?` ／ 未解除 ${summary.unresolved}回`:''}。${byFocus}</div>`;
+    const byFocus=summary.focuses?.length
+      ? `<br><span>${summary.focuses.map(x=>`${x.label||x.focus_tag}: 重点${x.attempts}／解除${x.relief}${x.full_release?`（完全解除${x.full_release}）`:''}`).join(' ／ ')}</span>`
+      : '';
+    return `<div id="${id}" class="micro-note" style="margin-top:7px"><b>${title}：</b>重点症例 ${summary.targeted}回 ／ 改善で重点解除 ${summary.relief}回（downgrade ${summary.downgraded}、完全解除 ${summary.released}）${releaseDetail}${masteryDetail}${summary.unresolved?` ／ 未解除 ${summary.unresolved}回`:''}。${byFocus}</div>`;
   }
 
   function routingDelta(learningSummary){
@@ -201,5 +225,5 @@
     refresh(root);
   }
 
-  return {load,loadArchives,focusKey,summarize,renderHtml,renderFinalHtml,routingDelta,learningRoutingConsistency,consistencyHtml,blockLearningConsistency,currentClosingFocus,focusHandoffHtml,blockConsistencyHtml,longitudinal,refresh,mount,TARGET_REASONS,RELIEF_KINDS,FULL_RELEASE_KINDS,CORE_LEARNING_IDS,version:'1.7.0'};
+  return {load,loadArchives,focusKey,focusLabel,summarize,renderHtml,renderFinalHtml,routingDelta,learningRoutingConsistency,consistencyHtml,blockLearningConsistency,currentClosingFocus,focusHandoffHtml,blockConsistencyHtml,longitudinal,refresh,mount,TARGET_REASONS,RELIEF_KINDS,FULL_RELEASE_KINDS,CORE_LEARNING_IDS,FOCUS_LABELS,version:'1.9.0'};
 });

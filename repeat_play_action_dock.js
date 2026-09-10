@@ -78,6 +78,16 @@
     if(!d)return '';
     const panel=d.querySelector('#resultPanel');
     if(visible(panel))return '';
+    // PrescriptionDecisionStrip intentionally aria-hides the source learning-focus
+    // card after mirroring it beside the dose controls. Once that strip scrolls
+    // out of the mobile viewport, read the canonical mirrored snapshot first so
+    // the fixed submit dock keeps the active learning target instead of silently
+    // dropping it merely because the source card is presentation-hidden.
+    try{
+      const mirrored=root?.PrescriptionDecisionStrip?.focusSnapshot?.();
+      const mirroredTitle=mirrored?.title?.replace(/\s+/g,' ')?.trim()||'';
+      if(mirroredTitle)return `重点：${mirroredTitle}`;
+    }catch{}
     const section=d.querySelector('#learningFocus');
     if(!visible(section))return '';
     const title=d.querySelector('#learningFocusTitle');
@@ -85,7 +95,22 @@
     return text?`重点：${text}`:'';
   }
 
+  function prescriptionDoseChangeText(){
+    const d=doc();
+    if(!d)return '';
+    const panel=d.querySelector('#resultPanel');
+    if(visible(panel))return '';
+    const snapshot=root?.PrescriptionDecisionStrip?.doseChangeSnapshot?.();
+    if(!snapshot||!snapshot.changed||!snapshot.summary)return '';
+    return `今回変更：${snapshot.summary}`;
+  }
+
   function prescriptionReminderText(){
+    // Once the learner has edited the prescription, the highest-value submit-time
+    // reminder is the actual delta they are about to commit. If nothing changed,
+    // fall back to the learning target / meal context as before.
+    const change=prescriptionDoseChangeText();
+    if(change)return change;
     const focus=prescriptionLearningFocusText();
     const meal=prescriptionMealContext();
     if(focus&&meal)return `${focus} / ${meal}`;
@@ -108,10 +133,9 @@
     const panel=d.querySelector('#resultPanel');
     if(!visible(panel)){
       // The prescription decision strip already mirrors the current learning
-      // focus and today's meal context beside the dose controls. Keep the fixed
-      // dock silent while that strip is on screen. Once it scrolls away, retain
-      // both the learning target and meal reminder so the repeated prescribing
-      // loop does not lose its educational objective at the point of action.
+      // focus, today's meal context, and prescription delta beside the controls.
+      // Keep the fixed dock silent while that strip is on screen. Once it scrolls
+      // away, retain the most actionable submit-time reminder.
       return decisionStripVisibleInViewport()?'':prescriptionReminderText();
     }
     // At terminal completion the fixed action is intentionally the shortest path
@@ -145,9 +169,23 @@
     return Number(root?.innerWidth)>0&&Number(root.innerWidth)<=700;
   }
 
+  function prescriptionInputFocused(){
+    const active=doc()?.activeElement;
+    if(!active||active.disabled)return false;
+    const tag=String(active.tagName||'').toLowerCase();
+    const id=String(active.id||'');
+    return tag==='input'&&/^dose_/.test(id);
+  }
+
   function focusDockAction(){
     const d=doc();
     if(!d||!isNarrowViewport())return false;
+    // After advancing a day, ActionableDoseTarget deliberately focuses/selects
+    // the dose input implicated by yesterday's feedback. Do not immediately
+    // steal that focus back to the fixed dock: the learner should be able to
+    // type the next adjustment without another tap. Result/terminal states do
+    // not have a focused dose input, so the dock keeps its accessibility focus.
+    if(prescriptionInputFocused())return false;
     const dock=d.getElementById(DOCK_ID);
     const btn=d.getElementById(BUTTON_ID);
     if(!dock?.classList?.contains?.('active')||!visible(btn)||typeof btn.focus!=='function')return false;
@@ -196,7 +234,8 @@
       // Let the canonical handler finish rendering the next decision state
       // before deciding whether the dock should remain visible or change role.
       // On mobile the canonical CTA is intentionally CSS-hidden while the dock
-      // proxies it, so keep keyboard/accessibility focus on the visible proxy.
+      // proxies it, so keep keyboard/accessibility focus on the visible proxy
+      // unless the next-day flow has intentionally handed focus to a dose input.
       // The one-task lock also prevents a rapid double tap from submitting the
       // same day twice before the canonical UI has finished changing state.
       setTimeout(()=>{
@@ -259,6 +298,8 @@
     ensureDock();
     const submit=d.querySelector('#submitBtn');
     if(submit)submit.addEventListener('click',()=>setTimeout(refresh,0));
+    const doseGrid=d.querySelector('#doseGrid');
+    if(doseGrid)doseGrid.addEventListener('input',refresh);
     const mealGrid=d.querySelector('#todayMealGrid');
     mealGrid?.closest?.('.record-card')?.classList?.add?.('repeat-play-meal-source');
     if(mealGrid&&typeof MutationObserver!=='undefined')new MutationObserver(refresh).observe(mealGrid,{childList:true,subtree:true,characterData:true});
@@ -271,7 +312,7 @@
     refresh();
   }
 
-  const api={actionTarget,feedbackAlreadyInResultGlance,decisionStripVisibleInViewport,prescriptionMealContext,prescriptionLearningFocusText,prescriptionReminderText,terminalLearningFocusText,primaryFeedbackText,isNarrowViewport,focusDockAction,beginAction,finishAction,refresh,scheduleViewportRefresh,mount,version:'1.10.0',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
+  const api={actionTarget,feedbackAlreadyInResultGlance,decisionStripVisibleInViewport,prescriptionMealContext,prescriptionLearningFocusText,prescriptionDoseChangeText,prescriptionReminderText,terminalLearningFocusText,primaryFeedbackText,isNarrowViewport,prescriptionInputFocused,focusDockAction,beginAction,finishAction,refresh,scheduleViewportRefresh,mount,version:'1.13.0',dockId:DOCK_ID,buttonId:BUTTON_ID,feedbackId:FEEDBACK_ID};
   if(root)root.RepeatPlayActionDock=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();

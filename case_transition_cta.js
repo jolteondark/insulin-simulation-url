@@ -28,6 +28,17 @@
     return true;
   }
 
+  function schedulePreferredDoseFocus(){
+    // Pointer activation already bubbles through DoseAdjustControls' click helper.
+    // Keyboard N bypasses that click path, so explicitly hand focus to the same
+    // actionable/fallback dose after the new-case DOM has rendered.
+    setTimeout(()=>{
+      try{return root?.DoseAdjustControls?.focusPreferredDose?.()}
+      catch(e){console.error('case transition dose focus',e)}
+    },0);
+    return true;
+  }
+
   function loadLearningData(){
     try{return JSON.parse(root?.localStorage?.getItem(STORAGE_KEY)||'{}')}
     catch{return {}}
@@ -37,14 +48,20 @@
     return objective?.focus_label||objective?.label||objective?.domain_id||'現在の処方判断';
   }
 
-  function percent(x){
+  function finiteOrNull(x){
+    if(x===null||x===undefined||x==='')return null;
     const n=Number(x);
-    return Number.isFinite(n)?`${Math.round(100*n)}%`:'—';
+    return Number.isFinite(n)?n:null;
+  }
+
+  function percent(x){
+    const n=finiteOrNull(x);
+    return n===null?'—':`${Math.round(100*n)}%`;
   }
 
   function percentagePointDelta(x){
-    const n=Number(x);
-    if(!Number.isFinite(n))return '—';
+    const n=finiteOrNull(x);
+    if(n===null)return '—';
     const p=Math.round(100*n);
     return `${p>=0?'+':''}${p}pt`;
   }
@@ -145,7 +162,9 @@
     const btn=d?.querySelector?.('#'+CTA_ID);
     if(!s?.over||!btn)return false;
     event.preventDefault?.();
-    return startNextCase();
+    const started=startNextCase();
+    if(started)schedulePreferredDoseFocus();
+    return started;
   }
 
   function refresh(){
@@ -189,7 +208,7 @@
     refresh();
   }
 
-  const api={ensureCta,refresh,mount,navigateCaseStart,scheduleCaseStartNavigation,loadLearningData,objectiveLabel,percent,percentagePointDelta,nextChallengeModel,renderPreview,startNextCase,isTypingTarget,handleKeydown,version:'1.5.1'};
+  const api={ensureCta,refresh,mount,navigateCaseStart,scheduleCaseStartNavigation,schedulePreferredDoseFocus,loadLearningData,objectiveLabel,finiteOrNull,percent,percentagePointDelta,nextChallengeModel,renderPreview,startNextCase,isTypingTarget,handleKeydown,version:'1.6.0'};
   if(root)root.CaseTransitionCta=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();

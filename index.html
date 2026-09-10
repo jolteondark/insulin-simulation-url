@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="theme-color" content="#f2f4f7" />
 <title>WARD GLUCOSE — Inpatient Insulin Simulation</title>
-<link rel="stylesheet" href="style.css?v=f513a2f7f33f" />
-<link rel="stylesheet" href="history_readability.css?v=380a10823bd5" />
-<link rel="stylesheet" href="mobile_throughput.css?v=25035c64c10a" />
+<link rel="stylesheet" href="style.css?v=33f13526913f" />
+<link rel="stylesheet" href="history_readability.css?v=6bfcf8f091a6" />
+<link rel="stylesheet" href="mobile_throughput.css?v=af2ff29a8c18" />
 </head>
 <body>
 <div class="app-shell">
@@ -23,41 +23,44 @@
     <section id="runHistory" class="section-block" style="margin-top:24px"><div class="section-title"><span>H</span> この患者の全履歴</div><div id="runHistoryBody"></div></section>
   </main><footer>Educational simulation only — not for clinical dosing.</footer>
 </div>
-<script src="engine.js?v=d890b4888e4e"></script>
-<script src="correction_scale.js?v=505294f3052f"></script>
-<script src="patient_generator.js?v=97e34f106cda"></script>
-<script src="adaptive_case_selection.js?v=ae184408b462"></script>
-<script src="education_routing_state.js?v=23685506a983"></script>
-<script src="recent_tendency_routing.js?v=06f27efe85ac"></script>
-<script src="app.js?v=5c600b4a93ca"></script>
-<script src="session_checkpoint.js?v=0f7fc3b5f437"></script>
-<script src="dose_adjust_controls.js?v=ec815c8dfc48"></script>
-<script src="prescription_decision_strip.js?v=a863203193b1"></script>
-<script src="next_day_throughput.js?v=1e9806a41990"></script>
-<script src="repeat_play_navigation.js?v=8338ab109db8"></script>
-<script src="result_glance_summary.js?v=86f7329bff0b"></script>
-<script src="history_compaction.js?v=56ba83c6a673"></script>
-<script src="latest_insulin_summary.js?v=117093881926"></script>
-<script src="discharge_rule.js?v=d12cd285664a"></script>
-<script src="daily_feedback.js?v=113d4cd90c7f"></script>
-<script src="result_feedback_integration.js?v=e14a6da8e6e4"></script>
-<script src="feedback_carryover.js?v=451605f1d352"></script>
-<script src="actionable_dose_target.js?v=1dae52756353"></script>
-<script src="learning_curve.js?v=a0680cc25197"></script>
-<script src="learning_data_export.js?v=d340f8e76d62"></script>
-<script src="learning_analysis.js?v=b8a617c4bf32"></script>
-<script src="final_learning_debrief.js?v=d20dada842dd"></script>
-<script src="learning_cycle_manager.js?v=ca81836c1f82"></script>
-<script src="case_debrief.js?v=8b4f37b046fa"></script>
-<script src="case_learning_progress.js?v=b46b3ded19b2"></script>
-<script src="routing_learning_outcomes.js?v=a80200afa51b"></script>
-<script src="adaptive_practice_tracking.js?v=011ab7ffbfa8"></script>
-<script src="adaptive_practice_history.js?v=324355197def"></script>
-<script src="learning_momentum.js?v=a9f1823e14a2"></script>
-<script src="learning_run_progress.js?v=b905aa8eed2a"></script>
-<script src="case_completion_transaction.js?v=a1214b0cdb4d"></script>
-<script src="case_learning_trace.js?v=5d1c1ba40a12"></script>
+<script src="engine.js?v=fd1afa51e58d"></script>
+<script src="correction_scale.js?v=f6e98124aae5"></script>
+<script src="patient_generator.js?v=8ef5a086d929"></script>
+<script src="adaptive_case_selection.js?v=b1539d548441"></script>
+<script src="education_routing_state.js?v=027bd5fd2ac0"></script>
+<script src="mastery_aware_routing.js?v=81b01171495d"></script>
+<script src="recent_tendency_routing.js?v=601ff1364367"></script>
+<script src="app.js?v=8b8df7204207"></script>
+<script src="session_checkpoint.js?v=1db9a55b42a5"></script>
+<script src="dose_adjust_controls.js?v=e5b9505bc08a"></script>
+<script src="prescription_decision_strip.js?v=2fd6b1af21d3"></script>
+<script src="next_day_throughput.js?v=1583ea538fca"></script>
+<script src="repeat_play_navigation.js?v=75beb8ede88a"></script>
+<script src="result_glance_summary.js?v=807d93be2f6b"></script>
+<script src="history_compaction.js?v=c680bf1c2c3b"></script>
+<script src="latest_insulin_summary.js?v=9e94754166ff"></script>
+<script src="discharge_rule.js?v=9fccb5de3217"></script>
+<script src="daily_feedback.js?v=26be8b639d11"></script>
+<script src="result_feedback_integration.js?v=f6f1f09ddb7f"></script>
+<script src="feedback_carryover.js?v=b5c3018dbadc"></script>
+<script src="actionable_dose_target.js?v=3852940cb42c"></script>
+<script src="learning_curve.js?v=71f24807c2c4"></script>
+<script src="learning_data_export.js?v=731fcd42ffe1"></script>
+<script src="learning_analysis.js?v=e855f8705d24"></script>
+<script src="final_learning_debrief.js?v=0345900428cc"></script>
+<script src="learning_cycle_manager.js?v=870dcb364a90"></script>
+<script src="case_debrief.js?v=a35eeeb9b009"></script>
+<script src="case_learning_progress.js?v=d9208f67ddc9"></script>
+<script src="routing_learning_outcomes.js?v=5be259524030"></script>
+<script src="learning_skill_state.js?v=bb42beb79b40"></script>
+<script src="adaptive_practice_tracking.js?v=7354b5c9f989"></script>
+<script src="adaptive_practice_history.js?v=5468f8e8c488"></script>
+<script src="learning_momentum.js?v=4c1682b927e3"></script>
+<script src="learning_run_progress.js?v=8441ac7d8f5b"></script>
+<script src="case_completion_transaction.js?v=d3185856da05"></script>
+<script src="case_learning_trace.js?v=68e3bdf687b9"></script>
+<script src="followthrough_objective_release.js?v=cd6b65e5aa1b"></script>
 <script src="learning_followthrough_progress.js?v=f27c3f18a171"></script>
-<script src="case_transition_cta.js?v=0432b497b2fa"></script>
-<script src="repeat_play_action_dock.js?v=0e28ad3c6a7c"></script>
+<script src="case_transition_cta.js?v=75aa721b7c69"></script>
+<script src="repeat_play_action_dock.js?v=4a7734bbbfec"></script>
 </body></html>
