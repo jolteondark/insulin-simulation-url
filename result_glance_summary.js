@@ -1,4 +1,11 @@
 (function(root){
+  const POC_MIN=80;
+  const POC_MAX=180;
+  const HIDDEN_SAFE_MIN=70;
+  const HIDDEN_SAFE_MAX=250;
+  const TERMINAL_MIN=70;
+  const TERMINAL_MAX=400;
+
   function num(x){const n=Number(x);return Number.isFinite(n)?n:0}
   function nullableNum(x){if(x===null||x===undefined||x==='')return null;const n=Number(x);return Number.isFinite(n)?n:null}
   function fmt(x){const n=num(x);return Number.isInteger(n)?String(n):n.toFixed(1)}
@@ -54,14 +61,31 @@
     return `<span class="result-glance-dose-chip result-glance-basal-chip"><span>実効 basal</span><b>${fmt(active)} U</b><span class="result-glance-basal-arrow">→ 今夜 ${fmt(ordered)} U</span></span>`;
   }
 
+  function bgStatus(value){
+    if(value===null)return {className:'result-glance-missing',label:''};
+    if(value<POC_MIN)return {className:'result-glance-low',label:'低'};
+    if(value>POC_MAX)return {className:'result-glance-high',label:'高'};
+    return {className:'result-glance-target',label:''};
+  }
+
   function bgCell(label,value){
     const text=value===null?'—':String(Math.round(value));
-    return `<div class="result-glance-bg-cell"><div class="result-glance-label">${label}</div><div class="result-glance-bg-value">${text}</div></div>`;
+    const status=bgStatus(value);
+    const flag=status.label?`<span class="result-glance-flag">${status.label}</span>`:'';
+    return `<div class="result-glance-bg-cell ${status.className}"><div class="result-glance-label">${label}</div><div class="result-glance-bg-value">${text}${flag}</div></div>`;
+  }
+
+  function hiddenStatus(hidden){
+    if(hidden.min===null||hidden.max===null)return {className:'result-glance-missing',label:''};
+    if(hidden.min<TERMINAL_MIN||hidden.max>TERMINAL_MAX)return {className:'result-glance-danger',label:'GAME OVER域'};
+    if(hidden.min<HIDDEN_SAFE_MIN||hidden.max>HIDDEN_SAFE_MAX)return {className:'result-glance-warning',label:'hidden逸脱'};
+    return {className:'result-glance-target',label:'hidden安全域'};
   }
 
   function hiddenText(hidden){
     if(hidden.min===null||hidden.max===null)return 'hidden範囲 —';
-    return `hidden範囲 ${Math.round(hidden.min)}–${Math.round(hidden.max)} mg/dL`;
+    const status=hiddenStatus(hidden);
+    return `hidden範囲 ${Math.round(hidden.min)}–${Math.round(hidden.max)} mg/dL · ${status.label}`;
   }
 
   function buildHtml(rec){
@@ -69,6 +93,7 @@
     if(!x)return '';
     const day=Number(rec?.day);
     const title=Number.isFinite(day)?`DAY ${day}：結果 → 次の1点`:'結果 → 次の1点';
+    const hidden=hiddenStatus(x.hidden);
     return `<div class="result-glance" aria-label="本日の血糖結果と実投与の要約">
       <div class="result-glance-title">${title}</div>
       <div class="result-glance-bg-grid">
@@ -77,7 +102,7 @@
         ${bgCell('夕前',x.bg.pre_dinner)}
         ${bgCell('眠前',x.bg.bedtime)}
       </div>
-      <div class="result-glance-safety">${hiddenText(x.hidden)}</div>
+      <div class="result-glance-safety ${hidden.className}">${hiddenText(x.hidden)}</div>
       <div class="result-glance-actual" aria-label="本日の実投与インスリン">
         <span class="result-glance-actual-label">実投与</span>
         ${actualDoseChip('朝',x.actual.breakfast,x.correction.breakfast)}
@@ -102,7 +127,7 @@
     if(typeof document==='undefined'||document.getElementById('resultGlanceStyle'))return;
     const style=document.createElement('style');
     style.id='resultGlanceStyle';
-    style.textContent=`.result-glance{margin:12px 0;padding:12px;background:rgba(255,255,255,.72);border:1px solid rgba(120,128,140,.18);border-radius:14px}.result-glance-title{font-size:13px;font-weight:800;letter-spacing:.04em;color:#666d77;margin-bottom:8px}.result-glance-bg-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.result-glance-bg-cell{min-width:0;text-align:center;padding:7px 3px;background:rgba(246,247,249,.9);border-radius:9px}.result-glance-label{font-size:12px;color:#747b85}.result-glance-bg-value{font-size:19px;font-weight:800;margin-top:2px}.result-glance-safety{font-size:13px;color:#5f6670;margin:8px 2px 0}.result-glance-actual{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:8px;font-size:12px}.result-glance-actual-label{font-weight:800;color:#5f6670;margin-right:1px}.result-glance-dose-chip{display:inline-flex;align-items:baseline;gap:4px;padding:5px 7px;background:rgba(246,247,249,.92);border-radius:8px;color:#68707a}.result-glance-dose-chip b{font-size:13px;color:#272b31}.result-glance-scale,.result-glance-basal-arrow{font-size:12px;color:#7d848e}.result-glance-basal-chip{flex-wrap:wrap}.result-glance-details{margin-top:9px}.result-glance-details>summary{font-size:12px;color:#626a75;cursor:pointer;user-select:none;min-height:36px;display:flex;align-items:center}.result-glance-meals{font-size:12px;color:#626a75;margin:8px 0}.result-glance-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.result-glance-cell{min-width:0;text-align:center;padding:7px 3px;background:rgba(246,247,249,.9);border-radius:9px}.result-glance-value{font-size:15px;font-weight:780;margin-top:2px}.result-glance-sub{font-size:12px;color:#7d848e;margin-top:3px;line-height:1.35}.result-glance-legacy-hidden{display:none!important}@media(max-width:520px){.result-glance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.result-glance-bg-value{font-size:19px}.result-glance-dose-chip{padding:5px 6px}.result-glance-basal-chip{width:100%;justify-content:center}}`;
+    style.textContent=`.result-glance{margin:12px 0;padding:12px;background:rgba(255,255,255,.72);border:1px solid rgba(120,128,140,.18);border-radius:14px}.result-glance-title{font-size:13px;font-weight:800;letter-spacing:.04em;color:#666d77;margin-bottom:8px}.result-glance-bg-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.result-glance-bg-cell{min-width:0;text-align:center;padding:7px 3px;background:rgba(246,247,249,.9);border:1px solid transparent;border-radius:9px}.result-glance-bg-cell.result-glance-low,.result-glance-bg-cell.result-glance-high{border-color:rgba(40,44,50,.42);background:rgba(239,240,242,.96)}.result-glance-label{font-size:12px;color:#747b85}.result-glance-bg-value{font-size:19px;font-weight:800;margin-top:2px}.result-glance-flag{display:inline-block;margin-left:4px;font-size:12px;font-weight:800;vertical-align:2px}.result-glance-safety{font-size:13px;color:#5f6670;margin:8px 2px 0;padding:4px 6px;border-radius:7px}.result-glance-safety.result-glance-warning,.result-glance-safety.result-glance-danger{font-weight:800;border:1px solid rgba(40,44,50,.42);background:rgba(239,240,242,.96)}.result-glance-safety.result-glance-danger{border-width:2px}.result-glance-actual{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:8px;font-size:12px}.result-glance-actual-label{font-weight:800;color:#5f6670;margin-right:1px}.result-glance-dose-chip{display:inline-flex;align-items:baseline;gap:4px;padding:5px 7px;background:rgba(246,247,249,.92);border-radius:8px;color:#68707a}.result-glance-dose-chip b{font-size:13px;color:#272b31}.result-glance-scale,.result-glance-basal-arrow{font-size:12px;color:#7d848e}.result-glance-basal-chip{flex-wrap:wrap}.result-glance-details{margin-top:9px}.result-glance-details>summary{font-size:12px;color:#626a75;cursor:pointer;user-select:none;min-height:36px;display:flex;align-items:center}.result-glance-meals{font-size:12px;color:#626a75;margin:8px 0}.result-glance-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.result-glance-cell{min-width:0;text-align:center;padding:7px 3px;background:rgba(246,247,249,.9);border-radius:9px}.result-glance-value{font-size:15px;font-weight:780;margin-top:2px}.result-glance-sub{font-size:12px;color:#7d848e;margin-top:3px;line-height:1.35}.result-glance-legacy-hidden{display:none!important}@media(max-width:520px){.result-glance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.result-glance-bg-value{font-size:19px}.result-glance-dose-chip{padding:5px 6px}.result-glance-basal-chip{width:100%;justify-content:center}}`;
     document.head.appendChild(style);
   }
 
@@ -137,7 +162,7 @@
     submit.addEventListener('click',annotateLatest);
   }
 
-  const api={summaryData,buildHtml,basalDoseChip,compactLegacyNonterminal,annotateLatest,mount,version:'1.5.1'};
+  const api={summaryData,bgStatus,hiddenStatus,buildHtml,basalDoseChip,compactLegacyNonterminal,annotateLatest,mount,version:'1.6.0'};
   if(root)root.ResultGlanceSummary=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
