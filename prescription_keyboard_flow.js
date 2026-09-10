@@ -65,9 +65,23 @@
     return submitFromLastDose();
   }
 
+  function canonicalKeyboardOwnerPresent(){
+    // dose_adjust_controls.js already owns the production Enter flow, including
+    // result-action focus and next-day preferred-dose handoff. When it is loaded,
+    // mounting a second bubbling keydown listener repeats the same transition and
+    // makes future keyboard changes require two implementations to stay aligned.
+    return Boolean(root?.DoseAdjustControls?.submitFromDoseInput);
+  }
+
   function mount(){
     const d=doc();
     if(!d||d.documentElement?.dataset?.prescriptionKeyboardFlowMounted)return false;
+    if(canonicalKeyboardOwnerPresent()){
+      // Keep this module as a compatibility surface for existing tests/public
+      // caches, but make DoseAdjustControls the single production event owner.
+      if(d.documentElement)d.documentElement.dataset.prescriptionKeyboardFlowMounted='delegated';
+      return false;
+    }
     const grid=d.getElementById?.('doseGrid')||d.querySelector?.('#doseGrid');
     if(!grid||typeof grid.addEventListener!=='function')return false;
     if(d.documentElement)d.documentElement.dataset.prescriptionKeyboardFlowMounted='1';
@@ -75,7 +89,7 @@
     return true;
   }
 
-  const api={isDoseInput,nextDoseId,focusAndSelect,resultVisible,canonicalSubmit,submitFromLastDose,handleKeydown,mount,doseIds:[...DOSE_IDS],version:'1.0.0'};
+  const api={isDoseInput,nextDoseId,focusAndSelect,resultVisible,canonicalSubmit,submitFromLastDose,handleKeydown,canonicalKeyboardOwnerPresent,mount,doseIds:[...DOSE_IDS],version:'1.0.0'};
   if(root)root.PrescriptionKeyboardFlow=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();
