@@ -8,19 +8,20 @@
   const BG_TO_DOSE={pre_breakfast:'basal',pre_lunch:'breakfast',pre_dinner:'lunch',bedtime:'dinner'};
   const DOSE_TO_BG={basal:'pre_breakfast',breakfast:'pre_lunch',lunch:'pre_dinner',dinner:'bedtime'};
   const BG_LABELS={pre_breakfast:'朝前',pre_lunch:'昼前',pre_dinner:'夕前',bedtime:'眠前'};
-  const PRIMARY_TAG_TO_DOSE={
-    basal_excess:'basal',basal_deficit:'basal',
-    breakfast_rapid_excess:'breakfast',breakfast_rapid_deficit:'breakfast',
-    lunch_rapid_excess:'lunch',lunch_rapid_deficit:'lunch',
-    dinner_rapid_excess:'dinner',dinner_rapid_deficit:'dinner'
-  };
 
   function num(x){const n=Number(x);return Number.isFinite(n)?n:0}
   function nullableNum(x){if(x===null||x===undefined||x==='')return null;const n=Number(x);return Number.isFinite(n)?n:null}
   function fmt(x){const n=num(x);return Number.isInteger(n)?String(n):n.toFixed(1)}
   function correction(rec,key){return num(rec?.result?.correction_doses_u?.[key])}
   function actualRapid(rec,key){return num(rec?.order?.[`${key}_u`])+correction(rec,key)}
-  function primaryDoseKey(rec){return PRIMARY_TAG_TO_DOSE[rec?.education_feedback?.primary_tag]||''}
+  function actionableApi(){
+    if(root?.ActionableDoseTarget?.targetForTag)return root.ActionableDoseTarget;
+    if(typeof module!=='undefined'&&module.exports&&typeof require==='function'){
+      try{const api=require('./actionable_dose_target.js');if(api?.targetForTag)return api}catch{}
+    }
+    return null;
+  }
+  function primaryDoseKey(rec){return actionableApi()?.targetForTag?.(rec?.education_feedback?.primary_tag)?.doseKey||''}
 
   function summaryData(rec){
     if(!rec?.result?.bg)return null;
@@ -67,7 +68,7 @@
   function annotateLatest(){try{if(typeof state==='undefined'||!state?.history?.length)return;const rec=state.history[state.history.length-1];const panel=document.querySelector('#resultPanel');if(!panel||panel.querySelector('.result-glance'))return;const html=buildHtml(rec);if(!html)return;const next=panel.querySelector('.next-btn');if(next)next.insertAdjacentHTML('beforebegin',html);else panel.insertAdjacentHTML('beforeend',html);compactLegacyNonterminal(panel)}catch(e){console.error('result glance summary',e)}}
   function scheduleAnnotate(){if(typeof queueMicrotask==='function')queueMicrotask(annotateLatest);else Promise.resolve().then(annotateLatest)}
   function mount(){if(typeof document==='undefined')return;ensureStyle();const submit=document.querySelector('#submitBtn');if(!submit||submit.dataset.resultGlanceMounted)return;submit.dataset.resultGlanceMounted='1';submit.addEventListener('click',scheduleAnnotate)}
-  const api={summaryData,bgStatus,hiddenStatus,linkedDoseForBgKey,primaryDoseKey,doseExcursionLink,buildHtml,basalDoseChip,compactLegacyNonterminal,annotateLatest,scheduleAnnotate,mount,version:'1.8.0'};
+  const api={summaryData,bgStatus,hiddenStatus,linkedDoseForBgKey,primaryDoseKey,doseExcursionLink,buildHtml,basalDoseChip,compactLegacyNonterminal,annotateLatest,scheduleAnnotate,mount,version:'1.9.0'};
   if(root)root.ResultGlanceSummary=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount()}
