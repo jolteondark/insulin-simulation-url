@@ -56,17 +56,18 @@
   }
   .order-card .dose-input-card > label {
     display:block;
-    padding-right:68px;
+    padding-right:76px;
   }
   /* Keep the previous-day delta visible without spending a full extra line
-     in every card. The label reserves space so the two never overlap. */
+     in every card. The label reserves space so the two never overlap. Do not
+     shrink this decision-critical change text below the app's 12px microcopy. */
   .order-card .dose-change-hint {
     position:absolute;
     top:7px;
     right:6px;
     margin:0;
     min-height:0;
-    font-size:10px;
+    font-size:12px;
     line-height:1.2;
     white-space:nowrap;
   }
