@@ -4,17 +4,25 @@
   const TARGET_CLASS='actionable-dose-target';
   const BADGE_CLASS='decision-strip-dose-target';
   const HINT_ID='actionableDoseTargetHint';
+  // Single owner for primary feedback tag -> dose target resolution.
+  // Result summaries and next-day focus should consume this mapping rather than
+  // maintaining parallel tag tables that can drift apart.
   const tagTargets={
-    basal_excess:{inputId:'dose_basal_u',label:'眠前 basal',direction:'↓'},
-    basal_deficit:{inputId:'dose_basal_u',label:'眠前 basal',direction:'↑'},
-    breakfast_rapid_excess:{inputId:'dose_breakfast_u',label:'朝 rapid',direction:'↓'},
-    breakfast_rapid_deficit:{inputId:'dose_breakfast_u',label:'朝 rapid',direction:'↑'},
-    lunch_rapid_excess:{inputId:'dose_lunch_u',label:'昼 rapid',direction:'↓'},
-    lunch_rapid_deficit:{inputId:'dose_lunch_u',label:'昼 rapid',direction:'↑'},
-    dinner_rapid_excess:{inputId:'dose_dinner_u',label:'夕 rapid',direction:'↓'},
-    dinner_rapid_deficit:{inputId:'dose_dinner_u',label:'夕 rapid',direction:'↑'}
+    basal_excess:{doseKey:'basal',inputId:'dose_basal_u',label:'眠前 basal',direction:'↓'},
+    basal_deficit:{doseKey:'basal',inputId:'dose_basal_u',label:'眠前 basal',direction:'↑'},
+    breakfast_rapid_excess:{doseKey:'breakfast',inputId:'dose_breakfast_u',label:'朝 rapid',direction:'↓'},
+    breakfast_rapid_deficit:{doseKey:'breakfast',inputId:'dose_breakfast_u',label:'朝 rapid',direction:'↑'},
+    lunch_rapid_excess:{doseKey:'lunch',inputId:'dose_lunch_u',label:'昼 rapid',direction:'↓'},
+    lunch_rapid_deficit:{doseKey:'lunch',inputId:'dose_lunch_u',label:'昼 rapid',direction:'↑'},
+    dinner_rapid_excess:{doseKey:'dinner',inputId:'dose_dinner_u',label:'夕 rapid',direction:'↓'},
+    dinner_rapid_deficit:{doseKey:'dinner',inputId:'dose_dinner_u',label:'夕 rapid',direction:'↑'}
   };
   let lastAutoFocusKey='';
+
+  function targetForTag(tag){
+    const target=tagTargets[String(tag||'')];
+    return target?{...target,tag:String(tag)}:null;
+  }
 
   function evidenceForCarry(carry){
     const text=String(carry?.text||'');
@@ -29,7 +37,8 @@
       if(!carry?.tag)return null;
       // latestCarryover intentionally survives even when its separate text block
       // is hidden because LEARNING FOCUS duplicates the same instruction.
-      return tagTargets[carry.tag]?{...tagTargets[carry.tag],tag:carry.tag,evidence:evidenceForCarry(carry)}:null;
+      const target=targetForTag(carry.tag);
+      return target?{...target,evidence:evidenceForCarry(carry)}:null;
     }catch{return null}
   }
 
@@ -148,7 +157,7 @@
     ['previousFeedback','previousFeedbackBody','learningFocus','prescriptionDecisionStrip','doseGrid','resultPanel','dayNo'].forEach(observe);
   }
 
-  const api={currentTarget,currentDayKey,resultIsVisible,autoFocusTarget,applyTarget,evidenceForCarry,tagTargets,version:'1.3.0'};
+  const api={currentTarget,targetForTag,currentDayKey,resultIsVisible,autoFocusTarget,applyTarget,evidenceForCarry,tagTargets,version:'1.4.0'};
   if(root)root.ActionableDoseTarget=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
