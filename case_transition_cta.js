@@ -30,7 +30,7 @@
 
   function schedulePreferredDoseFocus(){
     // Pointer activation already bubbles through DoseAdjustControls' click helper.
-    // Keyboard N bypasses that click path, so explicitly hand focus to the same
+    // Keyboard shortcuts bypass that click path, so explicitly hand focus to the same
     // actionable/fallback dose after the new-case DOM has rendered.
     setTimeout(()=>{
       try{return root?.DoseAdjustControls?.focusPreferredDose?.()}
@@ -143,7 +143,7 @@
     btn.className='next-btn';
     btn.type='button';
     btn.textContent='次の重点症例へ';
-    btn.title='Nキーでも次の重点症例を開始できます';
+    btn.title='Enter または N キーで次の重点症例を開始できます';
     btn.style.marginTop='10px';
     btn.addEventListener('click',startNextCase);
     body.appendChild(btn);
@@ -155,8 +155,18 @@
     return tag==='input'||tag==='textarea'||tag==='select'||Boolean(target?.isContentEditable);
   }
 
+  function isNativeActivationTarget(target){
+    const tag=String(target?.tagName||'').toLowerCase();
+    return tag==='button'||tag==='a';
+  }
+
   function handleKeydown(event){
-    if(!event||String(event.key||'').toLowerCase()!=='n'||event.ctrlKey||event.altKey||event.metaKey||isTypingTarget(event.target))return false;
+    if(!event||event.ctrlKey||event.altKey||event.metaKey||isTypingTarget(event.target))return false;
+    const key=String(event.key||'').toLowerCase();
+    if(key!=='n'&&key!=='enter')return false;
+    // Enter on the focused CTA/button already produces a native click. Handling it
+    // here as well would start two generated cases from a single keypress.
+    if(key==='enter'&&isNativeActivationTarget(event.target))return false;
     const d=doc();
     const s=root?.state||(typeof state!=='undefined'?state:null);
     const btn=d?.querySelector?.('#'+CTA_ID);
@@ -208,7 +218,7 @@
     refresh();
   }
 
-  const api={ensureCta,refresh,mount,navigateCaseStart,scheduleCaseStartNavigation,schedulePreferredDoseFocus,loadLearningData,objectiveLabel,finiteOrNull,percent,percentagePointDelta,nextChallengeModel,renderPreview,startNextCase,isTypingTarget,handleKeydown,version:'1.6.0'};
+  const api={ensureCta,refresh,mount,navigateCaseStart,scheduleCaseStartNavigation,schedulePreferredDoseFocus,loadLearningData,objectiveLabel,finiteOrNull,percent,percentagePointDelta,nextChallengeModel,renderPreview,startNextCase,isTypingTarget,isNativeActivationTarget,handleKeydown,version:'1.7.0'};
   if(root)root.CaseTransitionCta=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();
