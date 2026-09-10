@@ -35,10 +35,17 @@
     try{
       const carry=root?.FeedbackCarryover?.latestCarryover?.();
       if(!carry?.tag)return null;
-      // latestCarryover intentionally survives even when its separate text block
-      // is hidden because LEARNING FOCUS duplicates the same instruction.
-      const target=targetForTag(carry.tag);
-      return target?{...target,evidence:evidenceForCarry(carry)}:null;
+      // Within a case, yesterday's directional feedback is the immediate next-dose
+      // handoff. At a fresh case boundary, however, routing may intentionally choose
+      // a different longitudinal/persistent objective. The saved active objective is
+      // therefore authoritative for day 1 so terminal next_objective and input focus
+      // cannot drift apart.
+      const routedTag=carry.source==='previous_case'?root?.FeedbackCarryover?.activeFocusTag?.():null;
+      const tag=routedTag||carry.tag;
+      const target=targetForTag(tag);
+      if(!target)return null;
+      const evidence=tag===carry.tag?evidenceForCarry(carry):'';
+      return {...target,evidence,source:routedTag?'active_objective':carry.source||'carryover'};
     }catch{return null}
   }
 
@@ -111,7 +118,7 @@
 
     // Keep the causal glucose point, target and direction beside the existing
     // "次に変える1点" text. All three are derived from the already-selected
-    // education feedback, so this adds no new dosing rule or unit recommendation.
+    // education feedback/routing state, so this adds no new dosing rule or unit recommendation.
     const feedback=document.querySelector('#prescriptionDecisionStrip .decision-strip-feedback');
     const action='対象：'+target.label+' '+target.direction;
     const expected=target.evidence?target.evidence+' → '+action:action;
@@ -157,7 +164,7 @@
     ['previousFeedback','previousFeedbackBody','learningFocus','prescriptionDecisionStrip','doseGrid','resultPanel','dayNo'].forEach(observe);
   }
 
-  const api={currentTarget,targetForTag,currentDayKey,resultIsVisible,autoFocusTarget,applyTarget,evidenceForCarry,tagTargets,version:'1.4.0'};
+  const api={currentTarget,targetForTag,currentDayKey,resultIsVisible,autoFocusTarget,applyTarget,evidenceForCarry,tagTargets,version:'1.5.0'};
   if(root)root.ActionableDoseTarget=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
