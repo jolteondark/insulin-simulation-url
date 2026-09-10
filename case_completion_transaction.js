@@ -127,7 +127,7 @@
       const priorCommitted=completedRecord(before,caseId);
       if(priorCommitted){
         const practice=renderCommitted(root,before,caseId);
-        return {data:before,model:null,scored:priorCommitted.scored||null,practice,routing:null,routing_transition:priorCommitted.routing_transition||null,reused:true};
+        return {data:before,model:null,scored:priorCommitted.scored||null,practice,routing:null,routing_transition:priorCommitted.routing_transition||null,next_objective:priorCommitted.next_objective||null,reused:true};
       }
 
       const withBase=learning.applyLatest(before,s);
@@ -139,18 +139,21 @@
       const routed=resolveNextObjective(root,attached.data);
       const next=routed.data;
       const transition=routingTransition(beforeObjective,routed.routing);
+      const nextObjective=routed.routing?.objective||next?.active_objective||null;
       const feedback=terminalFeedback(s);
       if(feedback)next.last_terminal_feedback=feedback;
       const prior=next.completion_records?.[caseId]||{};
       next.completion_records={...(next.completion_records||{}),[caseId]:{
         ...prior,
         routing_transition:transition,
+        next_objective:nextObjective,
         completion_transaction:{
-          version:10,
+          version:11,
           learning_curve_attached:true,
           adaptive_practice_attached:Boolean(attached.record),
           terminal_feedback_attached:Boolean(feedback),
           next_objective_resolved:Boolean(routed.routing),
+          next_objective_attached:Boolean(nextObjective),
           routing_transition_attached:Boolean(transition),
           learning_run_refreshed:Boolean(root?.WardLearningRunProgress?.refresh),
           momentum_feedback_ready:true,
@@ -166,7 +169,7 @@
       learning.render?.();
       root.CaseLearningProgress?.refresh?.();
       refreshTerminalUi(root,next,caseId);
-      return {data:next,model,scored:applied.scored||null,practice:attached.record||null,routing:routed.routing,routing_transition:transition,terminal_feedback:feedback,reused:false};
+      return {data:next,model,scored:applied.scored||null,practice:attached.record||null,routing:routed.routing,routing_transition:transition,next_objective:nextObjective,terminal_feedback:feedback,reused:false};
     }catch(e){
       console.error('case completion transaction',e);
       return null;
@@ -180,5 +183,5 @@
     completeAfterTerminal(root);
   }
 
-  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,terminalFeedback,resolveNextObjective,releaseTransition,routingTransition,renderRoutingTransition,refreshTerminalUi,mount,version:'1.9.1'};
+  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,terminalFeedback,resolveNextObjective,releaseTransition,routingTransition,renderRoutingTransition,refreshTerminalUi,mount,version:'1.10.0'};
 });
