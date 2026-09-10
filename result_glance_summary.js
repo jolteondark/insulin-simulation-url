@@ -8,12 +8,19 @@
   const BG_TO_DOSE={pre_breakfast:'basal',pre_lunch:'breakfast',pre_dinner:'lunch',bedtime:'dinner'};
   const DOSE_TO_BG={basal:'pre_breakfast',breakfast:'pre_lunch',lunch:'pre_dinner',dinner:'bedtime'};
   const BG_LABELS={pre_breakfast:'朝前',pre_lunch:'昼前',pre_dinner:'夕前',bedtime:'眠前'};
+  const PRIMARY_TAG_TO_DOSE={
+    basal_excess:'basal',basal_deficit:'basal',
+    breakfast_rapid_excess:'breakfast',breakfast_rapid_deficit:'breakfast',
+    lunch_rapid_excess:'lunch',lunch_rapid_deficit:'lunch',
+    dinner_rapid_excess:'dinner',dinner_rapid_deficit:'dinner'
+  };
 
   function num(x){const n=Number(x);return Number.isFinite(n)?n:0}
   function nullableNum(x){if(x===null||x===undefined||x==='')return null;const n=Number(x);return Number.isFinite(n)?n:null}
   function fmt(x){const n=num(x);return Number.isInteger(n)?String(n):n.toFixed(1)}
   function correction(rec,key){return num(rec?.result?.correction_doses_u?.[key])}
   function actualRapid(rec,key){return num(rec?.order?.[`${key}_u`])+correction(rec,key)}
+  function primaryDoseKey(rec){return PRIMARY_TAG_TO_DOSE[rec?.education_feedback?.primary_tag]||''}
 
   function summaryData(rec){
     if(!rec?.result?.bg)return null;
@@ -64,28 +71,29 @@
 
   function linkedDoseForBgKey(key){return BG_TO_DOSE[key]||''}
 
-  function doseExcursionLink(x,doseKey){
+  function doseExcursionLink(x,doseKey,primaryKey=''){
     const bgKey=DOSE_TO_BG[doseKey];
     if(!bgKey)return null;
     const value=x?.bg?.[bgKey];
     const status=bgStatus(value);
     if(!status.label)return null;
-    return {doseKey,bgKey,bgLabel:BG_LABELS[bgKey],value,status:status.label.toLowerCase(),label:status.label};
+    return {doseKey,bgKey,bgLabel:BG_LABELS[bgKey],value,status:status.label.toLowerCase(),label:status.label,primary:doseKey===primaryKey};
   }
 
   function linkMarkup(link){
     if(!link)return '';
-    return `<span class="result-glance-dose-link">← ${link.bgLabel}${link.label}</span>`;
+    const prefix=link.primary?'← 次の1点・':'← ';
+    return `<span class="result-glance-dose-link">${prefix}${link.bgLabel}${link.label}</span>`;
   }
 
   function actualDoseChip(label,value,extra,link){
     const scale=extra>0?`<span class="result-glance-scale">+scale ${fmt(extra)}</span>`:'';
-    const linkedClass=link?` result-glance-dose-linked result-glance-dose-linked-${link.status}`:'';
+    const linkedClass=link?` result-glance-dose-linked result-glance-dose-linked-${link.status}${link.primary?' result-glance-dose-primary':''}`:'';
     return `<span class="result-glance-dose-chip${linkedClass}"><span>${label}</span><b>${fmt(value)} U</b>${scale}${linkMarkup(link)}</span>`;
   }
 
   function basalDoseChip(active,ordered,link){
-    const linkedClass=link?` result-glance-dose-linked result-glance-dose-linked-${link.status}`:'';
+    const linkedClass=link?` result-glance-dose-linked result-glance-dose-linked-${link.status}${link.primary?' result-glance-dose-primary':''}`:'';
     return `<span class="result-glance-dose-chip result-glance-basal-chip${linkedClass}"><span>実効 basal</span><b>${fmt(active)} U</b>${linkMarkup(link)}<span class="result-glance-basal-arrow">→ 今夜 ${fmt(ordered)} U</span></span>`;
   }
 
@@ -115,6 +123,7 @@
     const day=Number(rec?.day);
     const title=Number.isFinite(day)?`DAY ${day}：結果 → 次の1点`:'結果 → 次の1点';
     const hidden=hiddenStatus(x.hidden);
+    const primaryKey=primaryDoseKey(rec);
     return `<div class="result-glance" aria-label="本日の血糖結果と実投与の要約">
       <div class="result-glance-title">${title}</div>
       <div class="result-glance-bg-grid">
@@ -124,12 +133,12 @@
         ${bgCell('眠前',x.bg.bedtime)}
       </div>
       <div class="result-glance-safety ${hidden.className}">${hiddenText(x.hidden)}</div>
-      <div class="result-glance-actual" aria-label="本日の実投与インスリン。血糖逸脱時は対応する直前投与を表示">
+      <div class="result-glance-actual" aria-label="本日の実投与インスリン。血糖逸脱時は対応する直前投与を表示し、教育feedbackのprimary targetを次の1点として強調">
         <span class="result-glance-actual-label">実投与</span>
-        ${actualDoseChip('朝',x.actual.breakfast,x.correction.breakfast,doseExcursionLink(x,'breakfast'))}
-        ${actualDoseChip('昼',x.actual.lunch,x.correction.lunch,doseExcursionLink(x,'lunch'))}
-        ${actualDoseChip('夕',x.actual.dinner,x.correction.dinner,doseExcursionLink(x,'dinner'))}
-        ${basalDoseChip(x.actual.basal,x.scheduled.basal,doseExcursionLink(x,'basal'))}
+        ${actualDoseChip('朝',x.actual.breakfast,x.correction.breakfast,doseExcursionLink(x,'breakfast',primaryKey))}
+        ${actualDoseChip('昼',x.actual.lunch,x.correction.lunch,doseExcursionLink(x,'lunch',primaryKey))}
+        ${actualDoseChip('夕',x.actual.dinner,x.correction.dinner,doseExcursionLink(x,'dinner',primaryKey))}
+        ${basalDoseChip(x.actual.basal,x.scheduled.basal,doseExcursionLink(x,'basal',primaryKey))}
       </div>
       <details class="result-glance-details">
         <summary>食事・処方内訳を確認</summary>
@@ -148,7 +157,7 @@
     if(typeof document==='undefined'||document.getElementById('resultGlanceStyle'))return;
     const style=document.createElement('style');
     style.id='resultGlanceStyle';
-    style.textContent=`.result-glance{margin:12px 0;padding:12px;background:rgba(255,255,255,.72);border:1px solid rgba(120,128,140,.18);border-radius:14px}.result-glance-title{font-size:13px;font-weight:800;letter-spacing:.04em;color:#666d77;margin-bottom:8px}.result-glance-bg-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.result-glance-bg-cell{min-width:0;text-align:center;padding:7px 3px;background:rgba(246,247,249,.9);border:1px solid transparent;border-radius:9px}.result-glance-bg-cell.result-glance-low,.result-glance-bg-cell.result-glance-high{border-color:rgba(40,44,50,.42);background:rgba(239,240,242,.96)}.result-glance-label{font-size:12px;color:#747b85}.result-glance-bg-value{font-size:19px;font-weight:800;margin-top:2px}.result-glance-flag{display:inline-block;margin-left:4px;font-size:12px;font-weight:800;vertical-align:2px}.result-glance-safety{font-size:13px;color:#5f6670;margin:8px 2px 0;padding:4px 6px;border-radius:7px}.result-glance-safety.result-glance-warning,.result-glance-safety.result-glance-danger{font-weight:800;border:1px solid rgba(40,44,50,.42);background:rgba(239,240,242,.96)}.result-glance-safety.result-glance-danger{border-width:2px}.result-glance-actual{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:8px;font-size:12px}.result-glance-actual-label{font-weight:800;color:#5f6670;margin-right:1px}.result-glance-dose-chip{display:inline-flex;align-items:baseline;gap:4px;padding:5px 7px;background:rgba(246,247,249,.92);border:1px solid transparent;border-radius:8px;color:#68707a}.result-glance-dose-chip b{font-size:13px;color:#272b31}.result-glance-dose-linked{border-color:rgba(40,44,50,.42);background:rgba(239,240,242,.96)}.result-glance-dose-link{font-size:12px;font-weight:850;color:#343941;white-space:nowrap}.result-glance-scale,.result-glance-basal-arrow{font-size:12px;color:#7d848e}.result-glance-basal-chip{flex-wrap:wrap}.result-glance-details{margin-top:9px}.result-glance-details>summary{font-size:12px;color:#626a75;cursor:pointer;user-select:none;min-height:36px;display:flex;align-items:center}.result-glance-meals{font-size:12px;color:#626a75;margin:8px 0}.result-glance-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.result-glance-cell{min-width:0;text-align:center;padding:7px 3px;background:rgba(246,247,249,.9);border-radius:9px}.result-glance-value{font-size:15px;font-weight:780;margin-top:2px}.result-glance-sub{font-size:12px;color:#7d848e;margin-top:3px;line-height:1.35}.result-glance-legacy-hidden{display:none!important}@media(max-width:520px){.result-glance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.result-glance-bg-value{font-size:19px}.result-glance-dose-chip{padding:5px 6px}.result-glance-basal-chip{width:100%;justify-content:center}}`;
+    style.textContent=`.result-glance{margin:12px 0;padding:12px;background:rgba(255,255,255,.72);border:1px solid rgba(120,128,140,.18);border-radius:14px}.result-glance-title{font-size:13px;font-weight:800;letter-spacing:.04em;color:#666d77;margin-bottom:8px}.result-glance-bg-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.result-glance-bg-cell{min-width:0;text-align:center;padding:7px 3px;background:rgba(246,247,249,.9);border:1px solid transparent;border-radius:9px}.result-glance-bg-cell.result-glance-low,.result-glance-bg-cell.result-glance-high{border-color:rgba(40,44,50,.42);background:rgba(239,240,242,.96)}.result-glance-label{font-size:12px;color:#747b85}.result-glance-bg-value{font-size:19px;font-weight:800;margin-top:2px}.result-glance-flag{display:inline-block;margin-left:4px;font-size:12px;font-weight:800;vertical-align:2px}.result-glance-safety{font-size:13px;color:#5f6670;margin:8px 2px 0;padding:4px 6px;border-radius:7px}.result-glance-safety.result-glance-warning,.result-glance-safety.result-glance-danger{font-weight:800;border:1px solid rgba(40,44,50,.42);background:rgba(239,240,242,.96)}.result-glance-safety.result-glance-danger{border-width:2px}.result-glance-actual{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:8px;font-size:12px}.result-glance-actual-label{font-weight:800;color:#5f6670;margin-right:1px}.result-glance-dose-chip{display:inline-flex;align-items:baseline;gap:4px;padding:5px 7px;background:rgba(246,247,249,.92);border:1px solid transparent;border-radius:8px;color:#68707a}.result-glance-dose-chip b{font-size:13px;color:#272b31}.result-glance-dose-linked{border-color:rgba(40,44,50,.42);background:rgba(239,240,242,.96)}.result-glance-dose-primary{border-width:2px;font-weight:800}.result-glance-dose-link{font-size:12px;font-weight:850;color:#343941;white-space:nowrap}.result-glance-scale,.result-glance-basal-arrow{font-size:12px;color:#7d848e}.result-glance-basal-chip{flex-wrap:wrap}.result-glance-details{margin-top:9px}.result-glance-details>summary{font-size:12px;color:#626a75;cursor:pointer;user-select:none;min-height:36px;display:flex;align-items:center}.result-glance-meals{font-size:12px;color:#626a75;margin:8px 0}.result-glance-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.result-glance-cell{min-width:0;text-align:center;padding:7px 3px;background:rgba(246,247,249,.9);border-radius:9px}.result-glance-value{font-size:15px;font-weight:780;margin-top:2px}.result-glance-sub{font-size:12px;color:#7d848e;margin-top:3px;line-height:1.35}.result-glance-legacy-hidden{display:none!important}@media(max-width:520px){.result-glance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.result-glance-bg-value{font-size:19px}.result-glance-dose-chip{padding:5px 6px}.result-glance-basal-chip{width:100%;justify-content:center}}`;
     document.head.appendChild(style);
   }
 
@@ -174,16 +183,21 @@
     }catch(e){console.error('result glance summary',e)}
   }
 
+  function scheduleAnnotate(){
+    if(typeof queueMicrotask==='function')queueMicrotask(annotateLatest);
+    else Promise.resolve().then(annotateLatest);
+  }
+
   function mount(){
     if(typeof document==='undefined')return;
     ensureStyle();
     const submit=document.querySelector('#submitBtn');
     if(!submit||submit.dataset.resultGlanceMounted)return;
     submit.dataset.resultGlanceMounted='1';
-    submit.addEventListener('click',annotateLatest);
+    submit.addEventListener('click',scheduleAnnotate);
   }
 
-  const api={summaryData,bgStatus,hiddenStatus,linkedDoseForBgKey,doseExcursionLink,buildHtml,basalDoseChip,compactLegacyNonterminal,annotateLatest,mount,version:'1.7.0'};
+  const api={summaryData,bgStatus,hiddenStatus,linkedDoseForBgKey,primaryDoseKey,doseExcursionLink,buildHtml,basalDoseChip,compactLegacyNonterminal,annotateLatest,scheduleAnnotate,mount,version:'1.8.0'};
   if(root)root.ResultGlanceSummary=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
