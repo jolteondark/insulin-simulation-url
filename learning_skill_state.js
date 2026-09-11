@@ -9,6 +9,8 @@
   const STORAGE_KEY='ward_glucose_learning_curve_v1';
   const RETENTION_CASES=3;
   const TARGET_REASONS=new Set(['recent_tendency_adaptive','persistent','longitudinal']);
+  const RELEASE_KINDS=new Set(['recent_tendency_released','persistent_released','longitudinal_released','objective_released']);
+  const RELIEF_KINDS=new Set([...RELEASE_KINDS,'recent_tendency_downgraded']);
 
   function load(root){
     try{
@@ -57,12 +59,24 @@
     return (Array.isArray(data?.cases)?data.cases:[]).map((c,index)=>{
       const p=c?.adaptive_practice||{};
       const focus=p.focus_tag||p.domain_id||null;
-      return focus&&TARGET_REASONS.has(p.selection_reason)?{case_id:c.case_id,index,focus_tag:focus,domain_id:p.domain_id||null}:null;
+      return focus&&TARGET_REASONS.has(p.selection_reason)?{case_id:c.case_id,index,focus_tag:focus,domain_id:p.domain_id||null,objective_status:p.objective_status||null}:null;
     }).filter(Boolean);
+  }
+  function episodeOutcome(data,episode,isCurrent=false){
+    const transition=data?.completion_records?.[episode?.end_case_id]?.routing_transition||null;
+    const sameFocus=transition&&(transition.focus_tag||transition.domain_id)===(episode?.focus_tag||episode?.domain_id);
+    if(sameFocus&&RELEASE_KINDS.has(transition.kind))return {status:'released',kind:transition.kind};
+    if(sameFocus&&transition.kind==='recent_tendency_downgraded')return {status:'downgraded',kind:transition.kind};
+    const cases=Array.isArray(data?.cases)?data.cases:[];
+    const endCase=cases.find(c=>c?.case_id===episode?.end_case_id);
+    const objectiveStatus=endCase?.adaptive_practice?.objective_status||null;
+    if(['improved','resolved'].includes(objectiveStatus))return {status:'resolved',kind:objectiveStatus};
+    if(isCurrent)return {status:'active',kind:objectiveStatus};
+    return {status:'handoff_unresolved',kind:objectiveStatus};
   }
   function focusLifecycle(data){
     const timeline=focusTimeline(data);
-    if(!timeline.length)return {ready:false,targeted_cases:0,episodes:0,switches:0,mean_dwell:0,max_dwell:0,current_dwell:0,current_focus:null};
+    if(!timeline.length)return {ready:false,targeted_cases:0,episodes:0,switches:0,mean_dwell:0,max_dwell:0,current_dwell:0,current_focus:null,released_episodes:0,resolved_episodes:0,unresolved_handoffs:0};
     const episodes=[];
     for(const row of timeline){
       const last=episodes[episodes.length-1];
@@ -71,6 +85,7 @@
         last.end_case_id=row.case_id;
       }else episodes.push({focus_tag:row.focus_tag,domain_id:row.domain_id,start_case_id:row.case_id,end_case_id:row.case_id,n:1});
     }
+    episodes.forEach((episode,index)=>Object.assign(episode,episodeOutcome(data,episode,index===episodes.length-1)));
     const total=timeline.length;
     const maxDwell=Math.max(...episodes.map(x=>x.n));
     const current=episodes[episodes.length-1];
@@ -83,6 +98,9 @@
       max_dwell:maxDwell,
       current_dwell:current.n,
       current_focus:current.focus_tag,
+      released_episodes:episodes.filter(x=>x.status==='released'||x.status==='downgraded').length,
+      resolved_episodes:episodes.filter(x=>x.status==='resolved').length,
+      unresolved_handoffs:episodes.filter(x=>x.status==='handoff_unresolved').length,
       focus_episodes:episodes
     };
   }
@@ -127,11 +145,23 @@
     if(x.retention==='newly_mastered')return `${base}：克服直後${reacquisition}`;
     return `${base}${reacquisition}`;
   }
+  function episodeOutcomeLabel(x){
+    if(x.status==='released')return '解除';
+    if(x.status==='downgraded')return '重点解除';
+    if(x.status==='resolved')return '改善';
+    if(x.status==='handoff_unresolved')return '未解除切替';
+    return '進行中';
+  }
   function lifecycleText(state){
     const x=state?.focus_lifecycle;
     if(!x?.ready)return '';
     const currentLabel=state?.unresolved?.focus_tag===x.current_focus?state.unresolved.label:x.current_focus;
-    return ` ／ 重点推移：${x.targeted_cases}症例・切替 ${x.switches}回・平均滞在 ${x.mean_dwell.toFixed(1)}症例・最長 ${x.max_dwell}症例${currentLabel?`・現在 ${currentLabel} ${x.current_dwell}症例連続`:''}`;
+    const closed=x.released_episodes+x.resolved_episodes+x.unresolved_handoffs;
+    const outcomeDetail=closed
+      ? `・episode結果 解除/改善 ${x.released_episodes+x.resolved_episodes}、未解除切替 ${x.unresolved_handoffs}`
+      : '';
+    const recent=x.focus_episodes?.slice(-3).map(e=>`${e.focus_tag} ${e.n}症例→${episodeOutcomeLabel(e)}`).join(' ／ ');
+    return ` ／ 重点推移：${x.targeted_cases}症例・切替 ${x.switches}回・平均滞在 ${x.mean_dwell.toFixed(1)}症例・最長 ${x.max_dwell}症例${outcomeDetail}${currentLabel?`・現在 ${currentLabel} ${x.current_dwell}症例連続`:''}${recent?`（直近：${recent}）`:''}`;
   }
   function renderHtml(state,options={}){
     if(!state?.ready)return '';
@@ -188,5 +218,5 @@
     refresh(root);
   }
 
-  return {load,completed,masteryEvents,recurrenceAfter,retentionState,focusTimeline,focusLifecycle,buildState,skillLabel,lifecycleText,renderHtml,refresh,mount,RETENTION_CASES,TARGET_REASONS,version:'1.3.0'};
+  return {load,completed,masteryEvents,recurrenceAfter,retentionState,focusTimeline,episodeOutcome,focusLifecycle,buildState,skillLabel,episodeOutcomeLabel,lifecycleText,renderHtml,refresh,mount,RETENTION_CASES,TARGET_REASONS,RELEASE_KINDS,RELIEF_KINDS,version:'1.4.0'};
 });
