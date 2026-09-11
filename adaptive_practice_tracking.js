@@ -62,6 +62,10 @@
       focus_tag:selection.focus_tag||null,
       persistent_streak:Number(selection.persistent_streak)||0,
       selection_reason:selection.selection_reason||null,
+      objective_identity:selection.objective_identity||null,
+      objective_source_case_id:selection.objective_source_case_id||null,
+      objective_created_at:selection.objective_created_at||null,
+      objective_routing_source:selection.objective_routing_source||null,
       objective_source_rate:finite(selection.objective_source_rate),
       longitudinal_recent_rate:finite(selection.longitudinal_recent_rate),
       longitudinal_reference_rate:finite(selection.longitudinal_reference_rate),
@@ -170,5 +174,5 @@
     root.document.querySelector('#resultPanel')?.addEventListener('click',e=>{if(e.target?.closest?.('#restartBtn'))captureAfterStart(root)});
   }
 
-  return {practiceRecord,attachPractice,getCapturedSelection,lifecycle,scoredObjective,statusLabel,domainLabel,lifecycleLabel,triggerLabel,currentState,render,persist,mount,version:'1.7.0'};
+  return {practiceRecord,attachPractice,getCapturedSelection,lifecycle,scoredObjective,statusLabel,domainLabel,lifecycleLabel,triggerLabel,currentState,render,persist,mount,version:'1.8.0'};
 });
