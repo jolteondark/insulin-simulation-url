@@ -99,6 +99,16 @@
     const cases=Array.isArray(casesArg)?casesArg:completedCases(data),idx=cases.findIndex(c=>c.case_id===release.target_case_id);if(idx<0)return null;
     return idx>=cases.length-LONGITUDINAL_RECENT_CASES?release:null;
   }
+  function latestAdaptivePracticeRelease(data,domainId){
+    const rows=scoredPracticeRows(data).filter(x=>x.domain_id===domainId&&['resolved','improved'].includes(x.objective_status));
+    return rows.length?rows[rows.length-1]:null;
+  }
+  function activeAdaptivePracticeRelease(data,domainId,casesArg){
+    const release=latestAdaptivePracticeRelease(data,domainId);if(!release)return null;
+    const cases=Array.isArray(casesArg)?casesArg:completedCases(data),idx=cases.findIndex(c=>c.case_id===release.case_id);if(idx<0)return null;
+    return idx>=cases.length-LONGITUDINAL_RECENT_CASES?release:null;
+  }
+  function activeRecentRelease(data,domainId,casesArg){return activeAdaptivePracticeRelease(data,domainId,casesArg)||activeLongitudinalRelease(data,domainId,casesArg)}
   function caseIssueRate(data,caseIds,domainId){
     const tags=DOMAIN_TAGS[domainId]||[],days=Array.isArray(data?.days)?data.days:[];if(!caseIds.length)return null;
     let issue=0;
@@ -128,7 +138,7 @@
       const rate=row.opportunities?row.followed/row.opportunities:null,failureRate=row.opportunities?(row.unchanged+row.opposite)/row.opportunities:null;
       const tags=[...row.tag_rows.values()].sort((a,b)=>b.count-a.count||b.last_case_index-a.last_case_index||b.last_action_index-a.last_action_index||a.tag.localeCompare(b.tag));
       return {...row,tag_rows:undefined,followthrough_rate:rate,recent_rate:failureRate,reference_rate:null,delta:null,focus_tag:tags[0]?.tag||null,focus_label:TAG_LABELS[tags[0]?.tag]||null,prior_cases_with_issue:row.unchanged+row.opposite,evidence_type:'followthrough'};
-    }).filter(x=>x.opportunities>=FOLLOWTHROUGH_MIN_OPPORTUNITIES&&x.followthrough_rate<=FOLLOWTHROUGH_MAX_RATE&&!activeLongitudinalRelease(data,x.domain_id,cases)).sort((a,b)=>a.followthrough_rate-b.followthrough_rate||b.opposite-a.opposite||b.unchanged-a.unchanged||b.opportunities-a.opportunities||b.last_case_index-a.last_case_index||a.label.localeCompare(b.label,'ja'));
+    }).filter(x=>x.opportunities>=FOLLOWTHROUGH_MIN_OPPORTUNITIES&&x.followthrough_rate<=FOLLOWTHROUGH_MAX_RATE&&!activeRecentRelease(data,x.domain_id,cases)).sort((a,b)=>a.followthrough_rate-b.followthrough_rate||b.opposite-a.opposite||b.unchanged-a.unchanged||b.opportunities-a.opportunities||b.last_case_index-a.last_case_index||a.label.localeCompare(b.label,'ja'));
     return candidates[0]||null;
   }
   function recurringFeedbackWeakness(data){
@@ -136,7 +146,7 @@
     if(cases.length<LONGITUDINAL_MIN_CASES)return null;
     const recent=cases.slice(-LONGITUDINAL_RECENT_CASES),reference=cases.slice(0,-LONGITUDINAL_RECENT_CASES);if(!reference.length)return null;
     const recentIds=recent.map(c=>c.case_id),referenceIds=reference.map(c=>c.case_id),lastCase=recent[recent.length-1]?.case_id||null;
-    const rows=Object.keys(DOMAIN_TAGS).filter(id=>id!=='hidden_awareness'&&!activeLongitudinalRelease(data,id,cases)).map(domainId=>{
+    const rows=Object.keys(DOMAIN_TAGS).filter(id=>id!=='hidden_awareness'&&!activeRecentRelease(data,id,cases)).map(domainId=>{
       const recentRate=caseIssueRate(data,recentIds,domainId),referenceRate=caseIssueRate(data,referenceIds,domainId),delta=(recentRate??0)-(referenceRate??0);
       return {domain_id:domainId,label:DOMAIN_LABELS[domainId]||domainId,recent_rate:recentRate,reference_rate:referenceRate,delta,source_case_id:lastCase,prior_cases_with_issue:Math.round((referenceRate||0)*referenceIds.length),evidence_type:'recurring_feedback'};
     }).filter(x=>x.recent_rate>=LONGITUDINAL_MIN_RECENT_RATE&&x.delta>=LONGITUDINAL_MIN_DELTA).sort((a,b)=>b.recent_rate-a.recent_rate||b.delta-a.delta||a.label.localeCompare(b.label,'ja'));
@@ -168,5 +178,5 @@
   }
   function resolveData(data){const base={...(data||{}),cases:Array.isArray(data?.cases)?data.cases:[]};const routed=routedObjective(base),before=base.active_objective||null,changed=JSON.stringify(before)!==JSON.stringify(routed.objective);return {data:{...base,active_objective:routed.objective},objective:routed.objective,reason:routed.reason,repeated:routed.repeated,longitudinal:routed.longitudinal,release:routed.release,changed}}
   function resolveStored(root){try{const raw=JSON.parse(root.localStorage.getItem(STORAGE_KEY)||'{}'),out=resolveData(raw);if(out.changed)root.localStorage.setItem(STORAGE_KEY,JSON.stringify(out.data));return out}catch{return {data:null,objective:null,reason:'storage_error',repeated:[],longitudinal:null,release:null,changed:false}}}
-  return {scoredPracticeRows,trailingUnresolved,repeatedUnmet,practiceLifecycle,isPersistentStreak,objectiveFailureStreak,persistentFromObjectiveHistory,makePersistentObjective,isSafetyObjective,completionObjectiveRelief,completedCases,latestPersistentPracticeRelease,latestLongitudinalRelease,activeLongitudinalRelease,caseIssueRate,followthroughWeakness,recurringFeedbackWeakness,longitudinalWeakness,makeLongitudinalObjective,routedObjective,resolveData,resolveStored,REPEATED_UNMET_N,LONGITUDINAL_MIN_CASES,LONGITUDINAL_RECENT_CASES,LONGITUDINAL_MIN_RECENT_RATE,LONGITUDINAL_MIN_DELTA,FOLLOWTHROUGH_MIN_OPPORTUNITIES,FOLLOWTHROUGH_MAX_RATE,EVIDENCE_SOURCE_REASONS,DOMAIN_LABELS,DOMAIN_TAGS,DOSE_KEY_DOMAIN,TAG_LABELS,version:'1.9.0'};
+  return {scoredPracticeRows,trailingUnresolved,repeatedUnmet,practiceLifecycle,isPersistentStreak,objectiveFailureStreak,persistentFromObjectiveHistory,makePersistentObjective,isSafetyObjective,completionObjectiveRelief,completedCases,latestPersistentPracticeRelease,latestLongitudinalRelease,activeLongitudinalRelease,latestAdaptivePracticeRelease,activeAdaptivePracticeRelease,activeRecentRelease,caseIssueRate,followthroughWeakness,recurringFeedbackWeakness,longitudinalWeakness,makeLongitudinalObjective,routedObjective,resolveData,resolveStored,REPEATED_UNMET_N,LONGITUDINAL_MIN_CASES,LONGITUDINAL_RECENT_CASES,LONGITUDINAL_MIN_RECENT_RATE,LONGITUDINAL_MIN_DELTA,FOLLOWTHROUGH_MIN_OPPORTUNITIES,FOLLOWTHROUGH_MAX_RATE,EVIDENCE_SOURCE_REASONS,DOMAIN_LABELS,DOMAIN_TAGS,DOSE_KEY_DOMAIN,TAG_LABELS,version:'1.10.0'};
 });
