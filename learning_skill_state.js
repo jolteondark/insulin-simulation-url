@@ -65,12 +65,16 @@
     }:null;
     const mastered=retentionState(data,masteredRaw,unresolved);
     const regressed=mastered.some(x=>x.retention==='reappeared');
+    const masteryEpisodes=mastered.reduce((sum,x)=>sum+Math.max(1,Number(x.episodes)||1),0);
+    const reacquiredN=mastered.filter(x=>Math.max(1,Number(x.episodes)||1)>1||x.reacquired===true).length;
     return {
       ready:mastered.length>0||Boolean(unresolved),
       mastered,
       unresolved,
       regressed,
       mastered_n:mastered.length,
+      mastery_episodes:masteryEpisodes,
+      reacquired_n:reacquiredN,
       retained_n:mastered.filter(x=>x.retention==='retained').length,
       maintaining_n:mastered.filter(x=>x.retention==='maintaining'||x.retention==='newly_mastered').length,
       reappeared_n:mastered.filter(x=>x.retention==='reappeared').length
@@ -79,18 +83,23 @@
 
   function skillLabel(x){
     const base=x.label||x.focus_tag;
-    if(x.retention==='retained')return `${base}：定着`;
-    if(x.retention==='reappeared')return `${base}：再出現`;
-    if(x.retention==='maintaining')return `${base}：維持確認中 ${x.subsequent_cases}/${RETENTION_CASES}症例`;
-    if(x.retention==='newly_mastered')return `${base}：克服直後`;
-    return base;
+    const episodes=Math.max(1,Number(x.episodes)||1);
+    const reacquisition=episodes>1?`・再克服 ${episodes-1}回`:'';
+    if(x.retention==='retained')return `${base}：定着${reacquisition}`;
+    if(x.retention==='reappeared')return `${base}：再出現${reacquisition}`;
+    if(x.retention==='maintaining')return `${base}：維持確認中 ${x.subsequent_cases}/${RETENTION_CASES}症例${reacquisition}`;
+    if(x.retention==='newly_mastered')return `${base}：克服直後${reacquisition}`;
+    return `${base}${reacquisition}`;
   }
   function renderHtml(state,options={}){
     if(!state?.ready)return '';
     const id=options.id||'learningSkillState';
     const title=options.title||'獲得済みスキルと現在の課題';
+    const episodeDetail=state.mastered_n&&state.mastery_episodes>state.mastered_n
+      ? `／克服エピソード ${state.mastery_episodes}回（再克服skill ${state.reacquired_n}件）`
+      : '';
     const mastered=state.mastered_n
-      ? `克服済み ${state.mastered_n}件（${state.mastered.map(skillLabel).join('・')}）`
+      ? `克服済み ${state.mastered_n}件${episodeDetail}（${state.mastered.map(skillLabel).join('・')}）`
       : '克服済み 0件';
     const unresolved=state.unresolved
       ? `現在の重点：${state.unresolved.label}${state.regressed&&state.mastered.some(x=>x.focus_tag===state.unresolved.focus_tag&&x.retention==='reappeared')?'（再出現）':''}`
@@ -137,5 +146,5 @@
     refresh(root);
   }
 
-  return {load,completed,masteryEvents,recurrenceAfter,retentionState,buildState,skillLabel,renderHtml,refresh,mount,RETENTION_CASES,version:'1.1.1'};
+  return {load,completed,masteryEvents,recurrenceAfter,retentionState,buildState,skillLabel,renderHtml,refresh,mount,RETENTION_CASES,version:'1.2.0'};
 });
