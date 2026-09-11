@@ -43,6 +43,7 @@
     if(domainId){
       const same=xs.filter(x=>x?.domain_id===domainId&&(!focusTag||x?.focus_tag===focusTag));
       if(same.length)return same[same.length-1];
+      return null;
     }
     return xs.length?xs[xs.length-1]:null;
   }
@@ -169,5 +170,5 @@
     root.document.querySelector('#resultPanel')?.addEventListener('click',e=>{if(e.target?.closest?.('#restartBtn'))captureAfterStart(root)});
   }
 
-  return {practiceRecord,attachPractice,getCapturedSelection,lifecycle,scoredObjective,statusLabel,domainLabel,lifecycleLabel,triggerLabel,currentState,render,persist,mount,version:'1.6.0'};
+  return {practiceRecord,attachPractice,getCapturedSelection,lifecycle,scoredObjective,statusLabel,domainLabel,lifecycleLabel,triggerLabel,currentState,render,persist,mount,version:'1.7.0'};
 });
