@@ -38,12 +38,23 @@
 
   function getCapturedSelection(caseId){return captured.has(caseId)?clone(captured.get(caseId)):null}
 
-  function scoredObjective(data,caseId,domainId,focusTag=null){
+  function objectiveIdentity(x){
+    if(!x?.domain_id)return null;
+    if(typeof x.objective_identity==='string'&&x.objective_identity)return x.objective_identity;
+    return [x.selection_reason||'',x.domain_id||'',x.focus_tag||'',x.source_case_id||x.objective_source_case_id||'',x.created_at||x.objective_created_at||''].join('|');
+  }
+
+  function scoredObjective(data,caseId,domainId,focusTag=null,expectedIdentity=null){
     const xs=(data.objectives||[]).filter(x=>x?.target_case_id===caseId);
     if(domainId){
-      const same=xs.filter(x=>x?.domain_id===domainId&&(!focusTag||x?.focus_tag===focusTag));
+      let same=xs.filter(x=>x?.domain_id===domainId&&(!focusTag||x?.focus_tag===focusTag));
+      if(expectedIdentity)same=same.filter(x=>objectiveIdentity(x)===expectedIdentity);
       if(same.length)return same[same.length-1];
       return null;
+    }
+    if(expectedIdentity){
+      const same=xs.filter(x=>objectiveIdentity(x)===expectedIdentity);
+      return same.length?same[same.length-1]:null;
     }
     return xs.length?xs[xs.length-1]:null;
   }
@@ -93,7 +104,7 @@
     const next={...(data||{}),cases:Array.isArray(data?.cases)?[...data.cases]:[],objectives:Array.isArray(data?.objectives)?data.objectives:[]};
     const idx=next.cases.findIndex(c=>c.case_id===caseId);
     if(idx<0)return {data:next,record:null};
-    const scored=scoredObjective(next,caseId,selection.domain_id,selection.focus_tag||null);
+    const scored=scoredObjective(next,caseId,selection.domain_id,selection.focus_tag||null,selection.objective_identity||null);
     const record=practiceRecord(selection,scored);
     next.cases[idx]={...next.cases[idx],adaptive_practice:record};
     return {data:next,record};
@@ -174,5 +185,5 @@
     root.document.querySelector('#resultPanel')?.addEventListener('click',e=>{if(e.target?.closest?.('#restartBtn'))captureAfterStart(root)});
   }
 
-  return {practiceRecord,attachPractice,getCapturedSelection,lifecycle,scoredObjective,statusLabel,domainLabel,lifecycleLabel,triggerLabel,currentState,render,persist,mount,version:'1.8.0'};
+  return {practiceRecord,attachPractice,getCapturedSelection,lifecycle,objectiveIdentity,scoredObjective,statusLabel,domainLabel,lifecycleLabel,triggerLabel,currentState,render,persist,mount,version:'1.9.0'};
 });
