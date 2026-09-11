@@ -53,9 +53,17 @@
   function score(bundle,domain,focusTag=null){const p=bundle.patient||{},measure=focusMeasure(bundle,domain,focusTag);if(measure.kind==='poc_signal'&&measure.deviation!=null){if(measure.desired_signed_deviation!=null)return Math.abs(measure.signed_deviation-measure.desired_signed_deviation)/Math.max(measure.desired_deviation,1);return Math.abs(measure.deviation-measure.desired_deviation)/Math.max(measure.desired_deviation,1)}if(measure.kind==='correction_signal'&&measure.strongest){const signal=Math.abs(measure.strongest.deviation-measure.desired_deviation)/measure.desired_deviation,cf=Number(p.cf_mg_dl_u)||50;return signal+.20*Math.abs(cf-45)/25}if(domain==='hidden_awareness'){const peak=Number(p.insulin_action_peak_min)||80,half=Number(p.insulin_action_half_life_min)||160;return Math.abs(peak-78)/30+Math.abs(half-160)/80}const cf=Number(p.cf_mg_dl_u)||50;return Math.abs(cf-45)/25}
   function finiteDelta(a,b){const x=Number(a),y=Number(b);return Number.isFinite(x)&&Number.isFinite(y)?Math.abs(x-y):0}
   function driftFromStandard(bundle,standard){const p=bundle.patient||{},q=standard.patient||{},c=bundle.case||{},d=standard.case||{},checks={cf_mg_dl_u:finiteDelta(p.cf_mg_dl_u,q.cf_mg_dl_u),icr_g_u:finiteDelta(p.icr_g_u,q.icr_g_u),basal_fraction_tdd:finiteDelta(p.basal_fraction_tdd,q.basal_fraction_tdd),insulin_action_peak_min:finiteDelta(p.insulin_action_peak_min,q.insulin_action_peak_min),insulin_action_half_life_min:finiteDelta(p.insulin_action_half_life_min,q.insulin_action_half_life_min),fasting_setpoint_mg_dl:finiteDelta(p.fasting_setpoint_mg_dl,q.fasting_setpoint_mg_dl)},bg=c.previous_day_4point_bg_mg_dl||{},baseBg=d.previous_day_4point_bg_mg_dl||{};let bgMax=0;for(const key of ['pre_breakfast','pre_lunch','pre_dinner','bedtime'])bgMax=Math.max(bgMax,finiteDelta(bg[key],baseBg[key]));checks.previous_day_bg_mg_dl=bgMax;const violations=Object.entries(checks).filter(([key,value])=>value>MAX_DRIFT[key]).map(([key,value])=>({key,value,limit:MAX_DRIFT[key]}));return {checks,violations,allowed:violations.length===0}}
+  function objectiveIdentity(objective){
+    if(!objective?.domain_id)return null;
+    return [objective.selection_reason||'',objective.domain_id||'',objective.focus_tag||'',objective.source_case_id||'',objective.created_at||''].join('|');
+  }
   function routingContext(objective){
     return {
       selection_reason:objective?.selection_reason||null,
+      objective_identity:objectiveIdentity(objective),
+      objective_source_case_id:objective?.source_case_id||null,
+      objective_created_at:objective?.created_at||null,
+      objective_routing_source:objective?.routing_source||null,
       objective_source_rate:finiteNumber(objective?.source_rate),
       longitudinal_recent_rate:finiteNumber(objective?.longitudinal_recent_rate),
       longitudinal_reference_rate:finiteNumber(objective?.longitudinal_reference_rate),
@@ -72,5 +80,5 @@
     return {...pick.b,adaptive_selection:{domain_id:objective.domain_id,focus_tag:focusTag,persistent_streak:Number(objective.persistent_streak)||0,...routingContext(objective),pool_size:xs.length,eligible_pool_size:eligible.length,selected_seed:pick.s,standard_seed:standard.s,fallback_to_standard:pick.s===standard.s&&eligible.length===1,selected_score:pick.v,standard_score:standard.v,selected_focus:pick.focus,standard_focus:standard.focus,selected_drift:pick.drift,drift_limits:{...MAX_DRIFT},policy:'standard generator outputs only; persistent, longitudinal, or sustained 3-of-3 recent-tendency education objectives may bias selection toward a moderate visible prior-day signal in the matching POC domain; directional feedback is preserved when available; every candidate retains normal physiology/safety gates and bounded drift from the standard same-seed case'}};
   }
   function selectStored(generate,seed){return select(generate,seed,loadObjective())}
-  return {select,selectStored,loadObjective,recentFocusTag,isAdaptiveObjective,score,focusMeasure,directionalTarget,driftFromStandard,routingContext,MAX_DRIFT,DOMAIN_FOCUS,DOMAIN_TAGS,FEEDBACK_DIRECTION,MIN_STREAK,POOL,version:'1.5.0'};
+  return {select,selectStored,loadObjective,recentFocusTag,isAdaptiveObjective,score,focusMeasure,directionalTarget,driftFromStandard,objectiveIdentity,routingContext,MAX_DRIFT,DOMAIN_FOCUS,DOMAIN_TAGS,FEEDBACK_DIRECTION,MIN_STREAK,POOL,version:'1.6.0'};
 });
