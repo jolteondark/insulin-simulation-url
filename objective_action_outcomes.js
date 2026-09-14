@@ -15,6 +15,13 @@
     lunch_rapid_excess:-1,lunch_rapid_deficit:1,
     dinner_rapid_excess:-1,dinner_rapid_deficit:1
   };
+  const FOCUS_LABELS={
+    basal_excess:'basal過量',basal_deficit:'basal不足',
+    breakfast_rapid_excess:'朝rapid過量',breakfast_rapid_deficit:'朝rapid不足',
+    lunch_rapid_excess:'昼rapid過量',lunch_rapid_deficit:'昼rapid不足',
+    dinner_rapid_excess:'夕rapid過量',dinner_rapid_deficit:'夕rapid不足'
+  };
+  const DOSE_LABELS={basal_u:'basal',breakfast_u:'朝rapid',lunch_u:'昼rapid',dinner_u:'夕rapid'};
   const SUCCESS_STATUSES=new Set(['resolved','improved']);
   const COMPLETED_OUTCOMES=new Set(['discharged','game_over']);
 
@@ -173,6 +180,49 @@
     return histories.sort((a,b)=>caseIndex(data,a.latest_case_id)-caseIndex(data,b.latest_case_id));
   }
 
+  function actionLabel(row){
+    const dose=DOSE_LABELS[row?.dose_key]||row?.dose_key||'重点dose';
+    if(row?.expected_direction){
+      if(row.aligned)return `${dose}を推奨方向へ変更`;
+      if(row.opposed)return `${dose}を推奨と逆方向へ変更`;
+      return `${dose}を変更せず`;
+    }
+    return row?.changed?`${dose}を変更`:`${dose}を変更せず`;
+  }
+  function resultLabel(row){
+    if(row?.status==='resolved')return 'objective達成';
+    if(row?.status==='improved')return 'objective改善';
+    if(row?.status==='not_resolved')return 'objective未達';
+    return 'objective評価待ち';
+  }
+  function retentionStoryLabel(row){
+    if(row?.retention==='retained')return `その後${row.subsequent_cases}症例で再発なし（定着）`;
+    if(row?.retention==='maintaining')return `その後${row.subsequent_cases}症例で再発なし（維持確認中）`;
+    if(row?.retention==='reappeared')return 'その後に同じfocusが再出現';
+    if(row?.retention==='newly_mastered')return 'focus解除直後';
+    return null;
+  }
+  function latestLearningStory(data,inputRows=withRetention(data,rows(data))){
+    if(!inputRows.length)return null;
+    const ordered=[...inputRows].sort((a,b)=>caseIndex(data,a.case_id)-caseIndex(data,b.case_id));
+    const row=ordered[ordered.length-1];
+    const focus=FOCUS_LABELS[row.focus_tag]||row.focus_tag||row.domain_id||'重点課題';
+    const parts=[focus,actionLabel(row),resultLabel(row)];
+    if(row.mastered&&row.release_action_status)parts.push('focus解除');
+    const retention=retentionStoryLabel(row);
+    if(retention)parts.push(retention);
+    return {
+      case_id:row.case_id,
+      focus_tag:row.focus_tag||null,
+      text:parts.join(' → '),
+      mastered:row.mastered===true,
+      retention:row.retention||null,
+      reacquired:row.reacquired===true,
+      action_status:row.aligned?'followed':row.opposed?'opposite':row.changed?'changed':'unchanged',
+      objective_status:row.status||null
+    };
+  }
+
   function summarize(data){
     const raw=rows(data);
     const all=withRetention(data,raw);
@@ -191,6 +241,7 @@
       retention:retentionGroup(all),
       episode_histories:histories,
       reacquired_focuses:histories.filter(x=>x.episode_count>1||x.reacquired_count>0).length,
+      latest_story:latestLearningStory(data,all),
       rows:all
     };
   }
@@ -211,10 +262,18 @@
       return `${h.focus_tag}: ${trail}`;
     }).join(' ／ ');
   }
+  function storyCardHtml(summary,options={}){
+    if(!summary?.ready||!summary.latest_story?.text)return '';
+    const id=options.id||'runLearningStory';
+    const note=summary.latest_story.reacquired?'一度再出現したfocusを再克服し、その後の保持まで追跡しています。':'直近の重点で、処方行動から結果・保持までを1本で表示しています。';
+    return `<div id="${id}" class="record-card" style="margin-top:8px"><div class="section-kicker">LEARNING STORY</div><div style="font-weight:800">${summary.latest_story.text}</div><div class="micro-note" style="margin-top:4px">${note}</div></div>`;
+  }
   function renderHtml(summary,options={}){
     if(!summary?.ready)return '';
     const id=options.id||'objectiveActionOutcomeComparison';
     const title=options.title||'重点dose反映と結果';
+    const showStory=options.show_story!==false;
+    const kicker=showStory?'LEARNING STORY':'ACTION → OUTCOME LOG';
     const a=summary.acted,u=summary.not_acted;
     const actionText=`変更あり ${a.success}/${a.n}症例が改善・達成（${pct(a.rate)}） ／ 変更なし ${u.success}/${u.n}症例が改善・達成（${pct(u.rate)}）`;
     const aligned=summary.aligned.n?` ／ 方向指定ありのうち一致変更 ${summary.aligned.success}/${summary.aligned.n}症例が改善・達成（${pct(summary.aligned.rate)}）`:'';
@@ -222,7 +281,9 @@
     const retention=r?.n?`<br><span>改善・達成かつ重点doseへ反映した ${r.n}症例の長期追跡：定着 ${r.retained}、維持確認 ${r.maintaining}、再出現 ${r.reappeared}。</span>`:'';
     const history=episodeHistoryText(summary);
     const historyLine=history?`<br><span>focus履歴：${history}${summary.reacquired_focuses?` ／ 再克服focus ${summary.reacquired_focuses}件`:''}。</span>`:'';
-    return `<div id="${id}" class="micro-note" style="margin-top:7px"><b>${title}：</b>${actionText}${aligned}。<span>これは教育ログの記述比較で、dose変更の因果効果を示すものではありません。</span>${retention}${historyLine}</div>`;
+    const story=showStory&&summary.latest_story?.text?`<div style="font-weight:800">${summary.latest_story.text}</div>`:'';
+    const details=`<details style="margin-top:5px"><summary>${title}の集計</summary><div class="micro-note" style="margin-top:5px">${actionText}${aligned}。<span>これは教育ログの記述比較で、dose変更の因果効果を示すものではありません。</span>${retention}${historyLine}</div></details>`;
+    return `<div id="${id}" class="record-card" style="margin-top:7px"><div class="section-kicker">${kicker}</div>${story}${details}</div>`;
   }
 
   function refresh(root){
@@ -232,8 +293,18 @@
     if(progress){
       progress.querySelector('#objectiveActionOutcomeComparison')?.remove();
       const details=progress.querySelector('details');
-      const html=renderHtml(summary);
+      const html=renderHtml(summary,{show_story:false});
       if(html)(details||progress).insertAdjacentHTML('beforeend',html);
+    }
+    const run=root.document.querySelector('#learningRunProgress');
+    if(run){
+      run.querySelector('#runLearningStory')?.remove();
+      const html=storyCardHtml(summary);
+      if(html){
+        const marker=[...run.querySelectorAll('.micro-note')].find(el=>el.textContent?.includes('WARD RUN'));
+        if(marker)marker.insertAdjacentHTML('beforebegin',html);
+        else run.insertAdjacentHTML('beforeend',html);
+      }
     }
     const finalBody=root.document.querySelector('#finalLearningDebriefBody');
     if(finalBody){
@@ -255,11 +326,12 @@
     if(!root?.document)return;
     wrapRefresh(root.CaseLearningProgress,'__objectiveActionOutcomesWrapped',root);
     wrapRefresh(root.WardFinalLearningDebrief,'__objectiveActionOutcomesFinalWrapped',root);
+    wrapRefresh(root.WardLearningRunProgress,'__objectiveActionOutcomesRunWrapped',root);
     for(const selector of ['#submitBtn','#newCaseBtn']){
       root.document.querySelector(selector)?.addEventListener('click',()=>setTimeout(()=>refresh(root),0));
     }
     refresh(root);
   }
 
-  return {finite,objectiveDoseAction,focusKey,releaseForCase,rows,caseIndex,laterCompletedCases,focusReappeared,retentionForRow,withRetention,group,retentionGroup,episodeHistory,summarize,pct,retentionLabel,episodeHistoryText,renderHtml,refresh,mount,DOMAIN_DOSE_KEY,FOCUS_DIRECTION,SUCCESS_STATUSES,COMPLETED_OUTCOMES,RETENTION_CASES,version:'1.2.0'};
+  return {finite,objectiveDoseAction,focusKey,releaseForCase,rows,caseIndex,laterCompletedCases,focusReappeared,retentionForRow,withRetention,group,retentionGroup,episodeHistory,actionLabel,resultLabel,retentionStoryLabel,latestLearningStory,summarize,pct,retentionLabel,episodeHistoryText,storyCardHtml,renderHtml,refresh,mount,DOMAIN_DOSE_KEY,FOCUS_DIRECTION,FOCUS_LABELS,DOSE_LABELS,SUCCESS_STATUSES,COMPLETED_OUTCOMES,RETENTION_CASES,version:'1.4.0'};
 });

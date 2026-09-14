@@ -18,25 +18,22 @@
   function supportedTraceVersion(value){const v=Number(value);return v===1||v===2}
   function tracesFor(data,cases){return cases.map(c=>data.completion_records?.[c.case_id]?.case_learning_trace).filter(t=>supportedTraceVersion(t?.version)&&Array.isArray(t.days))}
   function routingOutcomeMetrics(data,cases){let targeted=0,relief=0;for(const c of cases){if(!ROUTING_TARGET_REASONS.has(c?.adaptive_practice?.selection_reason))continue;targeted++;const kind=data.completion_records?.[c?.case_id]?.routing_transition?.kind;if(ROUTING_RELIEF_KINDS.has(kind))relief++;}return {routing_targeted_n:targeted,routing_relief_n:relief,routing_relief_rate:ratio(relief,targeted)}}
-  const FEEDBACK_ACTIONS={
-    basal_excess:{doseKey:'basal_u',direction:'lower',source:'active_basal'},
-    basal_deficit:{doseKey:'basal_u',direction:'higher',source:'active_basal'},
-    breakfast_rapid_excess:{doseKey:'breakfast_u',correctionKey:'breakfast',direction:'lower',source:'scheduled'},
-    breakfast_rapid_deficit:{doseKey:'breakfast_u',correctionKey:'breakfast',direction:'higher',source:'scheduled'},
-    lunch_rapid_excess:{doseKey:'lunch_u',correctionKey:'lunch',direction:'lower',source:'scheduled'},
-    lunch_rapid_deficit:{doseKey:'lunch_u',correctionKey:'lunch',direction:'higher',source:'scheduled'},
-    dinner_rapid_excess:{doseKey:'dinner_u',correctionKey:'dinner',direction:'lower',source:'scheduled'},
-    dinner_rapid_deficit:{doseKey:'dinner_u',correctionKey:'dinner',direction:'higher',source:'scheduled'}
-  };
-  function feedbackActionMetrics(traces){let eligible=0,aligned=0;
-    for(const t of traces){const ds=t.days||[];for(let i=0;i<ds.length-1;i++){const d=ds[i],next=ds[i+1],spec=FEEDBACK_ACTIONS[d?.feedback?.primary_tag];if(!spec)continue;
+  function feedbackSemantics(){return typeof globalThis!=='undefined'?globalThis.WardFeedbackActionSemantics:null}
+  function feedbackActionSpec(tag){const semantics=feedbackSemantics(),rule=semantics?.ruleForTag?.(tag);if(!rule)return null;return {doseKey:rule.dose_key,direction:rule.direction,source:rule.dose_key==='basal_u'?'active_basal':'scheduled',feedbackTag:rule.feedback_tag||String(tag||'')}}
+  function feedbackActionsCompat(){const rules=feedbackSemantics()?.RULES||{};return Object.fromEntries(Object.keys(rules).map(tag=>{const spec=feedbackActionSpec(tag);return [tag,spec?{doseKey:spec.doseKey,direction:spec.direction===-1?'lower':'higher',source:spec.source}:null]}).filter(([,spec])=>spec))}
+  function feedbackActionMetrics(traces){let eligible=0,aligned=0,unchanged=0,opposite=0;
+    const semantics=feedbackSemantics();
+    for(const t of traces){const ds=t.days||[];for(let i=0;i<ds.length-1;i++){const d=ds[i],next=ds[i+1],tag=d?.feedback?.primary_tag,spec=feedbackActionSpec(tag);if(!spec)continue;
       const source=Number(spec.source==='active_basal'?d?.actual_delivered_u?.basal_u:d?.prescribed_order_u?.[spec.doseKey]);
       const target=Number(next?.prescribed_order_u?.[spec.doseKey]);
       if(!Number.isFinite(source)||!Number.isFinite(target))continue;
+      const classified=semantics?.classifyTag?.(tag,source,target);if(!classified)continue;
       eligible++;
-      if((spec.direction==='lower'&&target<source)||(spec.direction==='higher'&&target>source))aligned++;
+      if(classified.status==='followed')aligned++;
+      else if(classified.status==='unchanged')unchanged++;
+      else if(classified.status==='opposite')opposite++;
     }}
-    return {feedback_action_alignment_rate:ratio(aligned,eligible),feedback_action_eligible_n:eligible};
+    return {feedback_action_alignment_rate:ratio(aligned,eligible),feedback_action_eligible_n:eligible,feedback_action_followed_n:aligned,feedback_action_unchanged_n:unchanged,feedback_action_opposite_n:opposite};
   }
   function traceMetrics(traces){let correction=0,rapidDelivered=0,repeatPairs=0,repeatSame=0;
     for(const t of traces){const ds=t.days||[];for(let i=0;i<ds.length;i++){const d=ds[i],c=d?.correction_doses_u||{},a=d?.actual_delivered_u||{};for(const k of ['breakfast','lunch','dinner'])correction+=Number(c[k]||0);for(const k of ['breakfast_u','lunch_u','dinner_u'])rapidDelivered+=Number(a[k]||0);if(i>0){const prev=ds[i-1]?.feedback?.primary_tag,cur=d?.feedback?.primary_tag;if(prev&&cur){repeatPairs++;if(prev===cur)repeatSame++;}}}}
@@ -47,7 +44,7 @@
     {id:'discharge_rate',label:'DISCHARGE率',direction:'higher',section:'outcome'},{id:'mean_completion_days',label:'完了日数',direction:'lower',section:'outcome'},{id:'safe_day_rate',label:'安全日率',direction:'higher',section:'outcome'},{id:'scale_day_rate',label:'scale使用日率',direction:'lower',section:'prescribing'},{id:'correction_share_of_rapid',label:'rapid実投与中のscale依存率',direction:'lower',section:'learning'},{id:'same_feedback_next_day_rate',label:'同一feedback翌日再発率',direction:'lower',section:'learning'},{id:'feedback_action_alignment_rate',label:'指摘→翌日scheduled処方方向一致率',direction:'higher',section:'learning'},{id:'rapid_error_rate',label:'rapid過不足率',direction:'lower',section:'prescribing'},{id:'rapid_over_rate',label:'rapid過量率',direction:'lower',section:'bias'},{id:'rapid_under_rate',label:'rapid不足率',direction:'lower',section:'bias'},{id:'basal_error_day_rate',label:'basal過不足日率',direction:'lower',section:'prescribing'},{id:'basal_over_day_rate',label:'basal過量日率',direction:'lower',section:'bias'},{id:'basal_under_day_rate',label:'basal不足日率',direction:'lower',section:'bias'},{id:'objective_success_rate',label:'学習目標 改善/達成率',direction:'higher',section:'outcome'}];
   function change(m,e,l){if(e==null||l==null)return null;const raw=l-e;return {raw,improvement:m.direction==='lower'?-raw:raw}}
   function nextFocusSummary(data){const o=data?.active_objective;if(!o?.domain_id)return null;return {domain_id:o.domain_id,label:DOMAIN_LABELS[o.domain_id]||o.domain_id,focus_tag:o.focus_tag||null,routing_source:o.routing_source||null,selection_reason:o.selection_reason||null}}
-  function summarize(raw){const data=normalize(raw),cases=completedCases(data),g=splitTerciles(cases),out={schema_version:9,case_count:cases.length,ready:cases.length>=MIN_CASES,minimum_cases:MIN_CASES,window_method:'ordered completed cases split into contiguous terciles',prescribing_source:'feedback_tags_v1 when feedback tags are available',next_focus:nextFocusSummary(data),groups:{early:groupMetrics(data,g.early),middle:groupMetrics(data,g.middle),late:groupMetrics(data,g.late)},metrics:[]};out.metrics=METRICS.map(m=>{const early=out.groups.early[m.id],middle=out.groups.middle[m.id],late=out.groups.late[m.id];return {...m,early,middle,late,change:change(m,early,late)}});return out}
+  function summarize(raw){const data=normalize(raw),cases=completedCases(data),g=splitTerciles(cases),out={schema_version:9,case_count:cases.length,ready:cases.length>=MIN_CASES,minimum_cases:MIN_CASES,window_method:'ordered completed cases split into contiguous terciles',prescribing_source:'feedback_tags_v1 when feedback tags are available',feedback_action_semantics_version:feedbackSemantics()?.version||null,next_focus:nextFocusSummary(data),groups:{early:groupMetrics(data,g.early),middle:groupMetrics(data,g.middle),late:groupMetrics(data,g.late)},metrics:[]};out.metrics=METRICS.map(m=>{const early=out.groups.early[m.id],middle=out.groups.middle[m.id],late=out.groups.late[m.id];return {...m,early,middle,late,change:change(m,early,late)}});return out}
   function pct(x){return x==null?'—':`${Math.round(100*x)}%`}
   function num(x){return x==null?'—':x.toFixed(1)}
   function formatMetric(id,x){return id==='mean_completion_days'?num(x):pct(x)}
@@ -71,6 +68,6 @@
   function ensureUI(){if(typeof document==='undefined')return null;let box=document.querySelector('#learningAnalysis');if(box)return box;const anchor=document.querySelector('#learningDataExport')||document.querySelector('#runHistory');if(!anchor)return null;box=document.createElement('section');box.id='learningAnalysis';box.className='section-block';box.style.marginTop='16px';box.innerHTML=`<div class="section-title"><span>L</span> 学習効果サマリー</div><div id="learningAnalysisBody"></div>`;anchor.insertAdjacentElement('afterend',box);return box}
   function refresh(){const box=ensureUI(),body=box?.querySelector('#learningAnalysisBody');if(body)body.innerHTML=renderHtml(summarize(load()))}
   function mount(){refresh();const submit=document.querySelector('#submitBtn'),next=document.querySelector('#newCaseBtn');if(submit&&!submit.dataset.learningAnalysisMounted){submit.dataset.learningAnalysisMounted='1';submit.addEventListener('click',()=>setTimeout(refresh,0))}if(next&&!next.dataset.learningAnalysisMounted){next.dataset.learningAnalysisMounted='1';next.addEventListener('click',()=>setTimeout(refresh,0))}const result=document.querySelector('#resultPanel');if(result&&!result.dataset.learningAnalysisMounted){result.dataset.learningAnalysisMounted='1';result.addEventListener('click',e=>{if(e.target?.closest?.('#restartBtn'))setTimeout(refresh,0)})}}
-  window.WardLearningAnalysis={normalize,migrateDay,prescribingFromTags,completedCases,splitTerciles,groupMetrics,routingOutcomeMetrics,traceMetrics,feedbackActionMetrics,supportedTraceVersion,summarize,renderHtml,learningProgressAxes,learningProgressHtml,nextFocusSummary,nextPracticeHtml,learningSignalHtml,routingEvidenceHtml,routingConsistency,detailMetricsHtml,refresh,METRICS,MIN_CASES,FEEDBACK_ACTIONS,version:'1.14.0'};
+  window.WardLearningAnalysis={normalize,migrateDay,prescribingFromTags,completedCases,splitTerciles,groupMetrics,routingOutcomeMetrics,traceMetrics,feedbackActionMetrics,feedbackActionSpec,supportedTraceVersion,summarize,renderHtml,learningProgressAxes,learningProgressHtml,nextFocusSummary,nextPracticeHtml,learningSignalHtml,routingEvidenceHtml,routingConsistency,detailMetricsHtml,refresh,METRICS,MIN_CASES,get FEEDBACK_ACTIONS(){return feedbackActionsCompat()},version:'1.15.0'};
   if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount()}
 })();
