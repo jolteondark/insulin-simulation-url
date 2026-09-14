@@ -107,9 +107,16 @@
     };
   }
 
-  function narrativeHtml(result){
+  function trendIcon(result){
+    return result?.tone==='improving'?'↗':result?.tone==='worsening'?'↘':result?.tone==='mixed'?'↔':'→';
+  }
+
+  function narrativeHtml(result,options={}){
     if(!result)return '';
-    const icon=result.tone==='improving'?'↗':result.tone==='worsening'?'↘':result.tone==='mixed'?'↔':'→';
+    const icon=trendIcon(result);
+    if(options.compact){
+      return `<div id="learningTrendInterpretation" class="micro-note" style="margin-top:8px;padding-top:7px;border-top:1px solid rgba(127,127,127,.24)"><b>LONG-TERM READ：</b>${icon} ${result.title}<div style="margin-top:3px">${result.body}</div></div>`;
+    }
     return `<div id="learningTrendInterpretation" class="record-card" style="margin-top:8px"><div class="section-kicker">LONG-TERM READ</div><div style="font-weight:800">${icon} ${result.title}</div><div class="micro-note" style="margin-top:4px">${result.body}</div></div>`;
   }
 
@@ -126,15 +133,16 @@
     return latest?data?.completion_records?.[latest.case_id]?.scored?.status||null:null;
   }
 
-  function findSnapshotCard(root){
-    const run=root?.document?.querySelector?.('#learningRunProgress');
-    if(!run)return null;
-    const cards=run.querySelectorAll?.('.record-card')||[];
-    for(const card of cards){
-      if(String(card?.textContent||'').includes('LONGITUDINAL SNAPSHOT'))return card;
-    }
-    return null;
+  function cardsInRun(root){
+    return [...(root?.document?.querySelector?.('#learningRunProgress')?.querySelectorAll?.('.record-card')||[])];
   }
+
+  function findCardByText(root,text){
+    return cardsInRun(root).find(card=>String(card?.textContent||'').includes(text))||null;
+  }
+
+  function findSnapshotCard(root){return findCardByText(root,'LONGITUDINAL SNAPSHOT')}
+  function findLearningActionCard(root){return findCardByText(root,'NEXT LEARNING ACTION')}
 
   function render(root,dataArg){
     const data=dataArg||load(root);
@@ -142,14 +150,22 @@
     const result=narrative(analysis,latestStatus(root,data));
     const doc=root?.document;
     if(!doc)return result;
-    const existing=doc.querySelector?.('#learningTrendInterpretation');
-    if(!result){existing?.remove?.();return null;}
-    const html=narrativeHtml(result);
-    if(existing){existing.outerHTML=html;return result;}
+    doc.querySelector?.('#learningTrendInterpretation')?.remove?.();
+    if(!result)return null;
+
+    const actionCard=findLearningActionCard(root);
+    if(actionCard?.insertAdjacentHTML){
+      actionCard.insertAdjacentHTML('beforeend',narrativeHtml(result,{compact:true}));
+      return result;
+    }
+
     const snapshot=findSnapshotCard(root);
-    if(snapshot?.insertAdjacentHTML){snapshot.insertAdjacentHTML('afterend',html);return result;}
+    if(snapshot?.insertAdjacentHTML){
+      snapshot.insertAdjacentHTML('afterend',narrativeHtml(result));
+      return result;
+    }
     const run=doc.querySelector?.('#learningRunProgress');
-    run?.insertAdjacentHTML?.('beforeend',html);
+    run?.insertAdjacentHTML?.('beforeend',narrativeHtml(result));
     return result;
   }
 
@@ -171,5 +187,5 @@
     root.document.querySelector?.('#resultPanel')?.addEventListener?.('click',event=>{if(event.target?.closest?.('#restartBtn'))scheduleRefresh();});
   }
 
-  return {AXES,AXIS_ORDER,TREND_EPSILON,improvementFor,classifyAxis,interpretAxes,narrative,narrativeHtml,latestStatus,findSnapshotCard,render,mount,version:'1.1.0'};
+  return {AXES,AXIS_ORDER,TREND_EPSILON,improvementFor,classifyAxis,interpretAxes,narrative,trendIcon,narrativeHtml,latestStatus,cardsInRun,findCardByText,findSnapshotCard,findLearningActionCard,render,mount,version:'1.2.0'};
 });
