@@ -326,12 +326,16 @@
     return `<div class="micro-note" style="margin-top:10px"><b>領域別 learning curve</b> — 現在の重点・未達を優先表示</div>${display.shown.map(domainRow).join('')}${hidden}`;
   }
 
+  function learningHistoryDetailsHtml(summary,analysis=null){
+    const streak=summary.improvement_streak;
+    const streakCopy=streak>=3?`<div class="micro-note" style="margin-top:7px"><b>連続改善 ${streak}症例。</b> 同じ考え方を別症例でも再現できています。</div>`:'';
+    return `<details style="margin-top:8px"><summary class="micro-note" style="cursor:pointer;font-weight:800">学習履歴・長期推移を見る</summary><div style="margin-top:6px">${focusTransitionHtml(summary)}${focusEntryOutcomeHtml(summary)}${learningAxesHtml(analysis)}<div class="micro-note" style="margin-top:9px"><b>WARD RUN</b> — 症例を重ねた攻略状況</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px">${badge('完了症例',summary.cases,'🏁')}${badge('FOCUS CLEAR',summary.focus_clear,'✓')}${badge('persistent解除',summary.persistent_released,'🔓')}${badge('連続改善',summary.improvement_streak,'↗')}</div>${streakCopy}${domainProgressHtml(summary)}<div class="micro-note" style="margin-top:7px">DISCHARGE ${summary.discharged}件。新しい点数は付けず、実際の学習履歴だけを表示しています。</div></div></details>`;
+  }
+
   function renderHtml(summary,analysis=null){
     if(!summary.ready)return '';
     const reward=latestReward(summary);
-    const streak=summary.improvement_streak;
-    const streakCopy=streak>=3?`<div class="micro-note" style="margin-top:7px"><b>連続改善 ${streak}症例。</b> 同じ考え方を別症例でも再現できています。</div>`:'';
-    return `<section id="learningRunProgress" class="learning-focus" aria-live="polite"><div class="learning-focus-kicker">${reward.kicker}</div><div class="learning-focus-title">${reward.title}</div><div class="learning-focus-body" style="margin-top:3px">${reward.body}</div>${focusTransitionHtml(summary)}${focusEntryOutcomeHtml(summary)}${learningActionHtml(analysis,summary)}${learningAxesHtml(analysis)}<div class="micro-note" style="margin-top:9px"><b>WARD RUN</b> — 症例を重ねた攻略状況</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px">${badge('完了症例',summary.cases,'🏁')}${badge('FOCUS CLEAR',summary.focus_clear,'✓')}${badge('persistent解除',summary.persistent_released,'🔓')}${badge('連続改善',summary.improvement_streak,'↗')}</div>${streakCopy}${domainProgressHtml(summary)}<div class="micro-note" style="margin-top:7px">DISCHARGE ${summary.discharged}件。新しい点数は付けず、実際の学習履歴だけを表示しています。</div></section>`;
+    return `<section id="learningRunProgress" class="learning-focus" aria-live="polite"><div class="learning-focus-kicker">${reward.kicker}</div><div class="learning-focus-title">${reward.title}</div><div class="learning-focus-body" style="margin-top:3px">${reward.body}</div>${learningActionHtml(analysis,summary)}${learningHistoryDetailsHtml(summary,analysis)}</section>`;
   }
 
   function ensurePanel(root){
@@ -380,5 +384,5 @@
     root.document.querySelector('#resultPanel')?.addEventListener('click',e=>{if(e.target?.closest?.('#restartBtn'))scheduleRefresh()});
   }
 
-  return {orderedCompletedCases,scoredStatus,improvementStreak,unresolvedStreak,nextFocusMeta,domainPracticeSummary,focusTransition,focusEntryOutcome,domainDisplayRows,summarize,latestReward,focusTransitionHtml,focusEntryOutcomeHtml,latestStatusLabel,nextFocusLabel,domainProgressHtml,nextLearningAction,bestLearningImprovement,routedLearningAction,learningActionHtml,learningAxesHtml,renderHtml,render,refresh,mount,version:'1.11.0'};
+  return {orderedCompletedCases,scoredStatus,improvementStreak,unresolvedStreak,nextFocusMeta,domainPracticeSummary,focusTransition,focusEntryOutcome,domainDisplayRows,summarize,latestReward,focusTransitionHtml,focusEntryOutcomeHtml,latestStatusLabel,nextFocusLabel,domainProgressHtml,nextLearningAction,bestLearningImprovement,routedLearningAction,learningActionHtml,learningAxesHtml,learningHistoryDetailsHtml,renderHtml,render,refresh,mount,version:'1.12.0'};
 });
