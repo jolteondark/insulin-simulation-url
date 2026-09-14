@@ -274,6 +274,20 @@
     return `<div class="record-card" style="margin-top:8px"><div class="section-kicker">NEXT LEARNING ACTION</div>${improved}${action}<div class="micro-note" style="margin-top:4px">${basis}</div></div>`;
   }
 
+  function learningAxesHtml(analysis){
+    if(!analysis?.ready)return '';
+    const map=learningMetricMap(analysis);
+    const cells=LEARNING_ACTION_PRIORITY.map(id=>{
+      const spec=LEARNING_ACTIONS[id],metric=map.get(id),early=finite(metric?.early),late=finite(metric?.late),improvement=finite(metric?.change?.improvement);
+      if(late==null)return '';
+      const trend=improvement==null||Math.abs(improvement)<0.005?'→':improvement>0?'↗':'↘';
+      const delta=improvement==null?'':` <span style="font-weight:700">${trend}${Math.abs(improvement*100).toFixed(1)}pt</span>`;
+      return `<div class="prev-dose"><div class="name">${spec.label}</div><div class="value" style="font-size:17px">${pct(late)}</div><div class="micro-note">初期 ${pct(early)}${delta}</div></div>`;
+    }).filter(Boolean);
+    if(!cells.length)return '';
+    return `<div class="record-card" style="margin-top:8px"><div class="section-kicker">LONGITUDINAL SNAPSHOT</div><div class="micro-note">既存の4軸を同じ場所で確認。新しい総合点は作りません。</div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:7px">${cells.join('')}</div></div>`;
+  }
+
   function latestStatusLabel(d){
     if(d.latest_status==='resolved')return ' ／ <b>今回 ✓解消</b>';
     if(d.latest_status==='improved')return ' ／ <b>今回 ↗改善</b>';
@@ -317,7 +331,7 @@
     const reward=latestReward(summary);
     const streak=summary.improvement_streak;
     const streakCopy=streak>=3?`<div class="micro-note" style="margin-top:7px"><b>連続改善 ${streak}症例。</b> 同じ考え方を別症例でも再現できています。</div>`:'';
-    return `<section id="learningRunProgress" class="learning-focus" aria-live="polite"><div class="learning-focus-kicker">${reward.kicker}</div><div class="learning-focus-title">${reward.title}</div><div class="learning-focus-body" style="margin-top:3px">${reward.body}</div>${focusTransitionHtml(summary)}${focusEntryOutcomeHtml(summary)}${learningActionHtml(analysis,summary)}<div class="micro-note" style="margin-top:9px"><b>WARD RUN</b> — 症例を重ねた攻略状況</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px">${badge('完了症例',summary.cases,'🏁')}${badge('FOCUS CLEAR',summary.focus_clear,'✓')}${badge('persistent解除',summary.persistent_released,'🔓')}${badge('連続改善',summary.improvement_streak,'↗')}</div>${streakCopy}${domainProgressHtml(summary)}<div class="micro-note" style="margin-top:7px">DISCHARGE ${summary.discharged}件。新しい点数は付けず、実際の学習履歴だけを表示しています。</div></section>`;
+    return `<section id="learningRunProgress" class="learning-focus" aria-live="polite"><div class="learning-focus-kicker">${reward.kicker}</div><div class="learning-focus-title">${reward.title}</div><div class="learning-focus-body" style="margin-top:3px">${reward.body}</div>${focusTransitionHtml(summary)}${focusEntryOutcomeHtml(summary)}${learningActionHtml(analysis,summary)}${learningAxesHtml(analysis)}<div class="micro-note" style="margin-top:9px"><b>WARD RUN</b> — 症例を重ねた攻略状況</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px">${badge('完了症例',summary.cases,'🏁')}${badge('FOCUS CLEAR',summary.focus_clear,'✓')}${badge('persistent解除',summary.persistent_released,'🔓')}${badge('連続改善',summary.improvement_streak,'↗')}</div>${streakCopy}${domainProgressHtml(summary)}<div class="micro-note" style="margin-top:7px">DISCHARGE ${summary.discharged}件。新しい点数は付けず、実際の学習履歴だけを表示しています。</div></section>`;
   }
 
   function ensurePanel(root){
@@ -366,5 +380,5 @@
     root.document.querySelector('#resultPanel')?.addEventListener('click',e=>{if(e.target?.closest?.('#restartBtn'))scheduleRefresh()});
   }
 
-  return {orderedCompletedCases,scoredStatus,improvementStreak,unresolvedStreak,nextFocusMeta,domainPracticeSummary,focusTransition,focusEntryOutcome,domainDisplayRows,summarize,latestReward,focusTransitionHtml,focusEntryOutcomeHtml,latestStatusLabel,nextFocusLabel,domainProgressHtml,nextLearningAction,bestLearningImprovement,routedLearningAction,learningActionHtml,renderHtml,render,refresh,mount,version:'1.10.0'};
+  return {orderedCompletedCases,scoredStatus,improvementStreak,unresolvedStreak,nextFocusMeta,domainPracticeSummary,focusTransition,focusEntryOutcome,domainDisplayRows,summarize,latestReward,focusTransitionHtml,focusEntryOutcomeHtml,latestStatusLabel,nextFocusLabel,domainProgressHtml,nextLearningAction,bestLearningImprovement,routedLearningAction,learningActionHtml,learningAxesHtml,renderHtml,render,refresh,mount,version:'1.11.0'};
 });
