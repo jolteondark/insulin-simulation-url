@@ -22,14 +22,17 @@
   function label(x){return x?.focus_label||TAG_LABELS[x?.focus_tag]||x?.label||x?.domain_id||'学習目標'}
   function statusFromRecord(data,caseId){
     const rec=data?.completion_records?.[caseId]||null;if(!rec)return null;
-    const scored=rec.scored||null,next=rec.active_objective||data?.active_objective||null;
-    if(scored?.status==='resolved'){
-      const nextText=next&&next.source_case_id===caseId?` → 次は「${label(next)}」` : '';
-      return {tone:'clear',kicker:'FOCUS CLEAR',title:`「${label(scored)}」を解除`,body:`同じ方向の問題はこの症例で消えました${nextText}。`,icon:'✓'};
+    const scored=rec.scored||null;
+    const release=rec.followthrough_objective_release||null;
+    const masteryEpisode=Math.max(1,Number(release?.mastery_episode)||1);
+    const reacquired=release?.reacquired===true||masteryEpisode>1;
+    if(reacquired){
+      const focus=release||scored;
+      return {tone:'clear',kicker:'FOCUS REGAINED',title:`「${label(focus)}」を再克服`,body:`再学習 episode ${masteryEpisode} を処方変更まで完結できました。`,icon:'↻',mastery_episode:masteryEpisode,reacquired:true};
     }
-    if(scored?.status==='improved')return {tone:'improved',kicker:'NICE ADJUST',title:`「${label(scored)}」が改善`,body:'処方→結果→修正の方向が合っています。次症例でも再現できるか確認します。',icon:'↗'};
-    if(scored?.status==='not_resolved')return {tone:'continue',kicker:'KEEP GOING',title:`「${label(scored)}」を重点継続`,body:'失敗扱いで終わらせず、次症例で同じ1方向をもう一度練習します。',icon:'→'};
-    if(next&&next.source_case_id===caseId)return {tone:'next',kicker:'NEXT TARGET',title:`次は「${label(next)}」`,body:'今回の結果から、次症例で見る1点を設定しました。',icon:'◎'};
+    if(scored?.status==='resolved')return {tone:'clear',kicker:'FOCUS CLEAR',title:`「${label(scored)}」を解除`,body:'同じ方向の問題はこの症例で消えました。',icon:'✓'};
+    if(scored?.status==='improved')return {tone:'improved',kicker:'NICE ADJUST',title:`「${label(scored)}」が改善`,body:'処方→結果→修正の方向が合っています。',icon:'↗'};
+    if(scored?.status==='not_resolved')return {tone:'continue',kicker:'KEEP GOING',title:`「${label(scored)}」を重点継続`,body:'同じ1方向の再練習が必要です。',icon:'→'};
     return null;
   }
   function ensurePanel(root){
@@ -63,5 +66,5 @@
       if(!event?.key||event.key===STORAGE_KEY)scheduleRefresh();
     });
   }
-  return {label,statusFromRecord,render,refresh,latestCompletedCaseId,mount,version:'1.0.1'};
+  return {label,statusFromRecord,render,refresh,latestCompletedCaseId,mount,version:'1.2.0'};
 });

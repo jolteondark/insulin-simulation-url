@@ -26,7 +26,16 @@
     return Object.entries(data?.completion_records||{}).map(([caseId,record])=>{
       const x=record?.followthrough_objective_release||{};
       const focus=x.focus_tag||x.domain_id||null;
-      return x.action_status==='followed'&&focus?{case_id:caseId,case_index:index.has(caseId)?index.get(caseId):-1,focus_tag:focus,domain_id:x.domain_id||null}:null;
+      const mastered=['followed','changed'].includes(x.action_status);
+      return mastered&&focus?{
+        case_id:caseId,
+        case_index:index.has(caseId)?index.get(caseId):-1,
+        focus_tag:focus,
+        domain_id:x.domain_id||null,
+        action_status:x.action_status,
+        mastery_episode:Math.max(1,Number(x.mastery_episode)||1),
+        reacquired:x.reacquired===true
+      }:null;
     }).filter(Boolean);
   }
   function recurrenceAfter(data,event,unresolved){
@@ -51,7 +60,15 @@
       const subsequent=cases.slice(Math.max(0,event.case_index+1)).filter(completed).length;
       const recurred=recurrenceAfter(data,event,unresolved);
       const retention=recurred?'reappeared':subsequent>=RETENTION_CASES?'retained':subsequent>0?'maintaining':'newly_mastered';
-      return {...item,retention,subsequent_cases:subsequent,mastered_case_id:event.case_id};
+      return {
+        ...item,
+        episodes:Math.max(Number(item.episodes)||1,event.mastery_episode),
+        reacquired:item.reacquired===true||event.reacquired===true||event.mastery_episode>1,
+        retention,
+        subsequent_cases:subsequent,
+        mastered_case_id:event.case_id,
+        mastery_action_status:event.action_status
+      };
     });
   }
 
@@ -161,12 +178,21 @@
       ? `・episode結果 解除/改善 ${x.released_episodes+x.resolved_episodes}、未解除切替 ${x.unresolved_handoffs}`
       : '';
     const recent=x.focus_episodes?.slice(-3).map(e=>`${e.focus_tag} ${e.n}症例→${episodeOutcomeLabel(e)}`).join(' ／ ');
-    return ` ／ 重点推移：${x.targeted_cases}症例・切替 ${x.switches}回・平均滞在 ${x.mean_dwell.toFixed(1)}症例・最長 ${x.max_dwell}症例${outcomeDetail}${currentLabel?`・現在 ${currentLabel} ${x.current_dwell}症例連続`:''}${recent?`（直近：${recent}）`:''}`;
+    return `重点推移：${x.targeted_cases}症例・切替 ${x.switches}回・平均滞在 ${x.mean_dwell.toFixed(1)}症例・最長 ${x.max_dwell}症例${outcomeDetail}${currentLabel?`・現在 ${currentLabel} ${x.current_dwell}症例連続`:''}${recent?`（直近：${recent}）`:''}`;
   }
-  function renderHtml(state,options={}){
+  function compactText(state){
     if(!state?.ready)return '';
-    const id=options.id||'learningSkillState';
-    const title=options.title||'獲得済みスキルと現在の課題';
+    const parts=[];
+    if(state.retained_n)parts.push(`定着 ${state.retained_n}件`);
+    if(state.maintaining_n)parts.push(`維持確認 ${state.maintaining_n}件`);
+    if(state.reappeared_n)parts.push(`再出現 ${state.reappeared_n}件`);
+    if(state.reacquired_n)parts.push(`再克服skill ${state.reacquired_n}件`);
+    if(!parts.length&&state.mastered_n)parts.push(`克服済み ${state.mastered_n}件`);
+    if(!parts.length)return state.unresolved?'獲得済みskillはまだありません':'長期評価待ち';
+    const named=state.mastered.slice(-2).map(skillLabel).join('・');
+    return `${parts.join(' ／ ')}${named?`（${named}）`:''}`;
+  }
+  function diagnosticText(state){
     const episodeDetail=state.mastered_n&&state.mastery_episodes>state.mastered_n
       ? `／克服エピソード ${state.mastery_episodes}回（再克服skill ${state.reacquired_n}件）`
       : '';
@@ -176,22 +202,54 @@
     const unresolved=state.unresolved
       ? `現在の重点：${state.unresolved.label}${state.regressed&&state.mastered.some(x=>x.focus_tag===state.unresolved.focus_tag&&x.retention==='reappeared')?'（再出現）':''}`
       : '現在の重点：なし';
-    return `<div id="${id}" class="micro-note" style="margin-top:7px"><b>${title}：</b>${mastered} ／ ${unresolved}${lifecycleText(state)}。</div>`;
+    const lifecycle=lifecycleText(state);
+    return `${mastered} ／ ${unresolved}${lifecycle?` ／ ${lifecycle}`:''}。`;
+  }
+  function renderHtml(state,options={}){
+    if(!state?.ready)return '';
+    const id=options.id||'learningSkillState';
+    const title=options.title||'長期スキル';
+    const summary=compactText(state);
+    const diagnostic=diagnosticText(state);
+    if(options.expanded===true)return `<div id="${id}" class="micro-note" style="margin-top:7px"><b>${title}：</b>${diagnostic}</div>`;
+    return `<div id="${id}" class="micro-note" style="margin-top:7px"><b>${title}：</b>${summary}。<details style="margin-top:5px"><summary>重点推移の詳細</summary><div style="margin-top:5px">${diagnostic}</div></details></div>`;
   }
 
+  function replaceCompactLongTerm(progress,state){
+    const summary=progress?.firstElementChild;
+    if(!summary?.classList?.contains('micro-note'))return false;
+    const nodes=Array.from(summary.childNodes||[]);
+    const marker=nodes.find(node=>node?.nodeType===1&&node.tagName==='B'&&node.textContent==='長期変化：');
+    if(!marker)return false;
+    marker.textContent='長期スキル：';
+    let node=marker.nextSibling;
+    while(node){
+      const next=node.nextSibling;
+      node.remove();
+      node=next;
+    }
+    marker.insertAdjacentText('afterend',compactText(state)||'長期評価待ち');
+    return true;
+  }
+  function mountProgressDiagnostic(progress,state){
+    progress?.querySelector('#learningSkillState')?.remove();
+    progress?.querySelector('#learningSkillDiagnostic')?.remove();
+    const details=Array.from(progress?.children||[]).find(el=>el.tagName==='DETAILS');
+    if(!details||!state?.ready)return;
+    details.insertAdjacentHTML('beforeend',`<div id="learningSkillDiagnostic" class="micro-note" style="margin-top:8px"><b>長期スキル詳細：</b>${diagnosticText(state)}</div>`);
+  }
   function refresh(root){
     if(!root?.document)return;
     const state=buildState(load(root),root.WardEducationRoutingState,root.WardRoutingLearningOutcomes);
     const progress=root.document.querySelector('#caseLearningProgress');
     if(progress){
-      progress.querySelector('#learningSkillState')?.remove();
-      const html=renderHtml(state);
-      if(html)progress.insertAdjacentHTML('beforeend',html);
+      replaceCompactLongTerm(progress,state);
+      mountProgressDiagnostic(progress,state);
     }
     const finalBody=root.document.querySelector('#finalLearningDebriefBody');
     if(finalBody){
       finalBody.querySelector('#finalLearningSkillState')?.remove();
-      const html=renderHtml(state,{id:'finalLearningSkillState',title:'スキル到達状況'});
+      const html=renderHtml(state,{id:'finalLearningSkillState',title:'長期スキル'});
       if(html)finalBody.insertAdjacentHTML('beforeend',html);
     }
   }
@@ -218,5 +276,5 @@
     refresh(root);
   }
 
-  return {load,completed,masteryEvents,recurrenceAfter,retentionState,focusTimeline,episodeOutcome,focusLifecycle,buildState,skillLabel,episodeOutcomeLabel,lifecycleText,renderHtml,refresh,mount,RETENTION_CASES,TARGET_REASONS,RELEASE_KINDS,RELIEF_KINDS,version:'1.4.0'};
+  return {load,completed,masteryEvents,recurrenceAfter,retentionState,focusTimeline,episodeOutcome,focusLifecycle,buildState,skillLabel,episodeOutcomeLabel,lifecycleText,compactText,diagnosticText,renderHtml,replaceCompactLongTerm,mountProgressDiagnostic,refresh,mount,RETENTION_CASES,TARGET_REASONS,RELEASE_KINDS,RELIEF_KINDS,version:'1.7.0'};
 });

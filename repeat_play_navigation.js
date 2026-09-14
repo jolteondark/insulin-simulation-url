@@ -72,12 +72,52 @@
     return moveToPrescriptionContext();
   }
 
+  function focusResultAction(){
+    try{return root?.DoseAdjustControls?.focusResultAction?.()||false}
+    catch(e){console.error('repeat-play result action focus',e);return false}
+  }
+
+  function focusPreferredDose(){
+    try{return root?.DoseAdjustControls?.focusPreferredDose?.()||false}
+    catch(e){console.error('repeat-play preferred dose focus',e);return false}
+  }
+
   function afterSubmit(){
-    // The canonical submit handler renders resultPanel synchronously today,
-    // while result-glance is injected by a sibling listener. Defer one task so
-    // navigation always sees the compact summary when available and falls back
-    // to the result panel if rendering order changes later.
-    setTimeout(moveToResultReview,0);
+    // Submit aftermath has one owner for every activation path (mouse, touch,
+    // Enter, Ctrl/Cmd+Enter): first move to the compact result summary, then
+    // place keyboard focus on the canonical next action. Keeping both effects
+    // in one deferred task prevents a disabled submit button from retaining
+    // focus after pointer submission and avoids duplicate timers in dose input
+    // helpers.
+    setTimeout(()=>{
+      moveToResultReview();
+      focusResultAction();
+    },0);
+  }
+
+  function afterDayAdvance(){
+    // Day advance is one atomic throughput handoff, matching the case-boundary
+    // contract below. Wait once for app.js plus compact mirrors to render the
+    // new day's decision state, then move and focus in a deterministic order.
+    // DoseAdjustControls keeps only a fallback for older/partial embeddings so
+    // the mounted app never has competing scroll/focus timers.
+    setTimeout(()=>{
+      moveToPrescriptionContext();
+      focusPreferredDose();
+    },0);
+    return true;
+  }
+
+  function afterCaseStart(){
+    // A case boundary is likewise one atomic throughput handoff. Wait once for
+    // regenerated DOM + compact mirrors, then move to the integrated decision
+    // surface and select the dose input mapped to the canonical learning focus.
+    // This replaces competing navigation/focus timers with one ordered task.
+    setTimeout(()=>{
+      moveToCaseStartContext();
+      focusPreferredDose();
+    },0);
+    return true;
   }
 
   function onClick(event){
@@ -87,17 +127,13 @@
       return;
     }
     if(id==='nextDayBtn'){
-      // Within the same case, keep throughput high and return directly to the
-      // visible prescription decision surface rather than a compacted source
-      // card or the case-level focus.
-      moveToPrescriptionContext();
+      afterDayAdvance();
       return;
     }
     if(id==='restartBtn'){
-      // A new case may carry a prospective learning objective from the prior
-      // debrief. Surface it once at the case boundary, preferably inside the
-      // integrated decision strip when that surface is available.
-      moveToCaseStartContext();
+      // Legacy restart remains compatible when the canonical terminal CTA is
+      // unavailable. CaseTransitionCta owns its normal case-start handoff.
+      afterCaseStart();
     }
   }
 
@@ -111,9 +147,13 @@
     moveToPrescriptionContext,
     moveToResultReview,
     moveToCaseStartContext,
+    focusResultAction,
+    focusPreferredDose,
     prescriptionDecisionTarget,
     resultReviewTarget,
     afterSubmit,
+    afterDayAdvance,
+    afterCaseStart,
     onClick,
     mount,
     targetSelector:PRESCRIPTION_SELECTOR,
@@ -121,7 +161,7 @@
     orderCardSelector:ORDER_CARD_SELECTOR,
     learningFocusSelector:LEARNING_FOCUS_SELECTOR,
     resultGlanceSelector:RESULT_GLANCE_SELECTOR,
-    version:'1.5.0'
+    version:'1.8.0'
   };
   if(root)root.RepeatPlayNavigation=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;

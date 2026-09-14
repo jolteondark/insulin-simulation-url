@@ -7,16 +7,8 @@
   }
 })(typeof globalThis!=='undefined'?globalThis:this,function(root){
   const STORAGE_KEY='ward_glucose_learning_curve_v1';
-  const DOSE_FEEDBACK={
-    basal_excess:{dose_key:'basal_u',direction:-1,label:'basal↓'},
-    basal_deficit:{dose_key:'basal_u',direction:1,label:'basal↑'},
-    breakfast_rapid_excess:{dose_key:'breakfast_u',direction:-1,label:'朝rapid↓'},
-    breakfast_rapid_deficit:{dose_key:'breakfast_u',direction:1,label:'朝rapid↑'},
-    lunch_rapid_excess:{dose_key:'lunch_u',direction:-1,label:'昼rapid↓'},
-    lunch_rapid_deficit:{dose_key:'lunch_u',direction:1,label:'昼rapid↑'},
-    dinner_rapid_excess:{dose_key:'dinner_u',direction:-1,label:'夕rapid↓'},
-    dinner_rapid_deficit:{dose_key:'dinner_u',direction:1,label:'夕rapid↑'}
-  };
+  const semantics=root?.WardFeedbackActionSemantics||(typeof require==='function'?require('./feedback_action_semantics.js'):null);
+  const DOSE_FEEDBACK=semantics?.RULES||{};
 
   function currentState(r){
     try{if(typeof state!=='undefined')return state}catch{}
@@ -81,23 +73,22 @@
 
   function feedbackAction(day,nextDay){
     const tag=day?.feedback?.primary_tag;
-    const rule=DOSE_FEEDBACK[tag];
+    const rule=semantics?.ruleForTag?.(tag);
     if(!rule||!nextDay)return null;
     const before=finite(day?.prescribed_order_u?.[rule.dose_key]);
     const after=finite(nextDay?.prescribed_order_u?.[rule.dose_key]);
     if(before==null||after==null)return null;
-    const delta=after-before;
-    const followed=delta*rule.direction>0;
-    const unchanged=delta===0;
+    const action=semantics.classifyTag(tag,before,after);
+    if(!action)return null;
     return {
       feedback_tag:tag,
       label:rule.label,
       dose_key:rule.dose_key,
       expected_direction:rule.direction,
-      before_u:before,
-      after_u:after,
-      delta_u:delta,
-      status:followed?'followed':unchanged?'unchanged':'opposite'
+      before_u:action.before_u,
+      after_u:action.after_u,
+      delta_u:action.delta_u,
+      status:action.status
     };
   }
 
@@ -152,6 +143,13 @@
     catch{return {}}
   }
   function save(r,data){r.localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}
+  function learningAttributionExcluded(record){
+    return Boolean(
+      record?.learning_attribution_excluded===true
+      || record?.learning_attribution_exclusion_reason==='objective_identity_mismatch'
+      || record?.completion_transaction?.learning_attribution_quarantined===true
+    );
+  }
   function attach(rArg){
     const r=rArg||root,s=currentState(r);
     if(!s?.over||!s?.case?.case_id)return null;
@@ -160,6 +158,17 @@
     const data=load(r),caseId=s.case.case_id;
     const records=data.completion_records&&typeof data.completion_records==='object'?data.completion_records:{};
     const prior=records[caseId]&&typeof records[caseId]==='object'?records[caseId]:{};
+    // Completion transaction is the canonical owner of attribution safety. When
+    // objective identity integrity quarantines a case, a later zero-delay trace
+    // callback must not reattach the very learning evidence that transaction
+    // deliberately neutralized. Also clear any stale pre-guard trace if present.
+    if(learningAttributionExcluded(prior)){
+      if(prior.case_learning_trace!=null){
+        data.completion_records={...records,[caseId]:{...prior,case_learning_trace:null}};
+        save(r,data);
+      }
+      return null;
+    }
     const existing=prior.case_learning_trace;
     if(existing?.version===2&&Array.isArray(existing.days)&&existing.days.length===trace.days.length)return existing;
     data.completion_records={...records,[caseId]:{...prior,case_learning_trace:trace}};
@@ -172,5 +181,5 @@
     r.document.querySelector('#submitBtn')?.addEventListener('click',()=>attachAfterTerminal(r));
     attachAfterTerminal(r);
   }
-  return {dayTrace,feedbackAction,feedbackFollowthrough,buildCaseTrace,attach,mount,DOSE_FEEDBACK,version:'2.0.0'};
+  return {dayTrace,feedbackAction,feedbackFollowthrough,buildCaseTrace,attach,learningAttributionExcluded,mount,DOSE_FEEDBACK,version:'2.2.0'};
 });

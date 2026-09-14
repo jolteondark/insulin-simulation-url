@@ -11,6 +11,7 @@
   const TARGET_REASONS=new Set(['recent_tendency_adaptive','persistent','longitudinal']);
   const RELIEF_KINDS=new Set(['recent_tendency_downgraded','recent_tendency_released','persistent_released','longitudinal_released','objective_released']);
   const FULL_RELEASE_KINDS=new Set(['recent_tendency_released','persistent_released','longitudinal_released','objective_released']);
+  const MASTERY_ACTION_STATUSES=new Set(['followed','changed']);
   const CORE_LEARNING_IDS=['feedback_action_alignment_rate','same_feedback_next_day_rate','objective_success_rate'];
   const FOCUS_LABELS={
     basal_excess:'basal過量',basal_deficit:'basal不足',
@@ -34,6 +35,10 @@
 
   function focusKey(x){return x?.focus_tag||x?.domain_id||'unknown'}
   function focusLabel(x){const key=typeof x==='string'?x:focusKey(x);return FOCUS_LABELS[key]||key}
+  function ratio(a,b){return b?a/b:null}
+  function isRelearningPractice(x){
+    return Boolean(x&&(x.relearning_episode===true||x.mastery_state==='reappeared'||x.routing_source==='mastery_recurrence'||Number(x.mastery_episode_target)>1));
+  }
 
   function summarize(data){
     const cases=Array.isArray(data?.cases)?data.cases:[];
@@ -48,7 +53,11 @@
       .filter(x=>RELIEF_KINDS.has(x.kind));
     const mastery=completionEntries
       .map(([caseId,record])=>({case_id:caseId,...(record?.followthrough_objective_release||{})}))
-      .filter(x=>x.action_status==='followed'&&x.domain_id);
+      .filter(x=>MASTERY_ACTION_STATUSES.has(x.action_status)&&(x.focus_tag||x.domain_id));
+    const relearning=targeted.filter(isRelearningPractice);
+    const relearningIds=new Set(relearning.map(x=>x.case_id).filter(Boolean));
+    const reacquiredMastery=mastery.filter(x=>x.reacquired===true||Number(x.mastery_episode)>1);
+    const reacquiredFromRelearning=reacquiredMastery.filter(x=>relearningIds.has(x.case_id));
     const downgraded=transitions.filter(x=>x.kind==='recent_tendency_downgraded').length;
     const released=transitions.filter(x=>FULL_RELEASE_KINDS.has(x.kind)).length;
     const persistentReleased=transitions.filter(x=>x.kind==='persistent_released').length;
@@ -58,7 +67,9 @@
       const attempts=targeted.filter(x=>focusKey(x)===key).length;
       const relief=transitions.filter(x=>focusKey(x)===key).length;
       const full_release=transitions.filter(x=>focusKey(x)===key&&FULL_RELEASE_KINDS.has(x.kind)).length;
-      return {focus_tag:key,label:focusLabel(key),attempts,relief,full_release};
+      const relearning_attempts=relearning.filter(x=>focusKey(x)===key).length;
+      const reacquired=reacquiredFromRelearning.filter(x=>(x.focus_tag||x.domain_id)===key).length;
+      return {focus_tag:key,label:focusLabel(key),attempts,relief,full_release,relearning_attempts,reacquired,reacquisition_rate:ratio(reacquired,relearning_attempts)};
     }).sort((a,b)=>b.attempts-a.attempts||b.relief-a.relief||a.focus_tag.localeCompare(b.focus_tag));
     const masteredFocuses=[...new Set(mastery.map(x=>x.focus_tag||x.domain_id).filter(Boolean))].map(key=>({
       focus_tag:key,
@@ -77,6 +88,9 @@
       longitudinal_released:longitudinalReleased,
       followthrough_mastered:mastery.length,
       followthrough_reacquired:reacquired,
+      relearning_attempts:relearning.length,
+      relearning_reacquired:reacquiredFromRelearning.length,
+      relearning_reacquisition_rate:ratio(reacquiredFromRelearning.length,relearning.length),
       mastered_focuses:masteredFocuses,
       unresolved:Math.max(0,targeted.length-(downgraded+released)),
       focuses
@@ -93,10 +107,13 @@
     const masteryDetail=summary.followthrough_mastered
       ? ` ／ feedbackを次処方へ反映して克服 ${summary.followthrough_mastered}回${summary.followthrough_reacquired?`（うち再克服 ${summary.followthrough_reacquired}回）`:''}${summary.mastered_focuses?.length?`（${summary.mastered_focuses.map(x=>`${x.label}${x.episodes>1?`×${x.episodes}`:''}`).join('・')}）`:''}`
       : '';
-    const byFocus=summary.focuses?.length
-      ? `<br><span>${summary.focuses.map(x=>`${x.label||x.focus_tag}: 重点${x.attempts}／解除${x.relief}${x.full_release?`（完全解除${x.full_release}）`:''}`).join(' ／ ')}</span>`
+    const relearningDetail=summary.relearning_attempts
+      ? ` ／ 再学習 ${summary.relearning_attempts}回→再克服 ${summary.relearning_reacquired}回（${Math.round(100*summary.relearning_reacquisition_rate)}%）`
       : '';
-    return `<div id="${id}" class="micro-note" style="margin-top:7px"><b>${title}：</b>重点症例 ${summary.targeted}回 ／ 改善で重点解除 ${summary.relief}回（downgrade ${summary.downgraded}、完全解除 ${summary.released}）${releaseDetail}${masteryDetail}${summary.unresolved?` ／ 未解除 ${summary.unresolved}回`:''}。${byFocus}</div>`;
+    const byFocus=summary.focuses?.length
+      ? `<br><span>${summary.focuses.map(x=>`${x.label||x.focus_tag}: 重点${x.attempts}／解除${x.relief}${x.full_release?`（完全解除${x.full_release}）`:''}${x.relearning_attempts?`／再学習${x.relearning_attempts}→再克服${x.reacquired}`:''}`).join(' ／ ')}</span>`
+      : '';
+    return `<div id="${id}" class="micro-note" style="margin-top:7px"><b>${title}：</b>重点症例 ${summary.targeted}回 ／ 改善で重点解除 ${summary.relief}回（downgrade ${summary.downgraded}、完全解除 ${summary.released}）${releaseDetail}${masteryDetail}${relearningDetail}${summary.unresolved?` ／ 未解除 ${summary.unresolved}回`:''}。${byFocus}</div>`;
   }
 
   function routingDelta(learningSummary){
@@ -225,5 +242,5 @@
     refresh(root);
   }
 
-  return {load,loadArchives,focusKey,focusLabel,summarize,renderHtml,renderFinalHtml,routingDelta,learningRoutingConsistency,consistencyHtml,blockLearningConsistency,currentClosingFocus,focusHandoffHtml,blockConsistencyHtml,longitudinal,refresh,mount,TARGET_REASONS,RELIEF_KINDS,FULL_RELEASE_KINDS,CORE_LEARNING_IDS,FOCUS_LABELS,version:'1.9.0'};
+  return {load,loadArchives,focusKey,focusLabel,ratio,isRelearningPractice,summarize,renderHtml,renderFinalHtml,routingDelta,learningRoutingConsistency,consistencyHtml,blockLearningConsistency,currentClosingFocus,focusHandoffHtml,blockConsistencyHtml,longitudinal,refresh,mount,TARGET_REASONS,RELIEF_KINDS,FULL_RELEASE_KINDS,MASTERY_ACTION_STATUSES,CORE_LEARNING_IDS,FOCUS_LABELS,version:'1.11.0'};
 });

@@ -122,6 +122,16 @@
     if(!d)return '';
     const cta=d.querySelector('#caseNextCta');
     if(!visible(cta))return '';
+    // caseNextChallenge was an older preview node and is now removed by the
+    // canonical case-transition renderer. Resolve the label from the same active
+    // objective model that starts the next case, so the fixed mobile dock always
+    // carries the actual next repetition target without a debrief scroll.
+    try{
+      const model=root?.CaseTransitionCta?.nextChallengeModel?.();
+      const label=model?.label?.replace(/\s+/g,' ')?.trim()||'';
+      if(label)return `次の重点：${label}`;
+    }catch{}
+    // Keep the legacy preview only as a compatibility fallback for old/public DOM.
     const title=d.querySelector('#caseNextChallenge .learning-focus-title');
     const text=title?.textContent?.replace(/\s+/g,' ')?.trim()||'';
     return text?`次の重点：${text}`:'';

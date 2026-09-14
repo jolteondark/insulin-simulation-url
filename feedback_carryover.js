@@ -1,5 +1,6 @@
 (function(root){
   const STORAGE_KEY='ward_glucose_learning_curve_v1';
+  const ROUTING_ONLY_TAG='__active_objective__';
   const conciseByTag={
     basal_excess:'basal：減量方向を再検討',
     basal_deficit:'basal：増量方向を再検討',
@@ -25,9 +26,24 @@
     return {case_id:x.case_id||null,day:Number(x.day)||null,tag:x.primary_tag||null,text:String(x.text)};
   }
 
+  function activeObjective(){
+    return storedLearningData()?.active_objective||null;
+  }
+
   function activeFocusTag(){
-    const objective=storedLearningData()?.active_objective;
-    return objective?.focus_tag||null;
+    return activeObjective()?.focus_tag||null;
+  }
+
+  function routingOnlyCarry(objective,currentCaseId,prior=null){
+    if(!objective||objective.source_case_id===currentCaseId)return null;
+    return {
+      source:'previous_case',
+      case_id:objective.source_case_id||prior?.case_id||null,
+      day:prior?.day??null,
+      tag:objective.focus_tag||ROUTING_ONLY_TAG,
+      text:prior?.text||'',
+      routing_only:true
+    };
   }
 
   function latestCarryover(){
@@ -47,13 +63,23 @@
       if(Number(state.day)!==1)return null;
       const prior=storedTerminalFeedback();
       const currentCaseId=state.case?.case_id||null;
-      if(!prior||!prior.case_id||prior.case_id===currentCaseId)return null;
-      return {...prior,source:'previous_case'};
+      const priorBelongsToPreviousCase=Boolean(prior?.case_id&&prior.case_id!==currentCaseId);
+      if(priorBelongsToPreviousCase&&prior.tag)return prior;
+      // The prospective active objective is the canonical case-boundary handoff.
+      // Some terminal outcomes have no actionable primary_tag, so requiring a tagged
+      // terminal sentence here can break the chain even though routing succeeded.
+      // Emit a routing-only carry for downstream dose targeting; the visual carryover
+      // card suppresses it so we do not invent or duplicate terminal feedback text.
+      const routed=routingOnlyCarry(activeObjective(),currentCaseId,priorBelongsToPreviousCase?prior:null);
+      if(routed)return routed;
+      if(priorBelongsToPreviousCase)return prior;
+      return null;
     }catch{return null}
   }
 
   function shouldDisplay(carry,focusVisible,focusTag=null){
     if(!carry)return false;
+    if(carry.routing_only)return false;
     // A prospective LEARNING FOCUS is already the actionable handoff from the
     // prior debrief. Repeating the old terminal sentence beneath it adds
     // cognitive load without adding a new decision. Keep previous-case
@@ -126,7 +152,7 @@
     if(newCase)newCase.addEventListener('click',()=>queueMicrotask(render));
   }
 
-  const api={storedTerminalFeedback,activeFocusTag,latestCarryover,shouldDisplay,compactCarryText,render,version:'1.4.0'};
+  const api={storedTerminalFeedback,activeObjective,activeFocusTag,routingOnlyCarry,latestCarryover,shouldDisplay,compactCarryText,render,ROUTING_ONLY_TAG,version:'1.6.0'};
   if(root)root.FeedbackCarryover=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){

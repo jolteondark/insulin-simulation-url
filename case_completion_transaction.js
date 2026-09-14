@@ -7,6 +7,7 @@
   }
 })(typeof globalThis!=='undefined'?globalThis:this,function(root){
   const STORAGE_KEY='ward_glucose_learning_curve_v1';
+  const MAX_IDENTITY_QUARANTINE=100;
 
   function currentState(root){
     try{if(typeof state!=='undefined')return state}catch{}
@@ -20,9 +21,10 @@
         days:Array.isArray(x.days)?x.days:[],
         cases:Array.isArray(x.cases)?x.cases:[],
         objectives:Array.isArray(x.objectives)?x.objectives:[],
-        completion_records:x.completion_records&&typeof x.completion_records==='object'?x.completion_records:{}
+        completion_records:x.completion_records&&typeof x.completion_records==='object'?x.completion_records:{},
+        identity_integrity_quarantine:Array.isArray(x.identity_integrity_quarantine)?x.identity_integrity_quarantine:[]
       };
-    }catch{return {days:[],cases:[],objectives:[],completion_records:{}}}
+    }catch{return {days:[],cases:[],objectives:[],completion_records:{},identity_integrity_quarantine:[]}}
   }
   function save(root,data){root.localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}
 
@@ -85,19 +87,117 @@
     return releaseTransition(beforeObjective,routing);
   }
 
+  function quarantinedPractice(practice){
+    if(!practice||typeof practice!=='object')return practice;
+    return {
+      ...practice,
+      original_selection_reason:practice.selection_reason||null,
+      original_objective_status:practice.objective_status||null,
+      selection_reason:'identity_mismatch_quarantined',
+      objective_status:'quarantined',
+      learning_attribution_excluded:true
+    };
+  }
+
+  function quarantineIdentityMismatch(data,caseId,practice){
+    const integrity=practice?.objective_identity_integrity;
+    if(integrity?.status!=='mismatch')return {data,quarantined:false,removed_objectives:[]};
+    const objectives=Array.isArray(data?.objectives)?data.objectives:[];
+    const removed=objectives.filter(x=>x?.target_case_id===caseId);
+    const kept=objectives.filter(x=>x?.target_case_id!==caseId);
+    const priorRecord=data?.completion_records?.[caseId]||{};
+    const cases=Array.isArray(data?.cases)?data.cases.map(c=>c?.case_id===caseId?{
+      ...c,
+      adaptive_practice:quarantinedPractice(c?.adaptive_practice||practice),
+      learning_attribution_excluded:true,
+      learning_attribution_exclusion_reason:'objective_identity_mismatch'
+    }:c):[];
+    const completionRecords={
+      ...(data?.completion_records||{}),
+      [caseId]:{
+        ...priorRecord,
+        scored:null,
+        case_learning_trace:null,
+        followthrough_objective_release:null,
+        routing_transition:null,
+        learning_attribution_excluded:true,
+        learning_attribution_exclusion_reason:'objective_identity_mismatch'
+      }
+    };
+    const quarantine=[...(Array.isArray(data?.identity_integrity_quarantine)?data.identity_integrity_quarantine:[]),{
+      case_id:caseId,
+      reason:'objective_identity_mismatch',
+      integrity:JSON.parse(JSON.stringify(integrity)),
+      adaptive_practice:practice?JSON.parse(JSON.stringify(practice)):null,
+      objectives:removed.map(x=>JSON.parse(JSON.stringify(x))),
+      completion_attribution:{
+        scored:priorRecord?.scored?JSON.parse(JSON.stringify(priorRecord.scored)):null,
+        case_learning_trace:priorRecord?.case_learning_trace?JSON.parse(JSON.stringify(priorRecord.case_learning_trace)):null,
+        followthrough_objective_release:priorRecord?.followthrough_objective_release?JSON.parse(JSON.stringify(priorRecord.followthrough_objective_release)):null,
+        routing_transition:priorRecord?.routing_transition?JSON.parse(JSON.stringify(priorRecord.routing_transition)):null
+      },
+      recorded_at:new Date().toISOString()
+    }].slice(-MAX_IDENTITY_QUARANTINE);
+    return {
+      data:{...data,cases,objectives:kept,completion_records:completionRecords,identity_integrity_quarantine:quarantine},
+      quarantined:true,
+      removed_objectives:removed
+    };
+  }
+
   function renderRoutingTransition(root,transition){
     if(!root?.document)return;
     const body=root.document.querySelector('#caseDebriefBody');
     if(!body)return;
     body.querySelector('#routingTransitionOutcome')?.remove();
     if(!transition?.message)return;
-    body.insertAdjacentHTML('beforeend',`<div id="routingTransitionOutcome" class="micro-note" style="margin-top:8px"><b>学習routing更新：</b>${transition.message}</div>`);
+    const debriefDetails=body.querySelector('[data-debrief-details="1"]');
+    if(debriefDetails){
+      debriefDetails.insertAdjacentHTML('beforeend',`<div id="routingTransitionOutcome" class="micro-note" style="margin-top:6px"><b>学習routing更新：</b>${transition.message}</div>`);
+      return;
+    }
+    const learningDetails=body.querySelector('#caseLearningProgress details');
+    if(learningDetails){
+      learningDetails.insertAdjacentHTML('beforeend',`<div id="routingTransitionOutcome" class="micro-note" style="margin-top:6px"><b>学習routing更新：</b>${transition.message}</div>`);
+    }
+  }
+
+  function suppressDuplicateLearningFocus(root){
+    if(!root?.document)return false;
+    const body=root.document.querySelector('#caseDebriefBody');
+    const primary=body?.querySelector?.('[data-debrief-next="1"]');
+    const summary=body?.querySelector?.('#caseLearningProgress > .micro-note');
+    if(!primary||!summary||typeof summary.innerHTML!=='string')return false;
+    const next=summary.innerHTML.replace(/<b>今回の重点：<\/b>.*?<br>/,'');
+    if(next===summary.innerHTML)return false;
+    summary.innerHTML=next;
+    summary.dataset.primaryFocus='case-debrief';
+    return true;
+  }
+
+  function collapseSecondaryTerminalLearning(root){
+    if(!root?.document)return false;
+    const body=root.document.querySelector('#caseDebriefBody');
+    const primary=body?.querySelector?.('[data-debrief-next="1"]');
+    const details=body?.querySelector?.('[data-debrief-details="1"]');
+    if(!primary||!details||typeof details.appendChild!=='function')return false;
+    let moved=false;
+    for(const selector of ['#learningMomentum','#learningRunProgress']){
+      const panel=root.document.querySelector(selector);
+      if(!panel||panel===details||panel.parentNode===details)continue;
+      panel.dataset.terminalSecondary='1';
+      details.appendChild(panel);
+      moved=true;
+    }
+    return moved;
   }
 
   function refreshTerminalUi(root,data=null,caseId=null){
+    suppressDuplicateLearningFocus(root);
     root.CaseTransitionCta?.refresh?.();
     root.WardLearningMomentum?.refresh?.(root,data,caseId);
     root.WardLearningRunProgress?.refresh?.(root,data);
+    collapseSecondaryTerminalLearning(root);
     root.RepeatPlayActionDock?.refresh?.();
   }
 
@@ -135,10 +235,12 @@
       const applied=debrief.applyCompletion(withBase,caseId,model);
       const selection=tracking.getCapturedSelection(caseId);
       const attached=tracking.attachPractice(applied.data,caseId,selection);
-      const beforeObjective=attached.data?.active_objective||null;
-      const routed=resolveNextObjective(root,attached.data);
+      const quarantined=quarantineIdentityMismatch(attached.data,caseId,attached.record);
+      const attributionData=quarantined.data;
+      const beforeObjective=attributionData?.active_objective||null;
+      const routed=resolveNextObjective(root,attributionData);
       const next=routed.data;
-      const transition=routingTransition(beforeObjective,routed.routing);
+      const transition=quarantined.quarantined?null:routingTransition(beforeObjective,routed.routing);
       const nextObjective=routed.routing?.objective||next?.active_objective||null;
       const feedback=terminalFeedback(s);
       if(feedback)next.last_terminal_feedback=feedback;
@@ -147,14 +249,20 @@
         ...prior,
         routing_transition:transition,
         next_objective:nextObjective,
+        objective_identity_integrity:attached.record?.objective_identity_integrity||null,
+        learning_attribution_quarantined:quarantined.quarantined,
+        quarantined_objective_count:quarantined.removed_objectives.length,
         completion_transaction:{
-          version:11,
+          version:14,
           learning_curve_attached:true,
           adaptive_practice_attached:Boolean(attached.record),
           terminal_feedback_attached:Boolean(feedback),
           next_objective_resolved:Boolean(routed.routing),
           next_objective_attached:Boolean(nextObjective),
           routing_transition_attached:Boolean(transition),
+          learning_attribution_quarantined:quarantined.quarantined,
+          attribution_signals_neutralized:quarantined.quarantined,
+          learning_trace_neutralized:quarantined.quarantined,
           learning_run_refreshed:Boolean(root?.WardLearningRunProgress?.refresh),
           momentum_feedback_ready:true,
           write_count:1,
@@ -169,7 +277,7 @@
       learning.render?.();
       root.CaseLearningProgress?.refresh?.();
       refreshTerminalUi(root,next,caseId);
-      return {data:next,model,scored:applied.scored||null,practice:attached.record||null,routing:routed.routing,routing_transition:transition,next_objective:nextObjective,terminal_feedback:feedback,reused:false};
+      return {data:next,model,scored:applied.scored||null,practice:attached.record||null,routing:routed.routing,routing_transition:transition,next_objective:nextObjective,terminal_feedback:feedback,learning_attribution_quarantined:quarantined.quarantined,reused:false};
     }catch(e){
       console.error('case completion transaction',e);
       return null;
@@ -183,5 +291,5 @@
     completeAfterTerminal(root);
   }
 
-  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,terminalFeedback,resolveNextObjective,releaseTransition,routingTransition,renderRoutingTransition,refreshTerminalUi,mount,version:'1.10.0'};
+  return {complete,currentState,load,ownsTerminalCompletion,completedRecord,terminalFeedback,resolveNextObjective,releaseTransition,routingTransition,quarantinedPractice,quarantineIdentityMismatch,renderRoutingTransition,suppressDuplicateLearningFocus,collapseSecondaryTerminalLearning,refreshTerminalUi,mount,version:'1.16.0'};
 });

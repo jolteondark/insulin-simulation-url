@@ -42,6 +42,7 @@
   }
   function loadObjective(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'),o=x.active_objective;if(!isAdaptiveObjective(o))return null;return {...o,focus_tag:o.focus_tag||recentFocusTag(x,o)}}catch{return null}}
   function finiteNumber(x){const n=Number(x);return Number.isFinite(n)?n:null}
+  function optionalFiniteNumber(x){if(x===null||x===undefined||x==='')return null;return finiteNumber(x)}
   function directionalTarget(spec,focusTag){const direction=FEEDBACK_DIRECTION[focusTag]||null;if(!direction)return null;return direction==='low'?-spec.desired_deviation:spec.desired_deviation}
   function focusMeasure(bundle,domain,focusTag=null){
     const p=bundle.patient||{},bg=bundle.case?.previous_day_4point_bg_mg_dl||{},spec=DOMAIN_FOCUS[domain];
@@ -69,7 +70,10 @@
       longitudinal_reference_rate:finiteNumber(objective?.longitudinal_reference_rate),
       longitudinal_delta:finiteNumber(objective?.longitudinal_delta),
       tendency_recent_cases:finiteNumber(objective?.tendency_recent_cases),
-      tendency_case_hits:finiteNumber(objective?.tendency_case_hits)
+      tendency_case_hits:finiteNumber(objective?.tendency_case_hits),
+      learning_curve_signal_cases:optionalFiniteNumber(objective?.learning_curve_signal_cases),
+      learning_curve_failure_cases:optionalFiniteNumber(objective?.learning_curve_failure_cases),
+      learning_curve_failure_score:optionalFiniteNumber(objective?.learning_curve_failure_score)
     };
   }
   function select(generate,seed,objective){
@@ -80,5 +84,5 @@
     return {...pick.b,adaptive_selection:{domain_id:objective.domain_id,focus_tag:focusTag,persistent_streak:Number(objective.persistent_streak)||0,...routingContext(objective),pool_size:xs.length,eligible_pool_size:eligible.length,selected_seed:pick.s,standard_seed:standard.s,fallback_to_standard:pick.s===standard.s&&eligible.length===1,selected_score:pick.v,standard_score:standard.v,selected_focus:pick.focus,standard_focus:standard.focus,selected_drift:pick.drift,drift_limits:{...MAX_DRIFT},policy:'standard generator outputs only; persistent, longitudinal, or sustained 3-of-3 recent-tendency education objectives may bias selection toward a moderate visible prior-day signal in the matching POC domain; directional feedback is preserved when available; every candidate retains normal physiology/safety gates and bounded drift from the standard same-seed case'}};
   }
   function selectStored(generate,seed){return select(generate,seed,loadObjective())}
-  return {select,selectStored,loadObjective,recentFocusTag,isAdaptiveObjective,score,focusMeasure,directionalTarget,driftFromStandard,objectiveIdentity,routingContext,MAX_DRIFT,DOMAIN_FOCUS,DOMAIN_TAGS,FEEDBACK_DIRECTION,MIN_STREAK,POOL,version:'1.6.0'};
+  return {select,selectStored,loadObjective,recentFocusTag,isAdaptiveObjective,score,focusMeasure,directionalTarget,driftFromStandard,objectiveIdentity,routingContext,MAX_DRIFT,DOMAIN_FOCUS,DOMAIN_TAGS,FEEDBACK_DIRECTION,MIN_STREAK,POOL,version:'1.7.0'};
 });

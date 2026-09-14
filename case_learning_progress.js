@@ -240,12 +240,35 @@
     return `<div id="adaptivePracticeProgress" style="margin-top:10px"><div class="micro-note"><b>重点練習後の改善：</b>${summary.improved}/${summary.n}症例（${pct(summary.rate)}）${fallback}</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px">${rows}</div>${attention}${lifecycle}</div>`;
   }
 
+  function bestTrend(summary){
+    if(!summary?.ready)return null;
+    return summary.metrics.filter(x=>x.delta_pp!=null).sort((a,b)=>Math.abs(b.delta_pp)-Math.abs(a.delta_pp))[0]||null;
+  }
+  function compactSummaryHtml(summary,adaptiveSummary,tendencySummary){
+    const priority=tendencySummary?.priority||null;
+    const trend=bestTrend(summary);
+    const focusLine=priority
+      ? `<b>今回の重点：</b>${priority.label} → ${priority.target}`
+      : `<b>今回の重点：</b>${adaptiveSummary?.attention?.[0]?.label||'明らかな反復課題なし'}`;
+    const adaptiveLine=adaptiveSummary?.ready
+      ? `<b>重点練習：</b>${adaptiveSummary.improved}/${adaptiveSummary.n}症例で改善（${pct(adaptiveSummary.rate)}）`
+      : '<b>重点練習：</b>評価データ蓄積中';
+    const trendLine=trend
+      ? `<b>長期変化：</b>${trend.label} ${pct(trend.early_rate)} → ${pct(trend.recent_rate)}（${deltaText(trend.delta_pp)}）`
+      : `<b>長期変化：</b>${summary?.n||0}/4症例。比較データ蓄積中`;
+    return `<div class="micro-note"><b>学習サマリー</b><br>${focusLine}<br>${adaptiveLine}<br>${trendLine}</div>`;
+  }
+
   function renderHtml(summary,adaptiveSummary,tendencySummary){
     const adaptive=renderAdaptiveHtml(adaptiveSummary||{ready:false});
     const tendency=renderPrescribingTendencyHtml(tendencySummary||{ready:false});
-    if(!summary.ready)return `<div id="caseLearningProgress" class="micro-note" style="margin-top:8px"><b>症例横断の学習変化：</b>${summary.n}/4症例。4症例完了後から、最近の症例で何が改善したかを表示します。${tendency}${adaptive}</div>`;
-    const cards=summary.metrics.map(m=>`<div class="prev-dose"><div class="name">${m.label}</div><div class="value" style="font-size:15px">${pct(m.early_rate)} → ${pct(m.recent_rate)}</div><div class="micro-note">${deltaText(m.delta_pp)}</div><div class="micro-note">評価 ${m.early_n}/${summary.group_n} → ${m.recent_n}/${summary.group_n}症例</div></div>`).join('');
-    return `<div id="caseLearningProgress" style="margin-top:10px"><div class="micro-note"><b>症例横断の学習変化：</b>初期${summary.group_n}症例 → 最近${summary.group_n}症例</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px">${cards}</div>${tendency}${adaptive}</div>`;
+    const compact=compactSummaryHtml(summary,adaptiveSummary||{ready:false},tendencySummary||{ready:false});
+    let detail='';
+    if(summary.ready){
+      const cards=summary.metrics.map(m=>`<div class="prev-dose"><div class="name">${m.label}</div><div class="value" style="font-size:15px">${pct(m.early_rate)} → ${pct(m.recent_rate)}</div><div class="micro-note">${deltaText(m.delta_pp)}</div><div class="micro-note">評価 ${m.early_n}/${summary.group_n} → ${m.recent_n}/${summary.group_n}症例</div></div>`).join('');
+      detail=`<div class="micro-note" style="margin-top:8px"><b>初期${summary.group_n}症例 → 最近${summary.group_n}症例</b></div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px">${cards}</div>${tendency}${adaptive}`;
+    }else detail=`<div class="micro-note" style="margin-top:8px">${summary.n}/4症例。4症例完了後から初期群と最近群を比較します。</div>${tendency}${adaptive}`;
+    return `<div id="caseLearningProgress" style="margin-top:10px">${compact}<details style="margin-top:8px"><summary class="micro-note" style="cursor:pointer">詳細な学習指標を見る</summary>${detail}</details></div>`;
   }
 
   function refresh(){
@@ -277,5 +300,5 @@
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);
     else mount();
   }
-  return {caseMetric,objectiveForCase,summarize,summarizePrescribingTendency,tendencyLabel,issueRate,issueTrendLabel,summarizeAdaptivePractice,practiceKey,practiceLabel,renderPrescribingTendencyHtml,renderAdaptiveHtml,renderHtml,refresh,METRICS,DOMAIN_LABELS,FOCUS_LABELS,TENDENCY_ISSUES,REPEATED_UNMET_N,version:'1.8.0'};
+  return {caseMetric,objectiveForCase,summarize,summarizePrescribingTendency,tendencyLabel,issueRate,issueTrendLabel,summarizeAdaptivePractice,practiceKey,practiceLabel,renderPrescribingTendencyHtml,renderAdaptiveHtml,bestTrend,compactSummaryHtml,renderHtml,refresh,METRICS,DOMAIN_LABELS,FOCUS_LABELS,TENDENCY_ISSUES,REPEATED_UNMET_N,version:'1.9.0'};
 });

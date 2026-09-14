@@ -32,6 +32,18 @@
     return true;
   }
 
+  function scheduleCaseStartHandoff(){
+    try{
+      const nav=root?.RepeatPlayNavigation;
+      if(typeof nav?.afterCaseStart==='function')return nav.afterCaseStart();
+    }catch(e){console.error('case transition handoff',e)}
+    // Progressive fallback for partial/older embeddings that have not loaded
+    // the unified RepeatPlayNavigation owner yet.
+    scheduleCaseStartNavigation();
+    schedulePreferredDoseFocus();
+    return true;
+  }
+
   function loadLearningData(){
     try{return JSON.parse(root?.localStorage?.getItem(STORAGE_KEY)||'{}')}
     catch{return {}}
@@ -59,6 +71,21 @@
     return `${p>=0?'+':''}${p}pt`;
   }
 
+  function isLearningCurveCurriculum(objective){
+    return objective?.routing_source==='learning_curve_curriculum';
+  }
+
+  function curriculumEvidenceText(objective){
+    const signals=finiteOrNull(objective?.learning_curve_signal_cases);
+    const failures=finiteOrNull(objective?.learning_curve_failure_cases);
+    const score=finiteOrNull(objective?.learning_curve_failure_score);
+    if(signals===null&&failures===null&&score===null)return '直近少数症例の複数の学習信号から、この弱点を重点化しています。';
+    const windowText=signals===null?'直近少数症例':`直近${Math.max(1,Math.round(signals))}症例`;
+    const failureText=failures===null?'複数信号':`課題 ${Math.max(0,Math.round(failures))}/${Math.max(1,Math.round(signals??failures))}症例`;
+    const scoreText=score===null?'':`・重み ${Math.round(score)}`;
+    return `${windowText}の${failureText}${scoreText}から、この弱点を重点化しています。`;
+  }
+
   function nextChallengeModel(dataArg){
     const data=dataArg||loadLearningData();
     const objective=data?.active_objective||null;
@@ -77,6 +104,7 @@
     let reason='前症例で残った1方向を、次症例でも結果ベースで確認します。';
     if(streak>=2)reason=`${streak}症例連続で残った弱点です。次症例も同じ方向を重点練習し、解除できるか確認します。`;
     else if(objective.selection_reason==='safety')reason='前症例のhidden safety signalを優先します。安全性を保ちながら処方方向を修正できるか確認します。';
+    else if(isLearningCurveCurriculum(objective))reason=`${curriculumEvidenceText(objective)} 次症例で${objectiveLabel(objective)}を練習し、改善したら次の弱点へ進みます。`;
     else if(objective.selection_reason==='longitudinal'){
       const recent=objective.longitudinal_recent_rate??objective.source_rate;
       const reference=objective.longitudinal_reference_rate;
@@ -98,11 +126,31 @@
     return nextChallengeModel(dataArg);
   }
 
+  function currentState(){
+    try{if(typeof state!=='undefined')return state}catch{}
+    return root?.state||null;
+  }
+
+  function commitTerminalBeforeNextCase(){
+    const s=currentState();
+    const tx=root?.WardCaseCompletionTransaction;
+    if(!s?.over||typeof tx?.complete!=='function')return {required:false,committed:true,result:null};
+    try{
+      const result=tx.complete(root);
+      return {required:true,committed:Boolean(result),result:result||null};
+    }catch(e){
+      console.error('case transition terminal commit',e);
+      return {required:true,committed:false,result:null};
+    }
+  }
+
   function startNextCase(){
     if(typeof root?.startGenerated!=='function')return false;
+    const terminalCommit=commitTerminalBeforeNextCase();
+    if(terminalCommit.required&&!terminalCommit.committed)return false;
     root.startGenerated();
     try{root.WardCaseDebrief?.refresh?.()}catch(e){console.error('case transition debrief refresh',e)}
-    scheduleCaseStartNavigation();
+    scheduleCaseStartHandoff();
     return true;
   }
 
@@ -142,20 +190,18 @@
     if(key!=='n'&&key!=='enter')return false;
     if(key==='enter'&&isNativeActivationTarget(event.target))return false;
     const d=doc();
-    const s=root?.state||(typeof state!=='undefined'?state:null);
+    const s=currentState();
     const btn=d?.querySelector?.('#'+CTA_ID);
     if(!s?.over||!btn)return false;
     event.preventDefault?.();
-    const started=startNextCase();
-    if(started)schedulePreferredDoseFocus();
-    return started;
+    return startNextCase();
   }
 
   function refresh(){
     try{
       const d=doc();
       if(!d)return;
-      const s=root?.state||(typeof state!=='undefined'?state:null);
+      const s=currentState();
       if(!s)return;
       const original=terminalRestartButton();
       const debrief=d.querySelector('#caseDebrief');
@@ -192,7 +238,7 @@
     refresh();
   }
 
-  const api={ensureCta,refresh,mount,navigateCaseStart,scheduleCaseStartNavigation,schedulePreferredDoseFocus,loadLearningData,objectiveLabel,finiteOrNull,percent,percentagePointDelta,nextChallengeModel,renderPreview,removePreview,startNextCase,isTypingTarget,isNativeActivationTarget,handleKeydown,version:'1.8.0'};
+  const api={ensureCta,refresh,mount,navigateCaseStart,scheduleCaseStartNavigation,schedulePreferredDoseFocus,scheduleCaseStartHandoff,loadLearningData,objectiveLabel,finiteOrNull,percent,percentagePointDelta,isLearningCurveCurriculum,curriculumEvidenceText,nextChallengeModel,renderPreview,removePreview,currentState,commitTerminalBeforeNextCase,startNextCase,isTypingTarget,isNativeActivationTarget,handleKeydown,version:'2.2.0'};
   if(root)root.CaseTransitionCta=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   const d=doc();

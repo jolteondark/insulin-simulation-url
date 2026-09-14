@@ -35,8 +35,6 @@
   }
 
   function focusPreferredDose(){
-    // When the previous day's feedback maps to a concrete dose, preserve that
-    // pedagogic handoff instead of overwriting it with the generic first field.
     try{
       const target=window.ActionableDoseTarget?.currentTarget?.();
       const input=target?.inputId?document.getElementById(target.inputId):null;
@@ -52,8 +50,6 @@
   }
 
   function focusResultAction(){
-    // Terminal flow replaces restartBtn with caseNextCta. Prefer the visible CTA
-    // and never strand keyboard users on the hidden legacy restart button.
     const candidates=[
       document.getElementById('caseNextCta'),
       document.getElementById('nextDayBtn'),
@@ -89,10 +85,6 @@
   }
 
   function shouldRefocusInput(event){
-    // Pointer/touch-generated clicks have a positive click count. Do not move
-    // focus into the numeric input in that path: mobile browsers may open the
-    // soft keyboard and shift the viewport after every +/- tap. Keyboard or
-    // programmatic activation keeps the existing input-focus behavior.
     return !(Number(event?.detail)>0);
   }
 
@@ -100,9 +92,11 @@
     const submit=document.getElementById('submitBtn');
     if(!submit||submit.disabled)return false;
     submit.click();
-    // app.js and education modules update the result panel synchronously.
-    // Move keyboard focus to the resulting action without changing scroll.
-    setTimeout(focusResultAction,0);
+    // RepeatPlayNavigation owns post-submit scroll + action focus in the real
+    // application. Keep this fallback only for older/partial embeddings where
+    // that owner is absent; this preserves progressive compatibility without
+    // reintroducing duplicate timers in the mounted Web app.
+    if(typeof window?.RepeatPlayNavigation?.afterSubmit!=='function')setTimeout(focusResultAction,0);
     return true;
   }
 
@@ -120,9 +114,7 @@
     return fastSubmit?'fast-submit':'submit';
   }
 
-  function stepLabel(delta){
-    return `${delta>0?'+':''}${delta}`;
-  }
+  function stepLabel(delta){return `${delta>0?'+':''}${delta}`;}
 
   function decorateCard(card){
     if(card.dataset.quickAdjustReady==='1')return;
@@ -131,13 +123,11 @@
     input.dataset.previousScheduledDose=String(clampDose(input.value));
     input.addEventListener('keydown',submitFromDoseInput);
     input.addEventListener('input',()=>updateDoseChangeHint(input));
-
     const hint=document.createElement('div');
     hint.className='dose-change-hint';
     hint.setAttribute('aria-live','polite');
     card.appendChild(hint);
     updateDoseChangeHint(input);
-
     const controls=document.createElement('div');
     controls.className='dose-quick-adjust';
     controls.setAttribute('aria-label','投与量をすばやく調整');
@@ -168,11 +158,15 @@
 
   function onDocumentClick(event){
     const id=event?.target?.id;
-    if(!['nextDayBtn','caseNextCta','restartBtn'].includes(id))return;
-    // The destination state is rendered before the click bubbles here. Defer
-    // once so navigation can position the page, then prefer the actionable dose
-    // selected by the prior day's feedback. Fall back to breakfast on a fresh case.
+    if(id==='caseNextCta')return false;
+    if(!['nextDayBtn','restartBtn'].includes(id))return false;
+    // In the mounted application RepeatPlayNavigation owns the complete
+    // day/case transition handoff (move + focus). Do not schedule a second focus
+    // timer here. Older/partial embeddings retain the legacy focus-only fallback.
+    if(id==='nextDayBtn'&&typeof window?.RepeatPlayNavigation?.afterDayAdvance==='function')return false;
+    if(id==='restartBtn'&&typeof window?.RepeatPlayNavigation?.afterCaseStart==='function')return false;
     setTimeout(focusPreferredDose,0);
+    return true;
   }
 
   function installStyles(){
@@ -185,13 +179,7 @@
       .dose-step-btn{border:1px solid #dde1e7;background:#fff;border-radius:9px;padding:8px 2px;font-size:12px;font-weight:800;color:#59616b;touch-action:manipulation;min-width:0;min-height:38px}
       .dose-step-btn:active{transform:translateY(1px);background:#f0f2f5}
       .dose-step-major{font-weight:900;background:#f8f9fb}
-      @media(max-width:430px){
-        #${GRID_ID}{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
-        .dose-input-card{padding:9px 8px}
-        .dose-change-hint{font-size:12px;margin-top:4px;min-height:16px}
-        .dose-quick-adjust{gap:5px;margin-top:5px}
-        .dose-step-btn{min-height:44px;padding:9px 2px;font-size:13px}
-      }
+      @media(max-width:430px){#${GRID_ID}{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.dose-input-card{padding:9px 8px}.dose-change-hint{font-size:12px;margin-top:4px;min-height:16px}.dose-quick-adjust{gap:5px;margin-top:5px}.dose-step-btn{min-height:44px;padding:9px 2px;font-size:13px}}
     `;
     document.head.appendChild(style);
   }
@@ -208,5 +196,5 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.DoseAdjustControls={clampDose,isUsableAction,doseInputs,nextDoseInput,focusFirstDose,focusPreferredDose,focusResultAction,shouldRefocusInput,previousScheduledDose,doseDeltaText,updateDoseChangeHint,submitCurrentDoses,submitFromDoseInput,steps:[...STEPS],version:'2.0.0'};
+  window.DoseAdjustControls={clampDose,isUsableAction,doseInputs,nextDoseInput,focusFirstDose,focusPreferredDose,focusResultAction,shouldRefocusInput,previousScheduledDose,doseDeltaText,updateDoseChangeHint,submitCurrentDoses,submitFromDoseInput,onDocumentClick,steps:[...STEPS],version:'2.2.0'};
 })();
