@@ -24,7 +24,6 @@
   function finite(x){return Number.isFinite(Number(x))}
   function fmt(x){const n=Number(x);return Number.isInteger(n)?String(n):n.toFixed(1)}
   function correctionFor(rec,key){const k=key.replace('_u','');return Number(rec?.result?.correction_doses_u?.[k])||0}
-  function actualRapid(rec,key){return Number(rec?.order?.[key]||0)+correctionFor(rec,key)}
   function usedCorrectionDose(rec){
     const doses=rec?.result?.correction_doses_u||{};
     return ['breakfast','lunch','dinner'].some(k=>Number(doses[k])>0);
@@ -159,9 +158,9 @@
       if(terminal)return;
       const panel=document.querySelector('#resultPanel');
       if(!panel||panel.querySelector('.daily-feedback'))return;
-      const kicker=panel.querySelector('.result-kicker');
-      if(kicker)kicker.insertAdjacentHTML('afterend',renderHtml(analysis));
-      else panel.insertAdjacentHTML('afterbegin',renderHtml(analysis));
+      const nextDay=panel.querySelector('#nextDayBtn');
+      if(nextDay)nextDay.insertAdjacentHTML('beforebegin',renderHtml(analysis));
+      else panel.insertAdjacentHTML('beforeend',renderHtml(analysis));
     }catch(e){console.error('daily feedback',e)}
   }
 
@@ -173,7 +172,7 @@
     submit.addEventListener('click',annotateLatest);
   }
 
-  const api={analyze,emphasizeForObjective,selectPrimary,compactDisplayText,renderHtml,annotateLatest,usedCorrectionDose,version:'1.8.0'};
+  const api={analyze,emphasizeForObjective,selectPrimary,compactDisplayText,renderHtml,annotateLatest,usedCorrectionDose,version:'1.9.0'};
   if(root)root.DailyFeedback=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   if(typeof document!=='undefined'){
